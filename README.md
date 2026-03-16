@@ -30,6 +30,8 @@ Jeśli chcemy konstruktywnie i mądrze wykorzystać tę potężną siłę, autom
 
 **Nasza szansa historyczna:** Potencjał generatywnej sztucznej inteligencji sam z siebie jest potężny, ale połączony ze zjednoczonym ludzkim intelektem tworzy siłę bez precedensu. Obecnie w globalnym wyścigu inne państwa i kraje skupiają się głównie na budowaniu coraz potężniejszych modeli (LLM) lub wyścigu o moc obliczeniową (hardware). **Polska może osiągnąć pozycję globalnego lidera nie przez budowę modelu, ale przez jego *inteligentne i celowe wykorzystanie***. Jeśli skonsolidujemy nasz zasób – intelekt polskich specjalistów – do wspólnego, zoptymalizowanego projektowania i produkcji dóbr (skalowalnej automatyzacji), mamy szansę odnieść gigantyczny sukces gospodarczy w nowej erze.
 
+Warto przy tym wyraźnie podkreślić: **celem samym w sobie nie jest budowanie kolejnego modelu AI**, lecz wypracowanie genialnych pomysłów na ich praktyczne wykorzystanie oraz wdrożenie procesów, które realnie odmienią naszą rzeczywistość gospodarczą. Intelektualna przewaga leży w *koncepcji zastosowania*, a nie w samym narzędziu.
+
 ## Tryb działania i proces twórczy
 
 Nasze działanie opiera się na prostym założeniu — **intelekt wyprzedza kapitał**:
