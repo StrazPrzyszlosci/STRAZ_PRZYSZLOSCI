@@ -16,7 +16,7 @@ Nasze działanie opiera się na prostym założeniu — **intelekt wyprzedza kap
 
 2. **Burza mózgów i analiza** – repozytorium służy jako przestrzeń do zgłaszania i szerokiej analizy pomysłów i możliwości. 
 
-3. **Krystalizacja genialychj idei** – cały proces opiera się o bezwarunkowy intelekt i pracę merytoryczną, z pełnym skupieniem nad tym, aby wyłuskać spójne, genialne koncepcję np. zautomatyzowana produkcja rybna???
+3. **Krystalizacja genialych idei** – cały proces opiera się o bezwarunkowy intelekt i pracę merytoryczną, z pełnym skupieniem nad tym, aby wyłuskać spójne, genialne koncepcję np. zautomatyzowana produkcja rybna???
 
 4. **Kapitał w służbie idei** – środki finansowe będą gromadzone, jednak zostaną uruchomione **dopiero na końcu**, kiedy genialny pomysł będzie gotowy do konkretnej realizacji. 
 
