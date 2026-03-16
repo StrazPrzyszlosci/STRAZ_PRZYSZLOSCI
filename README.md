@@ -1,5 +1,7 @@
 # NARODOWE SIŁY INTELEKTUALNE POLSKI
 
+![Ilustracja NSIP](NSIP.png)
+
 Zapraszam wszystkich Polskich inteligentów do udziału w NARODOWYM WYSIŁKU INTELEKTUALNYM.
 
 To repozytorium jest częścią inicjatywy budowy NARODOWYCH SIŁ INTELEKTUALNYCH, które ma na celu zebrać wszystkich Inteligentów Polskich w jednym miejscu, by wspólnie stworzyć NARODOWE CENTRUM WYKORZYSTANIA Ai. 
