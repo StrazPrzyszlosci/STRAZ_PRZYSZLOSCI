@@ -17,6 +17,7 @@ Aby realnie odpowiedzieć na najpilniejsze problemy gospodarcze i społeczne, na
 3. **Energia:** Opracowanie systemów planowania, magazynowania i dystrybucji zielonej oraz konwencjonalnej energii, by zminimalizować jej straty i zoptymalizować gospodarkę sieciową.
 4. **Optymalizacja zużycia zasobów strategicznych:** Racjonalne, poparte zaawansowaną analizą danych, zarządzanie wodą, surowcami i ziemią, eliminujące gospodarkę rabunkową.
 5. **Logistyka i transport:** Wykorzystanie AI do inteligentnego zarządzania łańcuchami dostaw, trasami przesyłowymi i komunikacją zbiorową w celu minimalizacji czasu, kosztów i śladu węglowego.
+6. **Finanse (Fundusze):** Pozyskiwanie środków strategicznych, inteligentny wybór programów grantowych i inwestycji dla nowo powstających projektów.
 
 System ten ma służyć jako potężne wsparcie dla tradycyjnej gospodarki państwowej, w całości się z nią przeplatając i wspomagając jej procesy, jednak w taki sposób, aby nie generować dla niej niepotrzebnej konkurencji. Naszym celem jest synergia, a nie rywalizacja.
 
@@ -57,5 +58,7 @@ Szukamy specjalistów z zakresu marketingu, PR i budowania społeczności, któr
 Niezależnie od tego, jakie posiadasz kompetencje – techniczne, analityczne czy organizacyjne – wsparcie każdego z Was jest kluczowe. Przygotowaliśmy **[Zasady współpracy i instrukcję obsługi Git (CONTRIBUTING.md)](CONTRIBUTING.md)**, w której znajdziesz przystępny poradnik m.in. jak zgłaszać swoje pomysły oraz jak pobierać repozytorium i przesyłać modyfikacje kodu lub tekstów.
 
 **Dołącz, jeśli chcesz współtworzyć przyszłość Polskiej Gospodarki!**
+
+*(Strona internetowa inicjatywy już w trakcie przygotowywania - wkrótce udostępnimy więcej szczegółów!)*
 
 https://github.com/KrzyZuch/POLSKIEAi

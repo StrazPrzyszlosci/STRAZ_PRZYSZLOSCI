@@ -15,9 +15,11 @@ Poniżej znajduje się lista podstawowych działań inicjacyjnych, które mogą 
 * **Networking i outreach:** Aktywne poszukiwanie i zapraszanie do współpracy liderów opinii, naukowców, inżynierów oraz ekspertów dziedzinowych w Polsce.
 
 ## 3. Content Marketing
+*(Strona internetowa inicjatywy już w trakcie przygotowywania przez założyciela - wkrótce udostępnimy więcej szczegółów!)*
+
 * **Tworzenie treści eksperckich:** Redagowanie postów, artykułów na bloga/publikacji w zewnętrznych mediach.
 * **Materiały wideo i grafiki:** Projektowanie identyfikacji wizualnej, tworzenie materiałów promocyjnych (infografiki, krótkie formy wideo tłumaczące koncepcję NARODOWYCH SIŁ INTELEKTUALNYCH).
-* **Copywriting:** Poprawa opisów, szlifowanie treści zamieszczanych w repozytorium, dokumentacjach oraz wizytówkach projektu.
+* **Copywriting:** Poprawa opisów, szlifowanie treści zamieszczanych w repozytorium, dokumentacjach, stronie WWW oraz wizytówkach projektu.
 
 ## 4. Pozycjonowanie i Analityka (SEO/SEM)
 * **Odpowiedni dobór słów kluczowych i SEO:** Optymalizacja treści, by projekt był łatwo wyszukiwalny dla fraz związanych z polską sztuczną inteligencją, pracą dla dobra społecznego, automatyzacją gospodarki.
