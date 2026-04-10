@@ -18,8 +18,9 @@ Aby realnie odpowiedzieć na najpilniejsze problemy gospodarcze i społeczne, na
 3. **Energia:** Opracowanie systemów planowania, magazynowania i dystrybucji zielonej oraz konwencjonalnej energii, by zminimalizować jej straty i zoptymalizować gospodarkę sieciową.
    *   *Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md).
 4. **Optymalizacja zużycia zasobów strategicznych:** Racjonalne, poparte zaawansowaną analizą danych, zarządzanie wodą, surowcami i ziemią, eliminujące gospodarkę rabunkową.
-   *   *Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md), [Upcykling LED TV](PROJEKTY/04_lampa_z_recyklingu_tv.md).
+   *   *Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md), [Upcykling LED TV](PROJEKTY/04_lampa_z_recyklingu_tv.md), [Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md).
 5. **Logistyka i transport:** Wykorzystanie AI do inteligentnego zarządzania łańcuchami dostaw, trasami przesyłowymi i komunikacją zbiorową w celu minimalizacji czasu, kosztów i śladu węglowego.
+   *   *Inspiracje:* [Smartfony jako Sterowniki Edge Computing](PROJEKTY/06_smartfony_jako_sterowniki.md).
 6. **Finanse (Fundusze):** Pozyskiwanie środków strategicznych, inteligentny wybór programów grantowych i inwestycji dla nowo powstających projektów.
 
 System ten ma służyć jako potężne wsparcie dla tradycyjnej gospodarki państwowej, w całości się z nią przeplatając i wspomagając jej procesy, jednak w taki sposób, aby nie generować dla niej niepotrzebnej konkurencji. Naszym celem jest synergia, a nie rywalizacja.
@@ -59,6 +60,7 @@ W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiąza
 *   **[03. Edge AI w Pasterstwie](PROJEKTY/03_ai_monitoring_porodow.md)** – Lokalna analityka obrazu wspierająca hodowców w trudnych warunkach.
 *   **[04. Solarne Okna z Recyklingu TV](PROJEKTY/04_lampa_z_recyklingu_tv.md)** – Upcykling elektrośmieci jako źródło darmowego światła i kapitału.
 *   **[05. Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md)** – Zaawansowany odzysk ogniw krzemowych przy użyciu technologii CNC.
+*   **[06. Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md)** – Wykorzystanie starej elektroniki jako potężnych węzłów sterujących (Edge Computing).
 
 **Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**
 
