@@ -31,4 +31,9 @@ Dążymy do stworzenia narodowego frameworku, który pozwoli na masowe wykorzyst
 - [Projekt "Stary smartfon jako mikrokontroler"](https://github.com/KrzyZuch/STRAZ_PRZYSZLOSCI/)
 
 ---
-*Intelekt wyprzedza kapitał!*
+### Deep-Dive Techniczny:
+Dla zainteresowanych konkretną implementacją odczytu sensorów i sterowania aktuatorami (USB/UART), przygotowaliśmy szczegółową analizę kodu źródłowego na bazie projektu PhoneUAV:
+👉 **[07. Uniwersalna Platforma Sterowania (Sensory i Aktuatory)](07_uniwersalna_platforma_sterowania.md)**
+
+---
+*Intelekt wyprzedza Kapitał!*

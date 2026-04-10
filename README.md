@@ -47,7 +47,7 @@ Warto przy tym wyraźnie podkreślić: **celem samym w sobie nie jest budowanie 
 
 2. **Burza mózgów, analiza, planowanie oraz praca twórcza** – repozytorium służy jako przestrzeń do zgłaszania i szerokiej analizy pomysłów i możliwości. 
 
-3. **Krystalizacja genialnych idei** – cały proces opiera się o bezwarunkowy intelekt i pracę merytoryczną. Specjaliści tworzą niezwykle precyzyjne projekty technologiczne (np. zautomatyzowana produkcja żywności/aquaponika), które są fundamentem pod dalszą realizację.
+3. **Krystalizacja genialnych idei oraz pozyskiwanie zasobów** – cały proces opiera się o bezwarunkowy intelekt i pracę merytoryczną. Wyszukiwanie, katalogowanie i opisywanie zaawansowanych repozytoriów (jak np. sterowanie sensoryczne platformami drona) to kluczowy wkład intelektualny, który pozwala AI na błyskawiczne wdrażanie nowych funkcjonalności bez pisania kodu od zera. Eksperci tworzą i dostarczają niezwykle precyzyjne zasoby technologiczne, będące fundamentem pod dalszą realizację.
 
 4. **Kapitał w służbie idei i samonapędzająca się gospodarka** – przy minimalnych nakładach uruchamiana jest produkcja maksymalnie autonomiczna, sterowana przez AI i zasilana z odnawialnych źródeł energii (OZE). Wygenerowany produkt i zysk wracają do systemu, napędzając dalszy rozwój i skalowanie projektów. Docelowym punktem tego modelu jest stworzenie samowystarczalnej gospodarki technologicznej, która pozwoli na finansowanie **Dochodu Gwarantowanego (UBI)**. *Przykład finansowania:* [Upcykling LED TV na Solarne Okna](PROJEKTY/04_lampa_z_recyklingu_tv.md).
 
@@ -63,6 +63,7 @@ W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiąza
 *   **[04. Solarne Okna z Recyklingu TV](PROJEKTY/04_lampa_z_recyklingu_tv.md)** – Upcykling elektrośmieci jako źródło darmowego światła i kapitału.
 *   **[05. Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md)** – Zaawansowany odzysk ogniw krzemowych przy użyciu technologii CNC.
 *   **[06. Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md)** – Wykorzystanie starej elektroniki jako potężnych węzłów sterujących (Edge Computing).
+*   **[07. Uniwersalna Platforma Sterowania](PROJEKTY/07_uniwersalna_platforma_sterowania.md)** – Przykład pozyskiwania zaawansowanego kodu (PhoneUAV) jako strategicznego zasobu intelektualnego NSI.
 
 **Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**
 
