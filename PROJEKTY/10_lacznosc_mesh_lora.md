@@ -9,29 +9,28 @@ W "Straży Przyszłości" sieć Mesh służy jako **Nerw Gospodarczy**, przesył
 
 ## Filary Technologiczne i Gotowy Kod
 
-### 1. Meshtastic – Społecznościowa Sieć Mesh
-Najpopularniejszy standard otwartej komunikacji LoRa.
-- **Zastosowanie:** Wymiana komunikatów między pracownikami na dużych obszarach (pola, sady), monitorowanie lokalizacji pojazdów rolniczych.
-- **Hardware:** Tanie moduły (ESP32 + LoRa) + smartfon jako interfejs.
-- **Kod:** [https://github.com/meshtastic/Meshtastic-device](https://github.com/meshtastic/Meshtastic-device)
+### 1. Meshtastic – Gotowe Moduły Sterowania (Ekosystem Open-Source)
+Wykorzystujemy wbudowane funkcjonalności Meshtastic, które eliminują potrzebę pisania oprogramowania układowego od zera:
+- **[Remote Hardware Module](https://meshtastic.org/docs/configuration/modules/remote-hardware/):** Kluczowy moduł pozwalający na zdalne sterowanie pinami GPIO (przekaźnikami) przez sieć Mesh.
+    - **Zastosowanie:** Zdalne włączanie pomp nawadniających (Projekt 01/08) lub otwieranie bram wirtualnych ogrodzeń (Projekt 02).
+- **[Telemetry Module](https://meshtastic.org/docs/configuration/modules/telemetry/):** Automatyczne przesyłanie danych z czujników środowiskowych (temperatura, wilgotność gleby, ciśnienie).
+    - **Zastosowanie:** Węzły monitorujące stan upraw i parametry w oborach (Projekt 09).
+- **Integracja Python:** Wykorzystanie [Meshtastic Python API](https://github.com/meshtastic/python) do budowy automatyzacji (np. "jeśli wilgotność gleby < X, wyślij komendę do przekaźnika pompy").
 
-### 2. Reticulum Network Stack (RNS) – Łączność "Nie do Zatrzymania"
-Kryptograficzny stos sieciowy zaprojektowany do pracy na dowolnym nośniku (radio, światłowód, serial).
-- **Zastosowanie:** Bezpieczne, szyfrowane przesyłanie raportów o stanie infrastruktury (np. awarie transformatorów, stan magazynów energii). Może służyć do informowania zakładów energetycznych o lokalnych problemach bez dostępu do Internetu.
-- **Cechy:** Brak centralnego punktu awarii, pełna prywatność.
-- **Kod:** [https://github.com/markqvist/Reticulum](https://github.com/markqvist/Reticulum)
+### 2. Reticulum Network Stack (RNS) – Bezpieczny "Pipe" dla SCADA
+Mimo że RNS jest ogólnego przeznaczenia, służy jako doskonały "tunel" dla danych sterowniczych w trudnych warunkach:
+- **[Sideband](https://github.com/markqvist/Sideband):** Gotowy komunikator graficzny do bezpiecznej wymiany raportów technicznych i logistycznych między pracownikami dużych gospodarstw i zakładów.
+- **Implementacja Transportowa:** Możliwość tunelowania protokołów przemysłowych (np. Modbus over Reticulum) w celu nadzorowania pracy magazynów energii (Projekt 05) w miejscach bez zasięgu komórkowego.
 
-### 3. MeshCore – Telemetria i Sensoryka Wiejska
-System zoptymalizowany pod kątem monitorowania czujników na dużych odległościach.
-- **Zastosowanie:** Zbieranie danych o wilgotności gleby, poziomie wody w zbiornikach retencyjnych i automatyczne alarmowanie w przypadku anomalii.
-- **Cechy:** Niskie zużycie energii (lata pracy na baterii), prosta integracja z IoT.
-- **Kod:** [https://github.com/meshcore-dev/MeshCore](https://github.com/meshcore-dev/MeshCore)
+### 3. MeshCore – Lekka Telemetria Wiejska
+- **[MeshCore Firmware](https://github.com/meshcore-dev/MeshCore):** Zoptymalizowany pod kątem ekstremalnie niskiego zużycia energii.
+- **Zastosowanie:** Długodystansowe czujniki na pastwiskach, które mogą pracować latami na jednej baterii, raportując stan zdrowia stada (Projekt 03).
 
 ## Implementacja Gospodarcza (Scenariusze PoC)
 
-1. **Efektywność Energetyczna:** Sieć czujników monitorujących lokalne punkty dostawy energii. W przypadku awarii sieci głównej, system automatycznie przesyła raport przez sieć LoRa Mesh do najbliższej jednostki technicznej (zakładu energetycznego).
-2. **Precyzyjne Rolnictwo:** Smartfony na obrożach zwierząt (Projekt 09) stają się jednocześnie węzłami sieci Mesh, rozszerzając zasięg monitoringu na całe stado bez konieczności stawiania masztów.
-3. **Logistyka Wiejska:** Suwerenny system powiadamiania o gotowości produktów do odbioru (pomiędzy rolnikiem a grupą producencką) działający niezależnie od awarii operatorów komercyjnych.
+1. **Efektywność Energetyczna i Grid Health:** Wykorzystanie sieci Mesh do monitorowania stanu transformatorów i magazynów energii (OZE). W przypadku wykrycia awarii przez sensory, system przesyła zapytanie przez sieć Mesh o dostępność energii w sąsiednich mikrosieciach lub informuje operatora o dokładnej lokalizacji usterki bez użycia Internetu.
+2. **Monitoring Gatunkowy i Inwentarski:** Smartfony na obrożach (Projekt 09) działają jako ruchome węzły (repeatery), dynamicznie budując zasięg sieci Mesh tam, gdzie przebywa stado. Pozwala to na pełny monitoring wizyjny (Sentinel) klatek/zagród w głębi pola.
+3. **Logistyka Gospodarcza (Suwerenny Komunikator):** Wymiana informacji o zapotrzebowaniu na paliwo, paszę czy gotowość produktów do odbioru, z pełnym szyfrowaniem end-to-end, niezależnie od awarii globalnych platform komunikacyjnych.
 
 ## Dlaczego LoRa Mesh?
 - **Koszty:** Brak opłat za przesył danych (brak kart SIM).
