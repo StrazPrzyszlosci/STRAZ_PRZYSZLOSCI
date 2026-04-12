@@ -16,6 +16,35 @@ tags:
   - name: recommendations
   - name: providers
 paths:
+  /v1/providers/register:
+    post:
+      tags: [providers]
+      summary: Rejestruje providera lub węzeł danych w systemie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderDescriptor'
+            examples:
+              communityProvider:
+                value:
+                  provider_id: community-node-01
+                  provider_kind: community
+                  provider_label: Community Old Smartphone Gateway
+                  node_class: old_smartphone
+                  supports_water_quality: true
+                  supports_flow_monitoring: true
+                  supports_edge_vision_summary: true
+      responses:
+        '201':
+          description: Provider zarejestrowany
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderRegistrationResponse'
+        '400':
+          description: Błąd walidacji danych wejściowych
   /v1/observations:
     post:
       tags: [observations]
@@ -366,3 +395,17 @@ components:
           type: boolean
         supports_edge_vision_summary:
           type: boolean
+    ProviderRegistrationResponse:
+      type: object
+      required: [provider_id, registration_status, schema_version]
+      properties:
+        provider_id:
+          type: string
+        registration_status:
+          type: string
+          enum: [registered]
+        schema_version:
+          type: string
+          enum: [v1]
+        message:
+          type: string

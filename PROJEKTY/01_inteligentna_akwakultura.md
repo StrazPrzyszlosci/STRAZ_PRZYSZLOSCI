@@ -18,6 +18,8 @@ Pierwsza wersja interfejsu powinna być minimalistyczna i skupiona na dwóch rze
 1. monitoringu jakości i przepływu wody,
 2. odbieraniu wyników lokalnej analizy zachowania ryb.
 
+Jeżeli Strażnicy Przyszłości mają rzeczywiście dostarczać dane do wspólnego systemu, to ten kontrakt musi być obsługiwany przez **działający serwer**, a nie tylko dokumentację. Dlatego minimalna architektura projektu zakłada punkt rejestracji providerów i żywe endpointy HTTP, przez które węzły terenowe, stare smartfony, gospodarstwa i partnerzy zewnętrzni będą mogli włączać się do wspólnej warstwy wiedzy.
+
 Na tym etapie nie zakładamy przesyłania ciągłego strumienia wideo przez publiczne API. Byłoby to zbyt ciężkie infrastrukturalnie, kosztowne energetycznie i trudne do utrzymania w warunkach społecznościowych oraz terenowych.
 
 ### Publiczne ścieżki API
@@ -25,11 +27,23 @@ Na tym etapie nie zakładamy przesyłania ciągłego strumienia wideo przez publ
 Minimalna powierzchnia API dla projektu:
 
 ```text
+POST /v1/providers/register
 POST /v1/observations
 POST /v1/events
 POST /v1/recommendations/fish-pond
 GET /v1/providers/{provider_id}/status
 ```
+
+### Punkt rejestracji providerów
+
+Endpoint `POST /v1/providers/register` jest potrzebny po to, aby każdy provider mógł jawnie zgłosić się do systemu z informacją:
+
+- kim jest,
+- jakie typy danych obsługuje,
+- czy działa jako firma, gospodarstwo, provider społecznościowy lub stary smartfon,
+- czy wspiera monitoring jakości wody, przepływu i edge vision.
+
+To ważne, ponieważ w naszym modelu providerem może zostać każdy, a nie tylko duży partner zewnętrzny.
 
 ### Zakres `POST /v1/observations`
 
@@ -148,6 +162,8 @@ Dla tego projektu warstwa minimalnej integracji powinna być utrzymywana jako:
 
 - [`schemas/fish_pond_v1.yaml`](../schemas/fish_pond_v1.yaml)
 - [`openapi/fish_pond_api_v1.yaml`](../openapi/fish_pond_api_v1.yaml)
+- [`api/server.py`](../api/server.py)
+- [`api/README.md`](../api/README.md)
 - [`data/sample/fish_pond_observation.json`](../data/sample/fish_pond_observation.json)
 - [`data/sample/fish_behavior_event.json`](../data/sample/fish_behavior_event.json)
 - [`data/sample/fish_pond_recommendation.json`](../data/sample/fish_pond_recommendation.json)
