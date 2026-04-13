@@ -49,9 +49,11 @@ def http_request(
     url: str,
     payload: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
-    timeout: int = 15,
+    timeout: int = 30000,
 ) -> tuple[int, str]:
     final_headers = headers.copy() if headers else {}
+    final_headers.setdefault("Accept", "application/json")
+    final_headers.setdefault("User-Agent", "curl/8.7.1 telegram-issue-smoke-test/1.0")
     body: bytes | None = None
     if payload is not None:
         body = json.dumps(payload).encode("utf-8")
@@ -71,7 +73,7 @@ def run_smoke_test(
     message: str,
     secret_token: str | None = None,
     path_segment: str | None = None,
-    timeout: int = 15,
+    timeout: int = 30000,
 ) -> dict[str, Any]:
     webhook_url = build_webhook_url(base_url, path_segment=path_segment)
     payload = build_text_update(chat_id, message)
@@ -132,7 +134,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--timeout",
         type=int,
-        default=15,
+        default=30,
         help="Timeout pojedynczego żądania w sekundach.",
     )
     return parser

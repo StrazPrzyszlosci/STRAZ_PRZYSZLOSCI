@@ -1,0 +1,876 @@
+{
+  "schema_version": "v1",
+  "generated_at": "2026-04-13T15:07:40.864838+00:00",
+  "allowlist": [
+    "README.md",
+    "MARKETING.md",
+    "docs/ARCHITEKTURA_ONBOARDINGU.md",
+    "docs/STRATEGIA_INTEGRACJI.md",
+    "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+    "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+    "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+    ".github/ISSUE_TEMPLATE/nowy_straznik.md",
+    ".github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md",
+    ".github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md",
+    "data/onboarding/straznik_rekomendator_v1.json"
+  ],
+  "documents": [
+    {
+      "path": "README.md",
+      "title": "NARODOWE SIŁY INTELEKTUALNE POLSKI",
+      "category": "document"
+    },
+    {
+      "path": "MARKETING.md",
+      "title": "Zapotrzebowanie marketingowe i promocyjne",
+      "category": "document"
+    },
+    {
+      "path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Architektura Onboardingu",
+      "category": "document"
+    },
+    {
+      "path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Strategia Integracji",
+      "category": "document"
+    },
+    {
+      "path": "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+      "title": "Przykłady Gotowego Kodu i Otwartych Wzorców",
+      "category": "document"
+    },
+    {
+      "path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Jak Zostać Dostawcą Danych",
+      "category": "document"
+    },
+    {
+      "path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Architektura mostu Telegram -> GitHub Issues",
+      "category": "document"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/nowy_straznik.md",
+      "title": "Kim jesteś i co Cię tu przyciąga",
+      "category": "issue_template"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md",
+      "title": "Krótki opis pomysłu",
+      "category": "issue_template"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md",
+      "title": "Czego dotyczy uwaga",
+      "category": "issue_template"
+    }
+  ],
+  "quick_facts": [
+    "# NARODOWE SIŁY INTELEKTUALNE POLSKI",
+    "![Ilustracja NSIP](NSIP.png)",
+    "Zapraszam wszystkich Polskich inteligentów do udziału w NARODOWYM WYSIŁKU INTELEKTUALNYM.",
+    "To repozytorium jest częścią inicjatywy budowy NARODOWYCH SIŁ INTELEKTUALNYCH, które ma na celu zebrać wszystkich Inteligentów Polskich w jednym miejscu, by wspólnie stworzyć NARODOWE CENTRUM WYKORZYSTANIA Ai.",
+    "Naszym celem jest zbudowanie AUTOMATYCZNEGO SYSTEMU PRODUKCJI DÓBR I ŻYWNOŚCI przy pomocy Ai, który będzie realnie pracować i produkować na rzecz Dochodu Gwarantowanego – na rzecz WSPÓLNEGO DOBRA NARODOWEGO .",
+    "Żywność:** Automatyzacja, robotyzacja i optymalizacja produkcji rolno-spożywczej (np. inteligentna produkcja i dystrybucja, która obniża koszty wyżywienia społeczeństwa).",
+    "Inspiracje:* [Inteligentna Akwakultura](PROJEKTY/01_inteligentna_akwakultura.md), [Wirtualne Ogrodzenia](PROJEKTY/02_wirtualne_ogrodzenia.md), [Monitoring Porodów z Edge AI](PROJEKTY/03_ai_monitoring_porodow.md).",
+    "Medycyna:** Zastosowanie AI w diagnostyce, telemedycynie, wynajdywaniu terapii oraz w logistyce ochrony zdrowia, podnosząc skuteczność i dostępność dla każdego obywatela.",
+    "Energia:** Opracowanie systemów planowania, magazynowania i dystrybucji zielonej oraz konwencjonalnej energii, by zminimalizować jej straty i zoptymalizować gospodarkę sieciową.",
+    "Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md).",
+    "Optymalizacja zużycia zasobów strategicznych:** Racjonalne, poparte zaawansowaną analizą danych, zarządzanie wodą, surowcami i ziemią, eliminujące gospodarkę rabunkową.",
+    "Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md), [Upcykling LED TV](PROJEKTY/04_lampa_z_recyklingu_tv.md), [Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md).",
+    "Logistyka i transport:** Wykorzystanie AI do inteligentnego zarządzania łańcuchami dostaw, trasami przesyłowymi i komunikacją zbiorową w celu minimalizacji czasu, kosztów i śladu węglowego.",
+    "Inspiracje:* [Smartfony jako Sterowniki Edge Computing](PROJEKTY/06_smartfony_jako_sterowniki.md).",
+    "Finanse (Fundusze):** Pozyskiwanie środków strategicznych, inteligentny wybór programów grantowych i inwestycji dla nowo powstających projektów.",
+    "Zgromadzenie twórców** – najpierw skupiamy się na zebraniu wielu ludzi gotowych do zaangażowania intelektualnego.",
+    "Burza mózgów, analiza, planowanie oraz praca twórcza** – repozytorium służy jako przestrzeń do zgłaszania i szerokiej analizy pomysłów i możliwości.",
+    "Krystalizacja genialnych idei oraz pozyskiwanie zasobów** – cały proces opiera się o bezwarunkowy intelekt i pracę merytoryczną. Wyszukiwanie, katalogowanie i opisywanie zaawansowanych repozytoriów (jak np. sterowanie sensoryczne platformami drona) to kluczowy wkład intelektualny, który pozwala AI na błyskawiczne wdrażanie nowych funkcjonalności bez pisania kodu od zera. Eksperci tworzą i dostarczają niezwykle precyzyjne zasoby technologiczne, będące fundamentem pod dalszą realizację."
+  ],
+  "sections": [
+    {
+      "id": "readme-md-intro",
+      "source_path": "README.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# NARODOWE SIŁY INTELEKTUALNE POLSKI"
+    },
+    {
+      "id": "readme-md-1-intelekt-wyprzedza-kapita",
+      "source_path": "README.md",
+      "title": "**Intelekt wyprzedza Kapitał!**",
+      "category": "document",
+      "content": "![Ilustracja NSIP](NSIP.png)\n\nZapraszam wszystkich Polskich inteligentów do udziału w NARODOWYM WYSIŁKU INTELEKTUALNYM.\n\nTo repozytorium jest częścią inicjatywy budowy NARODOWYCH SIŁ INTELEKTUALNYCH, które ma na celu zebrać wszystkich Inteligentów Polskich w jednym miejscu, by wspólnie stworzyć NARODOWE CENTRUM WYKORZYSTANIA Ai. \n\nNaszym celem jest zbudowanie AUTOMATYCZNEGO SYSTEMU PRODUKCJI DÓBR I ŻYWNOŚCI przy pomocy Ai, który będzie realnie pracować i produkować na rzecz Dochodu Gwarantowanego – na rzecz WSPÓLNEGO DOBRA NARODOWEGO .\n\nInicjatywa ma charakter całkowicie oddolny: nie jest zależna od żadnych struktur rządowych, ani od żadnych konkurencyjnych firm zewnętrznych. Kluczowe jest tutaj pełne zaangażowanie intelektualne i współpraca ponad podziałami."
+    },
+    {
+      "id": "readme-md-2-g-wne-osie-rozwoju-i-obszary-dzia-a-ai",
+      "source_path": "README.md",
+      "title": "Główne osie rozwoju i obszary działań AI",
+      "category": "document",
+      "content": "Aby realnie odpowiedzieć na najpilniejsze problemy gospodarcze i społeczne, nasza uwaga i moc obliczeniowa będą początkowo skupione na najważniejszych systemach podtrzymujących państwo:\n1. **Żywność:** Automatyzacja, robotyzacja i optymalizacja produkcji rolno-spożywczej (np. inteligentna produkcja i dystrybucja, która obniża koszty wyżywienia społeczeństwa).\n   *   *Inspiracje:* [Inteligentna Akwakultura](PROJEKTY/01_inteligentna_akwakultura.md), [Wirtualne Ogrodzenia](PROJEKTY/02_wirtualne_ogrodzenia.md), [Monitoring Porodów z Edge AI](PROJEKTY/03_ai_monitoring_porodow.md).\n2. **Medycyna:** Zastosowanie AI w diagnostyce, telemedycynie, wynajdywaniu terapii oraz w logistyce ochrony zdrowia, podnosząc skuteczność i dostępność dla każdego obywatela.\n3. **Energia:** Opracowanie systemów planowania, magazynowania i dystrybucji zielonej oraz konwencjonalnej energii, by zminimalizować jej straty i zoptymalizować gospodarkę sieciową.\n   *   *Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md).\n4. **Optymalizacja zużycia zasobów strategicznych:** Racjonalne, poparte zaawansowaną analizą danych, zarządzanie wodą, surowcami i ziemią, eliminujące gospodarkę rabunkową.\n   *   *Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md), [Upcykling LED TV](PROJEKTY/04_lampa_z_recyklingu_tv.md), [Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md).\n5. **Logistyka i transport:** Wykorzystanie AI do inteligentnego zarządzania łańcuchami dostaw, trasami przesyłowymi i komunikacją zbiorową w celu minimalizacji czasu, kosztów i śladu węglowego.\n   *   *Inspiracje:* [Smartfony jako Sterowniki Edge Computing](PROJEKTY/06_smartfony_jako_sterowniki.md).\n6. **Finanse (Fundusze):** Pozyskiwanie środków strategicznych, inteligentny wybór programów grantowych i inwestycji dla nowo powstających projektów.\n\nSystem ten ma służyć jako potężne wsparcie dla tradycyjnej gospodarki państwowej, w całości się z nią przeplatając i wspomagając jej procesy, jednak w taki sposób, aby nie generować dla niej niepotrzebnej konkurencji. Naszym celem jest synergia, a nie rywalizacja."
+    },
+    {
+      "id": "readme-md-3-dlaczego-powsta-ten-projekt-nasza-motywacja",
+      "source_path": "README.md",
+      "title": "Dlaczego powstał ten projekt? (Nasza motywacja)",
+      "category": "document",
+      "content": "Głównym powodem powstania **NARODOWYCH SIŁ INTELEKTUALNYCH** jest zagrożenie wynikające z rozproszenia i czysto komercyjnego wykorzystania sztucznej inteligencji. \n\nJeżeli każdy inteligentny i przedsiębiorczy człowiek zacznie indywidualnie i na własną rękę budować małe, prywatne biznesy wspierane przez AI, to za niedługi czas internet stanie się jednym wielkim chaosem. Powstaną miliony instancji sztucznej inteligencji, z których każda będzie działać w zamknięciu, na rzecz indywidualnego zysku swojej jednostki. Zamiast rozwiązywać wielkie bolączki ludzkości i państwa, ogromny potencjał AI oraz gigantyczne ilości energii będą **marnotrawione wyłącznie na wzajemną, bezcelową konkurencję**.\n\nJeśli chcemy konstruktywnie i mądrze wykorzystać tę potężną siłę, automatyzację i sztuczną inteligencję, musimy **wspólnie zaplanować i wdrożyć procesy, które zadziałają z korzyścią dla ogółu społeczeństwa**. Właśnie po to gromadzimy się w jednej inicjatywie – by nie rozpraszać potencjału na rywalizację rynkową maszyn, lecz połączyć siły i wygospodarować realne zasoby na WSPÓLNE DOBRO.\n\n**Nasza szansa historyczna:** Potencjał generatywnej sztucznej inteligencji sam z siebie jest potężny, ale połączony ze zjednoczonym ludzkim intelektem tworzy siłę bez precedensu. Obecnie w globalnym wyścigu inne państwa i kraje skupiają się głównie na budowaniu coraz potężniejszych modeli (LLM) lub wyścigu o moc obliczeniową (hardware). **Polska może osiągnąć pozycję globalnego lidera nie przez budowę modelu, ale przez jego *inteligentne i celowe wykorzystanie***. Jeśli skonsolidujemy nasz zasób – intelekt polskich specjalistów – do wspólnego, zoptymalizowanego projektowania i produkcji dóbr (skalowalnej automatyzacji), mamy szansę odnieść gigantyczny sukces gospodarczy w nowej erze.\n\nWarto przy tym wyraźnie podkreślić: **celem samym w sobie nie jest budowanie kolejnego modelu AI**, lecz wypracowanie genialnych pomysłów na ich praktyczne wykorzystanie oraz wdrożenie procesów, które realnie odmienią naszą rzeczywistość gospodarczą. Intelektualna przewaga leży w *koncepcji zastosowania*, a nie w samym narzędziu.\n\n# Strategia Marketingowa i Budowa Społeczności"
+    },
+    {
+      "id": "readme-md-4-intelekt-wyprzedza-kapita",
+      "source_path": "README.md",
+      "title": "**Intelekt wyprzedza Kapitał!**",
+      "category": "document",
+      "content": "1. **Zgromadzenie twórców** – najpierw skupiamy się na zebraniu wielu ludzi gotowych do zaangażowania intelektualnego.\n\n2. **Burza mózgów, analiza, planowanie oraz praca twórcza** – repozytorium służy jako przestrzeń do zgłaszania i szerokiej analizy pomysłów i możliwości. \n\n3. **Krystalizacja genialnych idei oraz pozyskiwanie zasobów** – cały proces opiera się o bezwarunkowy intelekt i pracę merytoryczną. Wyszukiwanie, katalogowanie i opisywanie zaawansowanych repozytoriów (jak np. sterowanie sensoryczne platformami drona) to kluczowy wkład intelektualny, który pozwala AI na błyskawiczne wdrażanie nowych funkcjonalności bez pisania kodu od zera. Eksperci tworzą i dostarczają niezwykle precyzyjne zasoby technologiczne, będące fundamentem pod dalszą realizację.\n\n4. **Kapitał w służbie idei i samonapędzająca się gospodarka** – przy minimalnych nakładach uruchamiana jest produkcja maksymalnie autonomiczna, sterowana przez AI i zasilana z odnawialnych źródeł energii (OZE). Wygenerowany produkt i zysk wracają do systemu, napędzając dalszy rozwój i skalowanie projektów. Docelowym punktem tego modelu jest stworzenie samowystarczalnej gospodarki technologicznej, która pozwoli na finansowanie **Dochodu Gwarantowanego (UBI)**. *Przykład finansowania:* [Upcykling LED TV na Solarne Okna](PROJEKTY/04_lampa_z_recyklingu_tv.md).\n\n5. **Opiekunowie Projektu (Nobilitacja)** – w miarę rozwoju inicjatywy, do jej struktury będą wybierani opiekunowie poszczególnych składowych lub całych wyodrębnionych projektów. Będą oni wyłaniani wyłącznie spośród najbardziej zaangażowanych twórców, którzy mogą wykazać się największą pracą i realnymi dokonaniami na rzecz repozytorium. Zarówno wybór na tę funkcję, jak i samo jej pełnienie, będzie dla powierzonych osób najwyższym wyrazem uznania i nobilitacją. Wspólnie tworzymy przestrzeń, w której liczą się wyłącznie dokonania, kompetencje i idea, a bycie liderem to zaszczyt."
+    },
+    {
+      "id": "readme-md-5-projekty-pilota-owe-i-inspiracje",
+      "source_path": "README.md",
+      "title": "Projekty Pilotażowe i Inspiracje",
+      "category": "document",
+      "content": "W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiązań, które mogą zostać wdrożone w modelu Open-Source przez Narodowe Siły Intelektualne:\n\n*   **[01. Inteligentna Akwakultura](PROJEKTY/01_inteligentna_akwakultura.md)** – Autonomiczne węzły produkcji ryb oparte na IoT i AI.\n*   **[02. Wirtualne Ogrodzenia](PROJEKTY/02_wirtualne_ogrodzenia.md)** – Cyfrowy wypas zwierząt bez fizycznej infrastruktury.\n*   **[03. Edge AI w Pasterstwie](PROJEKTY/03_ai_monitoring_porodow.md)** – Lokalna analityka obrazu wspierająca hodowców w trudnych warunkach.\n*   **[04. Solarne Okna z Recyklingu TV](PROJEKTY/04_lampa_z_recyklingu_tv.md)** – Upcykling elektrośmieci jako źródło darmowego światła i kapitału.\n*   **[05. Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md)** – Zaawansowany odzysk ogniw krzemowych przy użyciu technologii CNC.\n*   **[06. Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md)** – Wykorzystanie starej elektroniki jako potężnych węzłów sterujących (Edge Computing). Zobacz również: [08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md).\n*   **[07. Uniwersalna Platforma Sterowania](PROJEKTY/07_uniwersalna_platforma_sterowania.md)** – Przykład pozyskiwania zaawansowanego kodu (PhoneUAV) jako strategicznego zasobu intelektualnego NSI.\n*   **[08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md)** – Smartfon jako mózg robota AI: nawigacja w czasie rzeczywistym i autonomia maszyn.\n*   **[09. Monitoring IoT i Akcelerometria](PROJEKTY/09_monitoring_iot_livestock.md)** – Inteligentna obroża AI (Smart Health Tracker) z wykorzystaniem czujników smartfona.\n*   **[10. Łączność Mesh i LoRa](PROJEKTY/10_lacznosc_mesh_lora.md)** – Suwerenna sieć komunikacyjna Mesh (Meshtastic, Reticulum) do monitorowania zasobów gospodarczych.\n\n**Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**"
+    },
+    {
+      "id": "readme-md-6-zapotrzebowanie-marketingowe-i-promocyjne",
+      "source_path": "README.md",
+      "title": "Zapotrzebowanie marketingowe i promocyjne",
+      "category": "document",
+      "content": "Szukamy specjalistów z zakresu marketingu, PR i budowania społeczności, którzy na zasadach odpowiedzialności za wybrany obszar pomogą promować naszą inicjatywę. Sprawdź plik [MARKETING.md](MARKETING.md), aby poznać podstawowy zakres działań do obsadzenia."
+    },
+    {
+      "id": "readme-md-7-jak-do-czy-i-pomaga-instrukcja-dla-tw-rc-w-i-wsp-pracownik-w",
+      "source_path": "README.md",
+      "title": "Jak dołączyć i pomagać (Instrukcja dla twórców i współpracowników)",
+      "category": "document",
+      "content": "Niezależnie od tego, jakie posiadasz kompetencje – techniczne, analityczne czy organizacyjne – wsparcie każdego z Was jest kluczowe. \n\n> [!NOTE]\n> **System błyskawicznego onboardingu jest w przygotowaniu.** Docelowo będzie on dostępny na zewnętrznej platformie, która na podstawie Twoich pasji i zasobów skieruje Cię precyzyjnie do odpowiednich obszarów tego repozytorium.\n\nW projekcie rozdzielamy dwa osobne onboardingi:\n\n* onboarding Strażnika, czyli pierwsze wejście nowej osoby do inicjatywy przez ankietę i rekomendator zadań na stronie zewnętrznej,\n* onboarding providera danych, czyli techniczną ścieżkę dla węzłów pomiarowych, smartfonów edge, gospodarstw i partnerów, którzy chcą zasilać API danymi.\n\n> [!IMPORTANT]\n> **Masz pomysł? Pytanie? Chcesz dołączyć?** Nie szukaj maila – wejdź prosto w **[ZAKŁADKĘ ISSUES](https://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI/issues)**. Chcemy, żeby tam roiło się jak w ulu! Każda myśl, analiza czy pytanie to cenny wkład w Narodowe Siły Intelektualne.\n\n> [!TIP]\n> **Działa już publiczny bot Telegram `Straż Przyszłości`: [`@straz_przyszlosci_bot`](https://t.me/straz_przyszlosci_bot).** W Telegramie wystarczy wysłać:\n> `Pomysl: ...`\n> albo\n> `Uwaga: ...`\n> a wiadomość trafi do publicznego repozytorium jako `GitHub Issue`.\n\nJeśli chcesz już teraz otrzymać zadanie dopasowane do Twoich pasji, wypełnij naszą **[Ankietę Kompetencyjną (REKRUTACJA_ANKIETA.md)](REKRUTACJA_ANKIETA.md)**. Przygotowaliśmy również **[Zasady współpracy i instrukcję obsługi Git (CONTRIBUTING.md)](CONTRIBUTING.md)**, w której znajdziesz przystępny poradnik m.in. jak zgłaszać swoje pomysły.\n\nJeżeli wchodzisz do inicjatywy po raz pierwszy jako Strażnik Przyszłości, zacznij od:\n\n* **[Architektura Onboardingu](docs/ARCHITEKTURA_ONBOARDINGU.md)**\n* **[Przykłady Gotowego Kodu i Otwartych Wzorców](docs/PRZYKLADY_GOTOWEGO_KODU.md)**\n* **[Nowy Strażnik / pierwsze zaangażowanie](.github/ISSUE_TEMPLATE/nowy_straznik.md)**\n* **[Pomysł / propozycja rozwiązania](.github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md)**\n* **[Zastrzeżenie / uwaga / ryzyko](.github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md)**\n* **[Katalog rekomendatora zadań Strażnika](data/onboarding/straznik_rekomendator_v1.json)**"
+    },
+    {
+      "id": "readme-md-8-dokumentacja-integracyjna",
+      "source_path": "README.md",
+      "title": "Dokumentacja integracyjna",
+      "category": "document",
+      "content": "Rozwijamy publiczną warstwę integracyjną dla projektów Straży Przyszłości, w której partnerzy zewnętrzni i społeczność mogą dostarczać dane do wspólnego schematu API oraz odbierać wyniki analityczne służące budowie bazy wiedzy. Szczegóły znajdują się w dokumentach:\n\n* **[Strategia Integracji](docs/STRATEGIA_INTEGRACJI.md)**\n* **[Polityka Partnerska](docs/POLITYKA_PARTNERSKA.md)**\n* **[Model: Otwarte Standardy, Zamknięte Wdrożenia](docs/MODEL_OTWARTE_STANDARDY_ZAMKNIETE_WDROZENIA.md)**\n* **[Zasady Nazwy i Marki](docs/ZASADY_NAZWY_I_MARKI.md)**\n* **[Jak Zostać Dostawcą Danych](docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md)**\n* **[Architektura Onboardingu](docs/ARCHITEKTURA_ONBOARDINGU.md)**\n* **[Architektura Węzłów Pomiarowych](docs/ARCHITEKTURA_WEZLOW_POMIAROWYCH.md)**\n* **[Architektura Edge: Smartfony + Centralne API + Baza Wiedzy](docs/ARCHITEKTURA_EDGE_SMARTFONY_CLOUD.md)**\n* **[Architektura mostu Telegram -> GitHub Issues](docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md)**\n* **[Runbook uruchomienia kanału Telegram -> GitHub Issues](docs/RUNBOOK_URUCHOMIENIA_TELEGRAM_ISSUES.md)**\n* **[Architektura mostu WhatsApp -> GitHub Issues](docs/ARCHITEKTURA_MOSTU_WHATSAPP_GITHUB_ISSUES.md)**\n* **[Runbook uruchomienia kanału WhatsApp -> GitHub Issues](docs/RUNBOOK_URUCHOMIENIA_WHATSAPP_ISSUES.md)**\n* **[Przykłady Gotowego Kodu i Otwartych Wzorców](docs/PRZYKLADY_GOTOWEGO_KODU.md)**"
+    },
+    {
+      "id": "readme-md-9-publiczny-bot-telegram",
+      "source_path": "README.md",
+      "title": "Publiczny Bot Telegram",
+      "category": "document",
+      "content": "Publiczny bot inicjatywy nazywa się **Straż Przyszłości** i działa pod adresem:\n\n* **[`@straz_przyszlosci_bot`](https://t.me/straz_przyszlosci_bot)**\n\n<img src=\"docs/assets/telegram_bot_qr.jpg\" alt=\"QR do bota Telegram Straż Przyszłości\" width=\"160\">\n\nTo jest najprostszy mobilny kanał wejścia dla osób, które chcą szybko zapisać myśl do repozytorium bez otwierania formularzy GitHub.\n\nJak się połączyć:\n\n1. Otwórz Telegram.\n2. Wyszukaj `@straz_przyszlosci_bot` albo wejdź przez link `https://t.me/straz_przyszlosci_bot`.\n3. Otwórz czat z botem `Straż Przyszłości`.\n4. Wyślij wiadomość zaczynającą się od:\n   `Pomysl: ...`\n   albo\n   `Uwaga: ...`\n\nCo robi bot:\n\n* zamienia wiadomość Telegram w `GitHub Issue` w publicznym repo Straży Przyszłości,\n* pozwala szybko zgłosić pomysł, zastrzeżenie albo ryzyko z telefonu,\n* odsyła krótką informację zwrotną, czy zgłoszenie zostało przyjęte albo zatrzymane przez filtr antyspamowy,\n* nie służy do przesyłania danych providerskich ani do sterowania urządzeniami.\n\nJeżeli chcesz wejść do systemu jako provider danych lub węzeł pomiarowy, użyj szablonu zgłoszenia:\n\n* **[Nowy provider danych / węzeł pomiarowy](.github/ISSUE_TEMPLATE/provider_danych.md)**\n\n**Dołącz, jeśli chcesz współtworzyć przyszłość Polskiej Gospodarki!**\n\n**Strona internetowa inicjatywy:** [spa-nsi.pages.dev](https://spa-nsi.pages.dev/)"
+    },
+    {
+      "id": "readme-md-10-media-spo-eczno-ciowe",
+      "source_path": "README.md",
+      "title": "Media Społecznościowe",
+      "category": "document",
+      "content": "Nasza inicjatywa jest obecna w mediach społecznościowych, gdzie publikujemy materiały wideo i rolki wyjaśniające założenia NARODOWYCH SIŁ INTELEKTUALNYCH:\n\n*   **TikTok:** [@straz.przyszlosci](https://www.tiktok.com/@straz.przyszlosci)\n*   **Instagram:** [@strazprzyszlosci](https://www.instagram.com/strazprzyszlosci/)\n*   **Facebook:** [straz.przyszlosci](https://www.facebook.com/straz.przyszlosci/)\n*   **YouTube:** [@StrazPrzyszlosci](https://www.youtube.com/@StrazPrzyszlosci)\n\nhttps://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI"
+    },
+    {
+      "id": "marketing-md-intro",
+      "source_path": "MARKETING.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# Zapotrzebowanie marketingowe i promocyjne\n\nAby inicjatywa **NARODOWYCH SIŁ INTELEKTUALNYCH** mogła zgromadzić najlepsze polskie umysły i dotrzeć do szerokiego grona odbiorców, potrzebujemy osób o odpowiednich kompetencjach z zakresu marketingu, PR i komunikacji. \n\nPoniżej znajduje się lista podstawowych działań inicjacyjnych, które mogą zostać w całości \"przejęte\" i prowadzone przez osoby posiadające specjalizację w danej dziedzinie. Każdy może zgłosić się do wybranego zadania, wziąć za nie odpowiedzialność i realizować je zgodnie z własną koncepcją, wspierając tym samym nasz wspólny cel."
+    },
+    {
+      "id": "marketing-md-1-1-strategia-i-komunikacja-pr",
+      "source_path": "MARKETING.md",
+      "title": "1. Strategia i Komunikacja (PR)",
+      "category": "document",
+      "content": "* **Opracowanie strategii komunikacji misji projektu:** Przełożenie idei \"intelekt wyprzedza kapitał\" oraz \"wspólnego dobra\" na nośne i zrozumiałe komunikaty.\n* **Media relations:** Pisanie i dystrybucja informacji prasowych do portali technologicznych, naukowych, gospodarczych i ogólnopolskich.\n* **Storytelling:** Opowiadanie historii projektu w sposób angażujący, trafiający zarówno do specjalistów IT/AI, jak i osób spoza branży."
+    },
+    {
+      "id": "marketing-md-2-2-social-media-i-community-management",
+      "source_path": "MARKETING.md",
+      "title": "2. Social Media i Community Management",
+      "category": "document",
+      "content": "*   **Prowadzenie profili w mediach społecznościowych:** LinkedIn, X (Twitter), Facebook, ewentualnie TikTok/Instagram (w formacie edukacyjnym).\n    *   *Obecne kanały:* [TikTok](https://www.tiktok.com/@straz.przyszlosci), [Instagram](https://www.instagram.com/strazprzyszlosci/), [Facebook](https://www.facebook.com/straz.przyszlosci/), [YouTube](https://www.youtube.com/@StrazPrzyszlosci).\n* **Budowanie społeczności:** Aktywizowanie dyskusji, moderacja, organizowanie sesji Q&A.\n* **Networking i outreach:** Aktywne poszukiwanie i zapraszanie do współpracy liderów opinii, naukowców, inżynierów oraz ekspertów dziedzinowych w Polsce."
+    },
+    {
+      "id": "marketing-md-3-3-content-marketing",
+      "source_path": "MARKETING.md",
+      "title": "3. Content Marketing",
+      "category": "document",
+      "content": "**Oficjalna strona inicjatywy:** [spa-nsi.pages.dev](https://spa-nsi.pages.dev/) (w budowie)\n\n* **Tworzenie treści eksperckich:** Redagowanie postów, artykułów na bloga/publikacji w zewnętrznych mediach.\n* **Materiały wideo i grafiki:** Projektowanie identyfikacji wizualnej, tworzenie materiałów promocyjnych (infografiki, krótkie formy wideo tłumaczące koncepcję NARODOWYCH SIŁ INTELEKTUALNYCH).\n* **Copywriting:** Poprawa opisów, szlifowanie treści zamieszczanych w repozytorium, dokumentacjach, stronie WWW oraz wizytówkach projektu."
+    },
+    {
+      "id": "marketing-md-4-4-pozycjonowanie-i-analityka-seo-sem",
+      "source_path": "MARKETING.md",
+      "title": "4. Pozycjonowanie i Analityka (SEO/SEM)",
+      "category": "document",
+      "content": "* **Odpowiedni dobór słów kluczowych i SEO:** Optymalizacja treści, by projekt był łatwo wyszukiwalny dla fraz związanych z polską sztuczną inteligencją, pracą dla dobra społecznego, automatyzacją gospodarki.\n* **Analiza zasięgów:** Raportowanie efektywności działań komunikacyjnych."
+    },
+    {
+      "id": "marketing-md-5-5-wsp-praca-b2b-sponsoring-w-p-niejszym-etapie",
+      "source_path": "MARKETING.md",
+      "title": "5. Współpraca B2B / Sponsoring (w późniejszym etapie)",
+      "category": "document",
+      "content": "* **Budowanie relacji partnerskich:** Wytypowanie uczelni wyższych, organizacji pozarządowych i innych podmiotów mogących wesprzeć projekt zasięgowo.\n\n---\n*Intelekt wyprzedza kapitał!*\n**Jak dołączyć?**\nJeśli posiadasz kompetencje w jednym z powyższych obszarów i chcesz wziąć na siebie jego realizację, otwórz na GitHubie odpowiednie [Issues / Pull Request] lub dołącz do bieżącej dyskusji, wskazując, w jakiej dziedzinie widziałbyś/abyś siebie."
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-intro",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# Architektura Onboardingu"
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-1-cel-dokumentu",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Cel dokumentu",
+      "category": "document",
+      "content": "Ten dokument rozdziela dwa różne procesy wejścia do ekosystemu **Straży Przyszłości / Narodowych Sił Intelektualnych**. To rozróżnienie jest ważne, bo nie każda osoba wchodząca do inicjatywy chce od razu zostać providerem danych, a nie każdy provider musi przechodzić przez tę samą ścieżkę co nowy Strażnik."
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-2-dwa-osobne-onboardingi",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Dwa osobne onboardingi",
+      "category": "document",
+      "content": "W projekcie funkcjonują dwa niezależne, ale powiązane procesy:\n\n1. **Onboarding Strażnika**\n   Pierwsze wejście nowej osoby do inicjatywy. Jego celem jest rozpoznanie pasji, kompetencji, zasobów i czasu danej osoby oraz skierowanie jej do odpowiednich sekcji repozytorium i pierwszych zadań.\n2. **Onboarding providera danych**\n   Techniczne wejście do wspólnego API dla węzłów pomiarowych, starych smartfonów, gospodarstw, partnerów zewnętrznych i projektów społecznościowych, które chcą dostarczać dane lub odbierać wyniki analityczne.\n\nTe dwa onboardingi nie powinny być mieszane w jednej instrukcji, jednym formularzu ani jednym komunikacie na stronie."
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-3-onboarding-stra-nika",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Onboarding Strażnika",
+      "category": "document",
+      "content": "Onboarding Strażnika powinien być realizowany na **zewnętrznej stronie inicjatywy** jako ankieta i rekomendator zadań.\n\nTa ścieżka musi być zaprojektowana w sposób merytokratyczny również wobec osób, które nie mają klasycznej pozycji zawodowej, ale potrafią skutecznie pracować z pomocą nowoczesnych narzędzi agentowych i generatywnych, takich jak `Codex`. Jeżeli ktoś umie osiągać realne cele, łączyć zasoby, adaptować kod i dowozić efekty, powinien być traktowany jako pełnoprawny współtwórca sieci intelektualnej, a nie jako uczestnik drugiej kategorii.\n\nJego rola:\n\n- przyjąć zgłoszenie osoby, która chce włączyć się do inicjatywy po raz pierwszy,\n- rozpoznać obszar pasji i typ wkładu, jaki dana osoba chce wnieść,\n- skierować tę osobę do właściwej sekcji tego repozytorium,\n- zaproponować pierwsze dokumenty, pierwsze projekty i pierwsze Issues.\n\nMinimalne dane wejściowe dla rekomendatora:\n\n- pasje i obszary zainteresowań,\n- kompetencje techniczne lub organizacyjne,\n- sposób pracy i używane narzędzia, także narzędzia AI-native,\n- dostępny czas,\n- dostępne zasoby, na przykład stary smartfon, ESP32, czujniki, kamera, wiedza domenowa,\n- preferowany rodzaj wkładu: kod, hardware, dokumentacja, analiza, marketing, badania, provider danych.\n\nWarto przy tym jasno komunikować, że brak własnego urządzenia pomiarowego nie wyklucza realnego wejścia do projektu. Jeżeli dane są dostarczane przez providerów i społeczność przez wspólne API, nowy Strażnik może od początku wejść w architekturę danych, adaptery, analizę, dokumentację i budowę bazy wiedzy. Przykład takiego modelu opisuje dokument:\n\n- [Przykłady Gotowego Kodu i Otwartych Wzorców](PRZYKLADY_GOTOWEGO_KODU.md)\n\nMinimalne dane wyjściowe rekomendatora:\n\n- rekomendowana ścieżka wejścia,\n- lista dokumentów startowych,\n- lista projektów do przeczytania,\n- lista pierwszych zadań lub Issues,\n- wskazanie, czy dana osoba powinna przejść dalej do onboardingu providera."
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-4-onboarding-providera-danych",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Onboarding providera danych",
+      "category": "document",
+      "content": "Onboarding providera jest procesem technicznym i operacyjnym. Dotyczy tylko tych osób, zespołów i węzłów, które chcą zasilać wspólne API danymi albo odbierać wyniki analityczne jako uczestnicy warstwy integracyjnej.\n\nTa ścieżka obejmuje między innymi:\n\n- zapoznanie się z kontraktem `v1`,\n- mapowanie danych do wspólnego schematu,\n- rejestrację providera,\n- odbiór `write_token`,\n- przesyłanie obserwacji i zdarzeń,\n- utrzymanie jakości danych,\n- ewentualną rotację tokenu i proces odzyskiwania dostępu.\n\nSzczegóły tej ścieżki opisuje dokument:\n\n- [Jak Zostać Dostawcą Danych](JAK_ZOSTAC_DOSTAWCA_DANYCH.md)"
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-5-punkt-styku-obu-cie-ek",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Punkt styku obu ścieżek",
+      "category": "document",
+      "content": "Najważniejsza zasada brzmi: **nie każdy Strażnik jest providerem, ale każdy provider może być Strażnikiem**.\n\nW praktyce oznacza to:\n\n- nowa osoba może wejść do inicjatywy tylko jako analityk, dokumentalista, autor modeli, hardware hacker albo organizator,\n- dopiero później może zdecydować, że chce budować własny węzeł pomiarowy i zostać providerem,\n- onboarding Strażnika ma pomóc odkryć najlepszy pierwszy wkład,\n- onboarding providera ma dopiero uruchomić bezpieczną ścieżkę techniczną do API."
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-6-integracja-ze-stron-inicjatywy",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Integracja ze stroną inicjatywy",
+      "category": "document",
+      "content": "Repozytorium strony inicjatywy powinno utrzymywać **ankietę i rekomendator zadań**, ale nie powinno duplikować całej wiedzy z tego repozytorium. Strona zewnętrzna ma być warstwą wejścia, a to repozytorium pozostaje źródłem prawdy dla treści merytorycznej i zadań.\n\nDlatego rekomendator powinien:\n\n- korzystać z katalogu rekomendacji utrzymywanego w tym repozytorium,\n- przekierowywać użytkownika do właściwych dokumentów, projektów i szablonów Issue,\n- rozróżniać ścieżkę ogólnego zaangażowania od ścieżki providera danych.\n\nKanoniczny katalog dla tej warstwy jest utrzymywany tutaj:\n\n- [Katalog rekomendatora zadań Strażnika](../data/onboarding/straznik_rekomendator_v1.json)"
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-7-artefakty-repozytorium",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Artefakty repozytorium",
+      "category": "document",
+      "content": "Aktualna warstwa onboardingowa w repozytorium obejmuje:\n\n- [Architektura Onboardingu](ARCHITEKTURA_ONBOARDINGU.md)\n- [Jak Zostać Dostawcą Danych](JAK_ZOSTAC_DOSTAWCA_DANYCH.md)\n- [Nowy Strażnik / pierwsze zaangażowanie](../.github/ISSUE_TEMPLATE/nowy_straznik.md)\n- [Pomysł / propozycja rozwiązania](../.github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md)\n- [Zastrzeżenie / uwaga / ryzyko](../.github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md)\n- [Nowy provider danych / węzeł pomiarowy](../.github/ISSUE_TEMPLATE/provider_danych.md)\n- [Katalog rekomendatora zadań Strażnika](../data/onboarding/straznik_rekomendator_v1.json)"
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-8-szybki-kana-mobilny",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Szybki kanał mobilny",
+      "category": "document",
+      "content": "Strona inicjatywy powinna umożliwiać także bardzo prosty kanał wejścia z telefonu. Chodzi o sytuację, w której ktoś:\n\n- wpisuje pomysł ręcznie na smartfonie,\n- dyktuje go przez `Gboard` lub inny mechanizm mowy na tekst,\n- chce od razu zapisać go do repozytorium w formie `Issue`.\n\nDlatego poza onboardingiem Strażnika i onboardingiem providera potrzebny jest trzeci, bardzo krótki tor wejścia:\n\n- `Zgłoś pomysł`\n- `Zgłoś zastrzeżenie`\n\nTen kanał nie zastępuje pełnego onboardingu, ale pozwala szybko złapać cenne obserwacje, pomysły i ryzyka zanim znikną.\n\nNajprostszy wariant tego toru powinien prowadzić bezpośrednio do gotowych `Issue template` z poziomu strony inicjatywy. To jest rozwiązanie najtańsze, najprostsze i wystarczające dla wersji podstawowej.\n\nDopiero jako kolejny etap można utrzymywać most komunikatorowy, na przykład:\n\n- `Telegram -> Cloudflare Worker -> GitHub Issues`\n- `WhatsApp -> Cloudflare Worker -> GitHub Issues`\n\nSzczegóły tej architektury opisuje dokument:\n\n- [Architektura mostu Telegram -> GitHub Issues](ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md)\n- [Architektura mostu WhatsApp -> GitHub Issues](ARCHITEKTURA_MOSTU_WHATSAPP_GITHUB_ISSUES.md)"
+    },
+    {
+      "id": "docs-architektura-onboardingu-md-9-kryteria-sukcesu",
+      "source_path": "docs/ARCHITEKTURA_ONBOARDINGU.md",
+      "title": "Kryteria sukcesu",
+      "category": "document",
+      "content": "Onboarding jest zaprojektowany poprawnie, gdy:\n\n- nowa osoba nie trafia od razu do technicznej dokumentacji API bez kontekstu,\n- strona zewnętrzna potrafi skierować Strażnika do konkretnego projektu i pierwszego zadania,\n- provider danych ma osobną, czytelną ścieżkę techniczną,\n- oba procesy są ze sobą kompatybilne, ale nie są mylone,\n- repozytorium pozostaje źródłem prawdy dla zadań, dokumentów i standardów."
+    },
+    {
+      "id": "docs-strategia-integracji-md-intro",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# Strategia Integracji"
+    },
+    {
+      "id": "docs-strategia-integracji-md-1-cel-dokumentu",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Cel dokumentu",
+      "category": "document",
+      "content": "Ten dokument określa, w jaki sposób **Straż Przyszłości / Narodowe Siły Intelektualne** mają budować publiczną warstwę integracyjną dla projektów rolniczych i pokrewnych. Celem jest stworzenie wspólnego standardu danych, wspólnej warstwy analitycznej oraz wspólnej bazy wiedzy rozwijanej w tym repozytorium.\n\nStrategia zakłada współpracę zarówno z partnerami zewnętrznymi, jak i ze społecznością. Providerem danych może zostać każdy podmiot, który potrafi dostarczać obserwacje do wspólnego schematu i odbierać wyniki analityczne z systemu.\n\nJednocześnie trzeba rozróżnić dwa różne wejścia do ekosystemu:\n\n- onboarding Strażnika, czyli pierwsze wejście nowej osoby do inicjatywy przez ankietę i rekomendator zadań,\n- onboarding providera, czyli techniczne wejście do warstwy operacyjnej API.\n\nPierwszy proces powinien być obsługiwany przez zewnętrzną stronę inicjatywy i kierować ludzi do odpowiednich sekcji repozytorium. Drugi proces powinien być obsługiwany przez dokumentację integracyjną, Issue template providera i działające endpointy API."
+    },
+    {
+      "id": "docs-strategia-integracji-md-2-zasady-nadrz-dne",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Zasady nadrzędne",
+      "category": "document",
+      "content": "1. Repozytorium pozostaje publicznym centrum strategii, dokumentacji, schematów i modeli referencyjnych.\n2. Partnerzy zewnętrzni dostarczają dane lub kanały integracyjne, ale nie przejmują kontroli nad architekturą, nazwą inicjatywy ani roadmapą repozytorium.\n3. Społeczność ma pełne prawo uczestniczyć w systemie jako provider danych, badacz, autor modeli lub dokumentalista.\n4. Wyniki zwracane przez system służą budowie wspólnej bazy wiedzy, walidacji hipotez i rozwojowi modeli. Nie są traktowane jako kanał zdalnego sterowania cudzą infrastrukturą.\n5. Warstwa logiki i modeli działa wyłącznie na własnym schemacie Straży Przyszłości. Format partnera kończy się na adapterze.\n6. Repozytorium nie jest magazynem bieżących, surowych odczytów providerów. Surowe dane operacyjne powinny być przechowywane w działającym serwerze i bazie operacyjnej, a do repozytorium trafiają tylko dane przykładowe, opracowane, anonimizowane lub syntetyczne oraz wiedza wyprowadzona z analizy.\n7. Onboarding Strażnika i onboarding providera muszą być rozdzielone na poziomie komunikacji, dokumentacji i narzędzi wejścia."
+    },
+    {
+      "id": "docs-strategia-integracji-md-3-dwa-onboardingi",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Dwa onboardingi",
+      "category": "document",
+      "content": "### Onboarding Strażnika\n\nTo ścieżka dla osoby, która dopiero wchodzi do inicjatywy i jeszcze nie wie, czy jej wkład będzie dotyczył modeli, hardware, dokumentacji, marketingu, badań czy danych terenowych.\n\nTa ścieżka powinna być realizowana przez zewnętrzną stronę inicjatywy jako:\n\n- ankieta kompetencyjna,\n- rekomendator zadań,\n- system przekierowań do właściwych projektów, dokumentów i Issues.\n\nRepozytorium powinno dostarczać tej stronie kanoniczny katalog rekomendacji i punkty wejścia do konkretnych zadań.\n\n### Onboarding providera\n\nTo ścieżka dla osoby, zespołu albo urządzenia, które chcą zasilać wspólne API danymi albo odbierać wyniki analityczne jako uczestnik warstwy integracyjnej.\n\nTa ścieżka obejmuje:\n\n- kontrakt `v1`,\n- rejestrację providera,\n- token `write_token`,\n- przesyłanie obserwacji i zdarzeń,\n- walidację danych,\n- operacyjne utrzymanie dostępu.\n\nNie każdy Strażnik musi zostać providerem, ale każdy provider może wejść do ekosystemu również jako Strażnik i współtwórca wiedzy."
+    },
+    {
+      "id": "docs-strategia-integracji-md-4-docelowa-struktura-repozytorium",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Docelowa struktura repozytorium",
+      "category": "document",
+      "content": "Repozytorium powinno być rozwijane jako jedno publiczne monorepo:\n\n```text\ndocs/\nschemas/\nopenapi/\nadapters/mock/\nadapters/provider-template/\nadapters/provider-a/\nmodels/fish_pond/\npipelines/demo/\ndata/sample/\n```\n\nRola poszczególnych katalogów:\n\n- `docs/` zawiera zasady współpracy, model integracji i dokumenty ochronne.\n- `schemas/` jest źródłem prawdy dla wspólnego modelu danych.\n- `openapi/` zawiera publiczny kontrakt HTTP dla providerów i integracji.\n- `adapters/` izoluje zewnętrzne źródła danych od logiki NSI.\n- `models/` zawiera logikę analityczną i rekomendacyjną działającą wyłącznie na schemacie kanonicznym.\n- `pipelines/` spina dane, modele i wyniki w powtarzalny przepływ.\n- `data/` przechowuje dane przykładowe i zestawy demonstracyjne bez naruszania cudzej poufności."
+    },
+    {
+      "id": "docs-strategia-integracji-md-5-retencja-danych-i-baza-wiedzy",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Retencja danych i baza wiedzy",
+      "category": "document",
+      "content": "Należy rozdzielić dwie warstwy:\n\n- **warstwę operacyjną**, która przyjmuje bieżące odczyty providerów i przechowuje je w bazie serwera,\n- **warstwę repozytoryjną**, która przechowuje tylko schematy, logikę, przykłady, dokumentację i wiedzę opracowaną.\n\nDo repozytorium nie powinny trafiać hurtowo surowe odczyty z API providerów. Do repozytorium mogą trafiać:\n\n- dane przykładowe,\n- zanonimizowane próbki,\n- zestawy testowe,\n- opisane przypadki,\n- wnioski analityczne,\n- reguły i modele wypracowane na podstawie danych operacyjnych.\n\nMiędzy tymi warstwami powinna istnieć jawna ścieżka eksportu wiedzy, na przykład w postaci snapshotów, raportów zbiorczych i przypadków opisanych w `reports/`."
+    },
+    {
+      "id": "docs-strategia-integracji-md-6-publiczny-kontrakt-integracyjny-v1",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Publiczny kontrakt integracyjny `v1`",
+      "category": "document",
+      "content": "Wersja `v1` ma opierać się o minimalny, stabilny zestaw typów:\n\n```text\nProviderDescriptor\nPondReference\nSensorObservation\nAquacultureContext\nRecommendation\nProviderStatus\nSchemaVersion\n```\n\nMinimalna publiczna powierzchnia API:\n\n```text\nPOST /v1/providers/register\nPOST /v1/providers/{provider_id}/tokens/rotate\nPOST /v1/observations\nPOST /v1/events\nPOST /v1/recommendations/fish-pond\nGET /v1/providers/{provider_id}/status\n```\n\nZasady kontraktu:\n\n- każda obserwacja musi być możliwa do zmapowania do `SensorObservation`,\n- każda rekomendacja musi być zwracana w postaci `Recommendation`,\n- każda integracja musi być wersjonowana i jawnie zgodna z `SchemaVersion`,\n- brak zgodności z wersją schematu nie może być ukrywany ani obchodzony poza adapterem."
+    },
+    {
+      "id": "docs-strategia-integracji-md-7-minimalna-autoryzacja-operacyjna",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Minimalna autoryzacja operacyjna",
+      "category": "document",
+      "content": "Warstwa operacyjna powinna od początku rozróżniać dwa poziomy dostępu:\n\n- publiczną dokumentację i jawny kontrakt API,\n- zapis danych operacyjnych wykonywany przez zarejestrowanych providerów.\n\nMinimalny model `v1` zakłada, że:\n\n- provider rejestruje się przez `POST /v1/providers/register`,\n- `provider_id` jest stabilny i nie może być nadpisywany przez ponowną rejestrację,\n- przy rejestracji otrzymuje jednorazowo `write_token`,\n- wymiana tokenu odbywa się przez dedykowany endpoint rotacji,\n- token jest przekazywany w nagłówku `X-Provider-Token`,\n- token jest wymagany do przesyłania obserwacji, zdarzeń i żądań rekomendacji.\n\nWarstwa operacyjna może dodatkowo ograniczać, które environment z `provider_id` są dopuszczone w danym deploymencie, na przykład `preview` dla `demo,preview` albo `prod` wyłącznie dla `prod`.\n\nTo nie jest jeszcze pełny model produkcyjny, ale wystarcza, aby odróżnić jawny standard od chronionej warstwy operacyjnej.\n\nW wersji `v1` odzyskiwanie dostępu po utracie tokenu pozostaje procesem organizacyjnym, a nie samoobsługową funkcją publicznego API.\n\nRunbook takiego procesu powinien być utrzymywany jawnie w repozytorium, tak aby społeczność znała zasady działania, ale bez publikowania sekretów.\n\nKonwencja identyfikatorów providerów i środowisk również powinna być jawna i wspólna dla całego repozytorium, aby ograniczać kolizje nazw między społecznością, partnerami i środowiskami wdrożeniowymi."
+    },
+    {
+      "id": "docs-strategia-integracji-md-8-model-wielodostawcowy",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Model wielodostawcowy",
+      "category": "document",
+      "content": "System od początku ma być wielodostawcowy. Oznacza to, że:\n\n- żaden provider nie staje się centralnym punktem systemu,\n- każdy provider jest wymienialny na poziomie integracyjnym,\n- wycofanie jednego providera nie może blokować rozwoju repozytorium,\n- dane przykładowe, tryb `mock` i ścieżki importu zastępczego muszą istnieć niezależnie od partnerów biznesowych.\n\nProviderem może być:\n\n- firma integracyjna,\n- gospodarstwo rolne lub hodowlane,\n- członek społeczności,\n- zespół badawczy,\n- autor projektu DIY,\n- stary smartfon działający jako bramka danych,\n- dowolny węzeł pomiarowy zdolny do pracy z API Straży Przyszłości."
+    },
+    {
+      "id": "docs-strategia-integracji-md-9-pilot-inteligentna-akwakultura",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Pilot: Inteligentna Akwakultura",
+      "category": "document",
+      "content": "Pierwszy pilot integracyjny dotyczy stawu hodowlanego. Celem jest zbudowanie wspólnego przepływu danych i rekomendacji dla bezpieczeństwa hodowli oraz dokumentowania wiedzy operacyjnej w repozytorium.\n\nStałe wejścia pilota:\n\n```text\npond_id\nmeasurement_time\nwater_temperature\ndissolved_oxygen\npH\noptional ammonia\noptional flow_rate\n```\n\nStałe wyjścia pilota:\n\n```text\nrisk_level\nrecommendation\nconfidence\nreason_codes\nprovider_id\nschema_version\n```\n\nPierwsza wersja pilota ma generować wyniki takie jak:\n\n- ocena ryzyka przyduchy,\n- sygnalizacja anomalii w parametrach wody,\n- rekomendacja inspekcji lub działań operacyjnych,\n- materiał porównawczy do dalszej analizy i rozbudowy bazy wiedzy."
+    },
+    {
+      "id": "docs-strategia-integracji-md-10-rola-spo-eczno-ci",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Rola społeczności",
+      "category": "document",
+      "content": "Społeczność nie jest wyłącznie odbiorcą gotowych narzędzi. Ma być współtwórcą danych, schematów, adapterów i interpretacji wyników.\n\nW praktyce oznacza to:\n\n- możliwość dostarczania danych z własnych czujników i węzłów pomiarowych,\n- możliwość odbierania wyników analitycznych do walidacji lokalnych obserwacji,\n- dokumentowanie konfiguracji czujników, pomiarów i warunków pracy w repozytorium,\n- przekształcanie pojedynczych eksperymentów w trwały dorobek społeczności NSI.\n\nSpołeczność potrzebuje też pierwszej ścieżki wejścia, która nie zakłada od razu budowy providera. Dlatego nowy Strażnik powinien najpierw otrzymać rekomendację zadań dopasowaną do pasji i zasobów, a dopiero później, jeśli ma ku temu warunki, przejść do ścieżki providera danych."
+    },
+    {
+      "id": "docs-strategia-integracji-md-11-etapy-wdro-enia",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Etapy wdrożenia",
+      "category": "document",
+      "content": "1. Przygotować dokumentację strategii, współpracy, nazwy oraz rozdzielenia onboardingu Strażnika i onboardingu providera.\n2. Zdefiniować `schemas/` oraz `openapi/` dla wersji `v1`.\n3. Uruchomić `adapters/mock/`, `data/sample/` i `pipelines/demo/`, aby system działał bez partnera.\n4. Dodać pierwszy model referencyjny w `models/fish_pond/`.\n5. Przygotować `adapters/provider-template/` jako wzorzec dla kolejnych integracji.\n6. Dodać pierwszego realnego providera bez naruszania kontraktu publicznego.\n7. Dodać działający serwer z rejestracją providerów i operacyjną bazą danych poza repozytorium.\n8. Przygotować wariant wdrożeniowy typu edge/cloud, np. dla Cloudflare Workers.\n9. Przygotować runbook pierwszego publicznego deploymentu i smoke test środowiska.\n10. Utrzymywać katalog rekomendatora zadań dla strony zewnętrznej i rozbudowywać onboarding Strażnika.\n11. Rozszerzać bazę wiedzy repozytorium o kolejne interpretacje, przypadki użycia i dane opracowane."
+    },
+    {
+      "id": "docs-strategia-integracji-md-12-kryteria-sukcesu",
+      "source_path": "docs/STRATEGIA_INTEGRACJI.md",
+      "title": "Kryteria sukcesu",
+      "category": "document",
+      "content": "- repozytorium działa demonstracyjnie bez udziału zewnętrznego partnera,\n- dwóch różnych providerów może zasilać ten sam schemat bez zmian w modelu,\n- społeczność potrafi dołączyć własne dane bez uzależnienia od komercyjnej platformy,\n- nowy Strażnik potrafi trafić ze strony inicjatywy do konkretnego projektu i pierwszego zadania bez czytania całego repozytorium na ślepo,\n- pierwsze publiczne środowisko można odtworzyć na podstawie jawnego runbooka operatorskiego,\n- wyniki analityczne wracają do providera jako wkład do wiedzy i walidacji, a nie jako kanał sterowania urządzeniami,\n- dorobek intelektualny pozostaje po stronie Straży Przyszłości i Narodowych Sił Intelektualnych."
+    },
+    {
+      "id": "docs-przyklady-gotowego-kodu-md-intro",
+      "source_path": "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# Przykłady Gotowego Kodu i Otwartych Wzorców"
+    },
+    {
+      "id": "docs-przyklady-gotowego-kodu-md-1-cel-dokumentu",
+      "source_path": "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+      "title": "Cel dokumentu",
+      "category": "document",
+      "content": "Ten dokument zbiera przykłady repozytoriów i projektów, które pokazują, że **kod, wzorce architektoniczne i otwarte modele współpracy już istnieją**. Zadaniem Straży Przyszłości nie jest wymyślanie wszystkiego od zera, lecz mądre rozpoznawanie, adaptacja i rozwijanie gotowych rozwiązań we własnym, wspólnym standardzie.\n\nTo ważne również z punktu widzenia onboardingu. Nowa osoba nie musi mieć od razu własnego urządzenia pomiarowego, sterownika, czujników ani dostępu do stawu, żeby wnieść realny wkład. Jeżeli dane będą dostarczane przez providerów i społeczność przez wspólne API, to równie ważna staje się praca nad:\n\n- architekturą danych,\n- adapterami i kontraktami API,\n- walidacją jakości danych,\n- analizą przypadków,\n- dokumentacją i porządkowaniem wiedzy,\n- modelami rekomendacyjnymi,\n- kuracją gotowego kodu do adaptacji."
+    },
+    {
+      "id": "docs-przyklady-gotowego-kodu-md-2-przyk-ad-referencyjny-opensensemap",
+      "source_path": "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+      "title": "Przykład referencyjny: openSenseMap",
+      "category": "document",
+      "content": "### Linki\n\n- Repozytorium GitHub: [sensebox/openSenseMap](https://github.com/sensebox/openSenseMap)\n- Strona projektu: [openSenseMap](https://sensebox.github.io/en/osem)\n- FAQ i dokumentacja API: [openSenseMap FAQ](https://docs.sensebox.de/docs/misc/opensensemap/faq/)\n- Film YouTube powiązany z repo: [openSenseMap na YouTube](https://www.youtube.com/watch?v=I8ZeT6hzjKQ)\n\n### Dlaczego to jest ważny przykład dla Straży Przyszłości\n\n`openSenseMap` jest bardzo dobrym wzorcem dla naszego myślenia o systemie opartym na danych dostarczanych przez API. To nie jest tylko projekt sprzętowy. To model, w którym:\n\n- istnieje otwarta platforma do gromadzenia i eksploracji danych sensorycznych,\n- dane mogą być wysyłane przez różne urządzenia i zewnętrzne aplikacje,\n- społeczność może dokładać własne dane badawcze,\n- warstwa API staje się wspólnym językiem współpracy,\n- wartość projektu rośnie nie tylko dzięki hardware, ale też dzięki interpretacji, analizie i ponownemu wykorzystaniu danych.\n\nTo jest bardzo bliskie kierunkowi Straży Przyszłości, gdzie wspólne API ma stać się warstwą integrującą społecznościowe i partnerskie źródła danych, a repozytorium ma przechowywać standard, logikę, dokumentację i wiedzę opracowaną.\n\n### Najważniejsza lekcja dla nowych Strażników\n\nNie trzeba mieć własnego urządzenia pomiarowego ani sterownika, żeby wejść do projektu i budować jego architekturę.\n\nJeżeli providerzy, partnerzy i społeczność dostarczają dane przez API, to inni Strażnicy mogą równolegle pracować nad:\n\n- projektowaniem wspólnego schematu danych,\n- adapterami i walidacją,\n- klasyfikacją zdarzeń,\n- modelami i rekomendacjami,\n- dashboardami i raportami,\n- dokumentacją przypadków,\n- porządkowaniem backlogu i ścieżek wejścia dla kolejnych osób.\n\nTo jest pełnoprawny wkład intelektualny. W praktyce często właśnie taka praca przesądza o tym, czy z luźnego zestawu odczytów da się zbudować trwały dorobek techniczny.\n\n### Co możemy z tego adaptować\n\nZ `openSenseMap` warto czerpać przede wszystkim:\n\n- sposób myślenia o otwartym ekosystemie danych,\n- wzorzec, w którym API jest wspólną warstwą wejścia dla wielu źródeł,\n- model społecznościowego dokładania danych badawczych,\n- sposób pokazywania, że sprzęt i analiza danych są częścią jednego systemu,\n- argumentację, że otwarta baza danych i otwarte standardy przyciągają współtwórców.\n\nNie chodzi o przejęcie całej architektury jako naszego rdzenia. Chodzi o wykorzystanie tego przykładu jako dowodu, że:\n\n- otwarta warstwa danych może działać realnie,\n- społeczność potrafi zasilać wspólny system,\n- repozytorium może stać się miejscem kumulacji wiedzy, a nie tylko kodu."
+    },
+    {
+      "id": "docs-przyklady-gotowego-kodu-md-3-jak-u-ywa-takich-przyk-ad-w-w-repozytorium-stra-y-przysz-o-ci",
+      "source_path": "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+      "title": "Jak używać takich przykładów w repozytorium Straży Przyszłości",
+      "category": "document",
+      "content": "Każdy taki przykład powinien odpowiadać na trzy pytania:\n\n1. Co już działa i jaki problem rozwiązuje?\n2. Co z tego da się zaadaptować do standardu Straży Przyszłości?\n3. Jakie zadania mogą z tego wyniknąć dla nowych Strażników?\n\nJeżeli odpowiedź na te trzy pytania jest jasna, przykład nie jest ciekawostką, tylko realnym zasobem strategicznym."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-intro",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# Jak Zostać Dostawcą Danych"
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-1-cel-dokumentu",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Cel dokumentu",
+      "category": "document",
+      "content": "Ten dokument wyjaśnia, kto może zostać providerem danych w ekosystemie Straży Przyszłości i jak dołączyć do wspólnego standardu integracyjnego.\n\nTo jest **drugi onboarding** w projekcie, czyli onboarding providera danych. Nie zastępuje on pierwszego wejścia nowego Strażnika do inicjatywy. Architektura obu ścieżek jest opisana tutaj:\n\n- [Architektura Onboardingu](ARCHITEKTURA_ONBOARDINGU.md)"
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-2-kto-mo-e-zosta-providerem",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Kto może zostać providerem",
+      "category": "document",
+      "content": "Providerem danych może zostać każdy, kto potrafi przekazać obserwacje do wspólnego schematu API i odbierać wyniki analityczne. W szczególności mogą to być:\n\n- firmy i platformy zewnętrzne,\n- gospodarstwa,\n- zespoły badawcze,\n- członkowie społeczności,\n- projekty DIY,\n- stare smartfony działające jako bramki danych,\n- własne węzły pomiarowe budowane przez społeczność.\n\nProvider nie musi mieć rozbudowanej infrastruktury. Wystarczy zdolność do dostarczenia danych w uzgodnionym formacie lub do przejścia przez warstwę adaptera."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-3-co-provider-dostarcza",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Co provider dostarcza",
+      "category": "document",
+      "content": "Provider dostarcza do systemu:\n\n- pomiary,\n- zdarzenia,\n- kontekst pomiarowy,\n- informacje o źródle danych,\n- opcjonalnie dane historyczne do walidacji i porównań.\n\nW przypadku pilotażu stawu hodowlanego minimalny zestaw danych obejmuje:\n\n```text\npond_id\nmeasurement_time\nwater_temperature\ndissolved_oxygen\npH\noptional ammonia\noptional flow_rate\n```\n\n`provider_id` musi też być zgodne z polityką środowiska API, do którego się łączysz. Przykładowo provider `community-demo-...` może być poprawny dla `preview`, ale nie dla środowiska `prod`."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-4-co-provider-otrzymuje-z-systemu",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Co provider otrzymuje z systemu",
+      "category": "document",
+      "content": "Provider może odbierać:\n\n- ocenę ryzyka,\n- rekomendacje analityczne,\n- kody przyczyn i uzasadnienia,\n- status walidacji danych,\n- wyniki pomocne w dokumentowaniu przypadku i budowie bazy wiedzy.\n\nWyniki te nie są definiowane jako kanał zdalnego sterowania urządzeniami providera."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-5-minimalne-poziomy-integracji",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Minimalne poziomy integracji",
+      "category": "document",
+      "content": "### Poziom 1: dane przykładowe lub import plikowy\n\nNajprostszy sposób wejścia. Provider dostarcza dane w pliku zgodnym z wymaganym układem pól.\n\n### Poziom 2: adapter lokalny\n\nProvider korzysta z własnego prostego adaptera, który mapuje dane źródłowe do schematu Straży Przyszłości.\n\n### Poziom 3: pełna integracja API\n\nProvider wysyła obserwacje i zdarzenia bezpośrednio do publicznego API oraz odbiera wyniki analityczne przez ustalony kanał."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-6-rejestracja-i-token-providera",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Rejestracja i token providera",
+      "category": "document",
+      "content": "Przy pełnej integracji API provider najpierw rejestruje się przez:\n\n```text\nPOST /v1/providers/register\n```\n\nPo poprawnej rejestracji otrzymuje jednorazowo `write_token`.\n\nTen token należy następnie przekazywać w nagłówku:\n\n```text\nX-Provider-Token\n```\n\nToken jest wymagany dla:\n\n- `POST /v1/providers/{provider_id}/tokens/rotate`\n- `POST /v1/observations`\n- `POST /v1/events`\n- `POST /v1/recommendations/fish-pond`\n\nToken powinien być przechowywany po stronie providera, węzła edge lub bramki danych. Nie należy publikować go w repozytorium ani w zgłoszeniach GitHub.\n\nJeżeli provider posiada ważny token, może bezpiecznie wymienić go przez:\n\n```text\nPOST /v1/providers/{provider_id}/tokens/rotate\n```\n\nPonowna rejestracja tego samego `provider_id` nie służy do odzyskiwania dostępu."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-7-obowi-zkowy-kontrakt-adaptera",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Obowiązkowy kontrakt adaptera",
+      "category": "document",
+      "content": "Każdy adapter providera musi realizować co najmniej następujące funkcje:\n\n```text\nfetch_or_receive\nnormalize\nvalidate\nsend_result\ncheck_status\n```\n\nZnaczenie funkcji:\n\n- `fetch_or_receive` pobiera lub odbiera dane źródłowe,\n- `normalize` mapuje dane do wspólnego schematu,\n- `validate` sprawdza kompletność i zgodność,\n- `send_result` odsyła wynik analityczny,\n- `check_status` raportuje stan integracji."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-8-zasady-jako-ci-danych",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Zasady jakości danych",
+      "category": "document",
+      "content": "Provider powinien zadbać o:\n\n- poprawne jednostki,\n- prawidłowe oznaczanie czasu pomiaru,\n- stabilny identyfikator źródła lub stawu,\n- dokumentowanie pochodzenia danych,\n- rozróżnienie danych rzeczywistych, testowych i symulowanych.\n\nDane niskiej jakości również mogą być wartościowe, jeżeli są jasno oznaczone i opisane. Ważniejsze od pozornej perfekcji jest uczciwe udokumentowanie warunków pomiaru."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-9-cie-ka-do-czenia",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Ścieżka dołączenia",
+      "category": "document",
+      "content": "1. Zapoznaj się ze schematem danych i dokumentacją integracyjną.\n2. Ustal, czy chcesz działać przez plik, adapter lokalny czy pełne API.\n3. Jeśli wybierasz pełne API, zarejestruj providera i odbierz `write_token`.\n4. Przygotuj mapowanie swoich danych do wspólnego schematu.\n5. Udokumentuj źródło pomiarów i ograniczenia swojej konfiguracji.\n6. Otwórz zgłoszenie w repozytorium przez szablon providera danych i opisz swój przypadek."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-10-utrata-dost-pu",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Utrata dostępu",
+      "category": "document",
+      "content": "W wersji `v1` nie ma jeszcze publicznego, samoobsługowego resetu tokenu bez wcześniejszego sekretu.\n\nTo oznacza, że:\n\n- jeśli masz ważny token, użyj rotacji,\n- jeśli utraciłeś token, odzyskanie dostępu wymaga ręcznego procesu organizacyjnego,\n- nie próbuj odzyskiwać dostępu przez tworzenie nowego wpisu z tym samym `provider_id`.\n\nOficjalne materiały do tego procesu:\n\n- [Runbook odzyskiwania dostępu providera](RUNBOOK_ODZYSKIWANIA_DOSTEPU_PROVIDERA.md)\n- [Konwencja provider_id i środowisk](KONWENCJA_PROVIDER_ID_I_SRODOWISK.md)\n- [Szablon zgłoszenia utraty dostępu](../.github/ISSUE_TEMPLATE/utrata_dostepu_providera.md)"
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-11-kana-onboardingowy-providera",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Kanał onboardingowy providera",
+      "category": "document",
+      "content": "Pierwszym, rzeczywistym kanałem wejścia do systemu jest zgłoszenie GitHub Issue z wykorzystaniem szablonu:\n\n- [Nowy provider danych / węzeł pomiarowy](../.github/ISSUE_TEMPLATE/provider_danych.md)\n\nTo zgłoszenie powinno zawierać:\n\n- typ providera,\n- typ węzła,\n- obsługiwane sensory,\n- sposób łączności,\n- przykładowy payload,\n- ograniczenia konfiguracji,\n- planowaną ścieżkę integracji z API Straży Przyszłości."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-12-providerzy-spo-eczni",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Providerzy społeczni",
+      "category": "document",
+      "content": "Szczególnie ważną grupą są providerzy społeczni, którzy budują własne węzły pomiarowe, eksperymentują z czujnikami lub wykorzystują stare smartfony jako bramki danych.\n\nIch wkład jest pełnoprawną częścią Narodowych Sił Intelektualnych, ponieważ:\n\n- dostarczają realne pomiary,\n- dokumentują tanie ścieżki budowy infrastruktury,\n- pomagają walidować modele,\n- rozbudowują wspólną bazę wiedzy repozytorium."
+    },
+    {
+      "id": "docs-jak-zostac-dostawca-danych-md-13-co-trafia-do-repozytorium",
+      "source_path": "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+      "title": "Co trafia do repozytorium",
+      "category": "document",
+      "content": "Repozytorium nie jest miejscem przechowywania surowych, bieżących danych operacyjnych providera.\n\nDo repozytorium powinny trafiać przede wszystkim:\n\n- schematy i adaptery,\n- dane przykładowe,\n- zanonimizowane przypadki,\n- snapshoty wiedzy,\n- notatki z kalibracji i walidacji,\n- wnioski, które pomagają rozwijać wspólny dorobek NSI."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-intro",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# Architektura mostu Telegram -> GitHub Issues"
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-1-cel-dokumentu",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Cel dokumentu",
+      "category": "document",
+      "content": "Ten dokument opisuje prosty model kanału mobilnego dla społeczności Straży Przyszłości:\n\n- użytkownik pisze do bota Telegram,\n- Worker odbiera webhook,\n- wiadomość staje się `GitHub Issue`.\n\nTo jest rekomendowana ścieżka szybkiego startu wtedy, gdy konfiguracja `WhatsApp Business Platform` byłaby zbyt ciężka lub zbyt wolna na etap `v1`."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-2-dlaczego-telegram-jest-dobrym-wariantem-na-start",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Dlaczego Telegram jest dobrym wariantem na start",
+      "category": "document",
+      "content": "Telegram ma niższy próg wejścia operacyjnego niż `WhatsApp Business Platform`, ponieważ:\n\n- bot tworzy się przez `@BotFather`,\n- nie trzeba przechodzić przez rozbudowaną konfigurację biznesową Meta,\n- webhook ustawia się jedną komendą do `setWebhook`,\n- użytkownik może od razu pisać z telefonu zwykłym tekstem albo dyktować treść przez klawiaturę głosową."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-3-najwa-niejsza-zasada",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Najważniejsza zasada",
+      "category": "document",
+      "content": "`Telegram` jest tylko kanałem wejścia. Miejscem docelowym pozostaje repozytorium i `GitHub Issues`."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-4-minimalny-model-v1",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Minimalny model `v1`",
+      "category": "document",
+      "content": "W pierwszej wersji most obsługuje tylko dwa prefiksy:\n\n```text\nPomysl: ...\nUwaga: ...\n```\n\nDopuszczalne są również:\n\n```text\npomysł: ...\nzastrzezenie: ...\nzastrzeżenie: ...\n```"
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-5-przep-yw-danych",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Przepływ danych",
+      "category": "document",
+      "content": "1. Użytkownik wysyła wiadomość do bota Telegram.\n2. Telegram przekazuje `Update` do webhooka Worker'a.\n3. Worker rozpoznaje typ zgłoszenia.\n4. Worker tworzy `Issue` w repozytorium Straży Przyszłości.\n5. Repozytorium pozostaje kanonicznym miejscem dalszej pracy."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-6-oficjalne-r-d-a-telegram",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Oficjalne źródła Telegram",
+      "category": "document",
+      "content": "Ten wariant opiera się na oficjalnych materiałach Telegram:\n\n- Bot API: https://core.telegram.org/bots/api\n- Bot tutorial: https://core.telegram.org/bots/tutorial\n- Bots FAQ: https://core.telegram.org/bots/faq\n\nZ oficjalnych wyników wyszukiwania Telegram wynika między innymi:\n\n- `setWebhook` jest właściwą metodą do ustawienia webhooka,\n- Bot API wspiera parametr `secret_token`,\n- FAQ rekomenduje także używanie sekretnej ścieżki webhooka w URL."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-7-wymagane-elementy-techniczne",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Wymagane elementy techniczne",
+      "category": "document",
+      "content": "- bot utworzony przez `@BotFather`,\n- `TELEGRAM_BOT_TOKEN`,\n- publiczny `Cloudflare Worker`,\n- `GITHUB_TOKEN` do tworzenia `Issues`,\n- opcjonalny `TELEGRAM_WEBHOOK_SECRET_TOKEN`,\n- opcjonalny `TELEGRAM_WEBHOOK_PATH_SEGMENT`."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-8-minimalne-zabezpieczenia",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Minimalne zabezpieczenia",
+      "category": "document",
+      "content": "Wersja `v1` powinna mieć:\n\n- włączany i wyłączany bridge przez zmienną środowiskową,\n- tryb `dry-run`,\n- ograniczenie do wybranych `chat_id`,\n- opcjonalny sekret webhooka,\n- opcjonalną sekretną ścieżkę webhooka."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-9-jakiego-typu-wiadomo-ci-wspieramy",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Jakiego typu wiadomości wspieramy",
+      "category": "document",
+      "content": "Na start tylko:\n\n- tekstowe wiadomości prywatne,\n- tekstowe wiadomości z prostymi prefiksami.\n\nNie wspieramy jeszcze:\n\n- notatek głosowych,\n- automatycznej transkrypcji audio,\n- załączników,\n- długich konwersacji typu support."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-10-rekomendacja-dla-stra-y-przysz-o-ci",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Rekomendacja dla Straży Przyszłości",
+      "category": "document",
+      "content": "Najbardziej praktyczna kolejność:\n\n1. uruchomić bota Telegram,\n2. włączyć `dry-run`,\n3. przetestować 2-3 wiadomości własne,\n4. dopiero potem włączyć realne tworzenie `Issues`."
+    },
+    {
+      "id": "docs-architektura-mostu-telegram-github-issues-md-11-runbook-wdro-eniowy",
+      "source_path": "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
+      "title": "Runbook wdrożeniowy",
+      "category": "document",
+      "content": "Praktyczna instrukcja uruchomienia bota, webhooka i testu znajduje się tutaj:\n\n- [Runbook uruchomienia kanału Telegram -> GitHub Issues](RUNBOOK_URUCHOMIENIA_TELEGRAM_ISSUES.md)"
+    },
+    {
+      "id": "github-issue-template-nowy-straznik-md-template",
+      "source_path": ".github/ISSUE_TEMPLATE/nowy_straznik.md",
+      "title": "Kim jesteś i co Cię tu przyciąga",
+      "category": "issue_template",
+      "content": "---\nname: Nowy Strażnik\nabout: Pierwsze zgłoszenie osoby, która chce zaangażować się w inicjatywę Straż Przyszłości i potrzebuje dopasowania do właściwych zadań\ntitle: \"[straznik] \"\nlabels: onboarding\nassignees: \"\"\n---\n\n## Kim jesteś i co Cię tu przyciąga\n\n- krótko o sobie:\n- co Cię najbardziej zainteresowało w Straży Przyszłości:\n- czy trafiasz tutaj po rekomendacji ze strony zewnętrznej:\n\n## Twoje pasje i obszary zainteresowania\n\n- [ ] akwakultura i monitoring wody\n- [ ] hardware / elektronika / IoT\n- [ ] stare smartfony / edge computing\n- [ ] analiza obrazu / AI / ML\n- [ ] backend / API / integracja danych\n- [ ] dokumentacja / research / kuracja wiedzy\n- [ ] marketing / komunikacja / budowa społeczności\n- [ ] organizacja / koordynacja\n\n## Twoje kompetencje\n\n- narzędzia i technologie, które znasz:\n- czy pracujesz także z narzędziami AI, np. Codex, ChatGPT, Cursor, Claude lub podobnymi:\n- doświadczenie praktyczne:\n- czego chcesz się nauczyć w ramach inicjatywy:\n\n## Twoje zasoby i warunki działania\n\n- ile czasu tygodniowo możesz realnie przeznaczyć:\n- jaki sprzęt lub zasoby masz do dyspozycji:\n- czy masz dostęp do stawu, gospodarstwa, czujników albo starych smartfonów:\n- czy wchodzisz bez własnego hardware i chcesz zacząć przez architekturę danych, API, dokumentację albo adaptację gotowego kodu:\n\n## Preferowany rodzaj wkładu\n\n- [ ] chcę zacząć od dokumentacji i researchu\n- [ ] chcę pisać kod\n- [ ] chcę budować hardware lub węzeł pomiarowy\n- [ ] chcę analizować dane albo modele\n- [ ] chcę pomagać w onboardingu i społeczności\n- [ ] chcę docelowo zostać providerem danych\n- [ ] nie mam własnego sprzętu i chcę wejść przez architekturę danych / API / adaptację gotowego kodu\n\n## Rekomendowana ścieżka lub własny pomysł\n\n- jeśli korzystasz z rekomendatora na stronie, możesz wkleić tutaj gotowy tekst skopiowany z wyniku:\n- jeśli strona zewnętrzna poleciła Ci konkretną ścieżkę, wpisz ją tutaj:\n- jeśli masz już własny pomysł na pierwszy wkład, opisz go tutaj:\n\n## Co chcesz dostać na start\n\n- [ ] wskazanie pierwszych dokumentów do przeczytania\n- [ ] propozycję pierwszego zadania\n- [ ] pomoc w wyborze projektu\n- [ ] pomoc w przejściu do onboardingu providera danych"
+    },
+    {
+      "id": "github-issue-template-pomysl-rozwiazanie-md-template",
+      "source_path": ".github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md",
+      "title": "Krótki opis pomysłu",
+      "category": "issue_template",
+      "content": "---\nname: Pomysł / propozycja rozwiązania\nabout: Krótkie zgłoszenie pomysłu, który może stać się projektem, adapterem, eksperymentem albo elementem bazy wiedzy Straży Przyszłości\ntitle: \"[pomysl] \"\nlabels: idea\nassignees: \"\"\n---\n\n## Krótki opis pomysłu\n\nNapisz jednym akapitem, co proponujesz.\n\n## Jaki problem to rozwiązuje\n\nOpisz krótko:\n\n- jaki problem widzisz,\n- dla kogo to jest ważne,\n- dlaczego warto się tym zająć.\n\n## Obszar inicjatywy\n\nZaznacz lub dopisz:\n\n- [ ] żywność / akwakultura\n- [ ] medycyna\n- [ ] energia\n- [ ] zasoby strategiczne / woda\n- [ ] logistyka / transport\n- [ ] finanse / granty\n- [ ] API / dane / adaptery\n- [ ] społeczność / onboarding\n- [ ] inne:\n\n## Co mogłoby z tego powstać\n\nWybierz najbardziej pasującą formę:\n\n- [ ] nowy projekt pilotażowy\n- [ ] eksperyment lub proof of concept\n- [ ] adapter lub integracja danych\n- [ ] dokumentacja / research\n- [ ] automatyzacja\n- [ ] aplikacja mobilna / PWA\n- [ ] inne:\n\n## Dane, urządzenia lub zasoby\n\nNapisz, czy pomysł wymaga:\n\n- danych z API,\n- własnego sprzętu,\n- starego smartfona,\n- czujników,\n- partnera zewnętrznego,\n- tylko pracy koncepcyjnej i dokumentacyjnej.\n\n## Gotowy kod lub inspiracje\n\nJeśli znasz repozytorium, film, artykuł albo narzędzie, wklej link.\n\n## Twój możliwy wkład\n\nNapisz krótko, czy chcesz:\n\n- tylko zgłosić pomysł,\n- pomóc go doprecyzować,\n- wejść w dokumentację,\n- pisać kod,\n- testować,\n- budować hardware,\n- szukać partnerów lub danych."
+    },
+    {
+      "id": "github-issue-template-zastrzezenie-uwaga-md-template",
+      "source_path": ".github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md",
+      "title": "Czego dotyczy uwaga",
+      "category": "issue_template",
+      "content": "---\nname: Zastrzeżenie / uwaga / ryzyko\nabout: Krótkie zgłoszenie zastrzeżenia, ryzyka, luki lub uwagi do kierunku projektu, architektury albo wdrożenia\ntitle: \"[uwaga] \"\nlabels: feedback\nassignees: \"\"\n---\n\n## Czego dotyczy uwaga\n\nNapisz krótko, czego dotyczy zastrzeżenie.\n\n## Typ uwagi\n\n- [ ] ryzyko techniczne\n- [ ] ryzyko organizacyjne\n- [ ] problem architektoniczny\n- [ ] problem UX / onboardingu\n- [ ] problem danych / jakości\n- [ ] problem bezpieczeństwa\n- [ ] problem komunikacyjny\n- [ ] inne:\n\n## Na czym polega problem\n\nOpisz możliwie konkretnie:\n\n- co może być błędne,\n- co może nie działać,\n- co może prowadzić do złej decyzji albo chaosu.\n\n## Gdzie to widać\n\nJeśli możesz, podaj:\n\n- link do pliku,\n- link do strony,\n- link do issue,\n- link do repo,\n- albo nazwę fragmentu projektu.\n\n## Proponowana korekta\n\nJeśli masz pomysł, napisz, co warto zmienić.\n\n## Czy chcesz pomóc to poprawić\n\n- [ ] tak, mogę doprecyzować problem\n- [ ] tak, mogę pomóc w dokumentacji\n- [ ] tak, mogę pomóc w implementacji\n- [ ] na razie tylko sygnalizuję problem"
+    }
+  ],
+  "onboarding_routes": [
+    {
+      "route_id": "data_architecture_without_hardware",
+      "label": "Architektura danych i adaptacja gotowego kodu",
+      "summary": "Dla osob, ktore chca wejsc do inicjatywy bez wlasnego urzadzenia pomiarowego. Ta sciezka prowadzi przez schematy, API, adaptery, dokumentacje, analize przypadkow i adaptacje gotowego kodu do wspolnego standardu.",
+      "signals": {
+        "passions": [
+          "api",
+          "architektura danych",
+          "adaptacja kodu",
+          "research",
+          "integracja"
+        ],
+        "skills": [
+          "python",
+          "openapi",
+          "czytanie repozytoriow",
+          "walidacja",
+          "synteza"
+        ],
+        "resources": [
+          "laptop",
+          "czas na dokumentacje",
+          "brak wlasnego hardware"
+        ]
+      },
+      "recommended_repo_sections": [
+        "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+        "schemas/fish_pond_v1.yaml",
+        "openapi/fish_pond_api_v1.yaml",
+        "PROJEKTY/01_inteligentna_akwakultura.md"
+      ],
+      "first_tasks": [
+        "issue:aq-12",
+        "issue:aq-14",
+        "issue:aq-32"
+      ],
+      "next_step": "Ta sciezka nie wymaga wlasnego wezla ani czujnikow. Zacznij od analizy gotowego kodu, wspolnego schematu i backlogu adaptacji."
+    },
+    {
+      "route_id": "aquaculture_water_monitoring",
+      "label": "Akwakultura i monitoring wody",
+      "summary": "Dla osob zainteresowanych stawami hodowlanymi, jakoscia wody, biologicznym kontekstem pomiarow i rozwojem pilota Inteligentnej Akwakultury.",
+      "signals": {
+        "passions": [
+          "akwakultura",
+          "woda",
+          "rolnictwo",
+          "hodowla",
+          "biologia"
+        ],
+        "skills": [
+          "analiza terenowa",
+          "pomiary",
+          "diagnostyka",
+          "eksperymenty"
+        ],
+        "resources": [
+          "staw",
+          "czujniki",
+          "notatki terenowe"
+        ]
+      },
+      "recommended_repo_sections": [
+        "PROJEKTY/01_inteligentna_akwakultura.md",
+        "docs/STRATEGIA_INTEGRACJI.md",
+        "docs/ARCHITEKTURA_WEZLOW_POMIAROWYCH.md"
+      ],
+      "first_tasks": [
+        "issue:aq-03",
+        "issue:aq-05",
+        "issue:aq-11"
+      ],
+      "next_step": "Po przejsciu przez materialy startowe otworz Issue nowego Straznika i opisz swoj kontekst pomiarowy albo domenowy."
+    },
+    {
+      "route_id": "edge_iot_hardware",
+      "label": "Edge IoT i hardware",
+      "summary": "Dla osob budujacych wezly terenowe, czujniki, mostki danych i konfiguracje oparte o ESP32, stare smartfony i lekkie urzadzenia pomiarowe.",
+      "signals": {
+        "passions": [
+          "iot",
+          "hardware",
+          "elektronika",
+          "esp32",
+          "diy"
+        ],
+        "skills": [
+          "lutowanie",
+          "mikrokontrolery",
+          "kalibracja",
+          "integracja sensorow"
+        ],
+        "resources": [
+          "esp32",
+          "arduino",
+          "stary smartfon",
+          "czujniki ph",
+          "czujnik do",
+          "kamera"
+        ]
+      },
+      "recommended_repo_sections": [
+        "PROJEKTY/01_inteligentna_akwakultura.md",
+        "PROJEKTY/06_smartfony_jako_sterowniki.md",
+        "docs/ARCHITEKTURA_WEZLOW_POMIAROWYCH.md",
+        "docs/ARCHITEKTURA_EDGE_SMARTFONY_CLOUD.md"
+      ],
+      "first_tasks": [
+        "issue:aq-01",
+        "issue:aq-02",
+        "issue:aq-03",
+        "issue:aq-04"
+      ],
+      "next_step": "Jezeli poza budowa wezla chcesz tez wysylac dane do API, przejdz dalej do onboardingu providera danych."
+    },
+    {
+      "route_id": "edge_vision_behavior",
+      "label": "Analiza obrazu i zachowania ryb",
+      "summary": "Dla osob zainteresowanych lekkimi modelami edge AI, analiza obrazu na starych smartfonach i raportowaniem streszczen zachowania ryb zamiast przesylania surowego wideo.",
+      "signals": {
+        "passions": [
+          "computer vision",
+          "edge ai",
+          "android",
+          "kamery",
+          "ryby"
+        ],
+        "skills": [
+          "ml",
+          "opencv",
+          "tflite",
+          "analiza obrazu"
+        ],
+        "resources": [
+          "kamera",
+          "stary smartfon",
+          "nagrania testowe"
+        ]
+      },
+      "recommended_repo_sections": [
+        "PROJEKTY/01_inteligentna_akwakultura.md",
+        "docs/ARCHITEKTURA_EDGE_SMARTFONY_CLOUD.md",
+        "data/sample/fish_behavior_event.json"
+      ],
+      "first_tasks": [
+        "issue:aq-07",
+        "issue:aq-08"
+      ],
+      "next_step": "Skup sie na lekkich metrykach i zdarzeniach. Nie projektuj od razu ciezkiego strumienia wideo do API."
+    },
+    {
+      "route_id": "api_data_integration",
+      "label": "API, adaptery i integracja danych",
+      "summary": "Dla osob backendowych i integracyjnych, ktore chca pracowac nad schematami, OpenAPI, adapterami providerow i warstwa operacyjna. Ta sciezka pozostaje otwarta rowniez dla osob bez wlasnego sprzetu terenowego.",
+      "signals": {
+        "passions": [
+          "backend",
+          "api",
+          "integracja",
+          "schematy",
+          "data engineering"
+        ],
+        "skills": [
+          "python",
+          "http",
+          "openapi",
+          "walidacja",
+          "cloudflare"
+        ],
+        "resources": [
+          "laptop",
+          "srodowisko developerskie",
+          "czas na testy"
+        ]
+      },
+      "recommended_repo_sections": [
+        "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+        "schemas/fish_pond_v1.yaml",
+        "openapi/fish_pond_api_v1.yaml",
+        "api/README.md",
+        "cloudflare/README.md",
+        "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md"
+      ],
+      "first_tasks": [
+        "issue:aq-09",
+        "issue:aq-13",
+        "issue:aq-26",
+        "issue:aq-27"
+      ],
+      "next_step": "Mozesz zaczac bez wlasnego wezla. Jezeli pozniej zbudujesz prawdziwa integracje terenowa, przejdz takze przez onboarding providera."
+    },
+    {
+      "route_id": "knowledge_research_documentation",
+      "label": "Kuracja wiedzy, dokumentacja i badania",
+      "summary": "Dla osob, ktore wola analizowac, dokumentowac, opisywac przypadki i budowac baze wiedzy zamiast zaczynac od integracji technicznej. To pelnoprawna sciezka wejscia takze bez wlasnego hardware.",
+      "signals": {
+        "passions": [
+          "badania",
+          "dokumentacja",
+          "analiza",
+          "knowledge management"
+        ],
+        "skills": [
+          "pisanie",
+          "synteza",
+          "czytanie repozytoriow",
+          "porzadkowanie wiedzy"
+        ],
+        "resources": [
+          "czas na research",
+          "umiejetnosc pracy z dokumentacja"
+        ]
+      },
+      "recommended_repo_sections": [
+        "PROJEKTY/01_inteligentna_akwakultura.md",
+        "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+        "docs/STRATEGIA_INTEGRACJI.md",
+        "reports/README.md",
+        "pipelines/export_knowledge_snapshot.py"
+      ],
+      "first_tasks": [
+        "issue:aq-12",
+        "issue:aq-14",
+        "issue:aq-16",
+        "issue:aq-32"
+      ],
+      "next_step": "Ta sciezka nie wymaga zostania providerem ani posiadania wlasnego sprzetu. Jej celem jest wzmacnianie wspolnej bazy wiedzy repozytorium."
+    },
+    {
+      "route_id": "community_growth_and_coordination",
+      "label": "Spolecznosc, onboarding i koordynacja",
+      "summary": "Dla osob, ktore chca organizowac naplyw nowych Straznikow, porzadkowac sciezki wejscia i pomagac ludziom odnalezc dla siebie pierwszy sensowny wkład.",
+      "signals": {
+        "passions": [
+          "spolecznosc",
+          "koordynacja",
+          "onboarding",
+          "marketing",
+          "ux"
+        ],
+        "skills": [
+          "komunikacja",
+          "pisanie",
+          "moderacja",
+          "organizacja"
+        ],
+        "resources": [
+          "czas na wsparcie innych",
+          "pomysly na system wejscia"
+        ]
+      },
+      "recommended_repo_sections": [
+        "README.md",
+        "MARKETING.md",
+        "docs/ARCHITEKTURA_ONBOARDINGU.md",
+        "docs/STRATEGIA_INTEGRACJI.md"
+      ],
+      "first_tasks": [
+        "issue:aq-28",
+        "issue:aq-29",
+        "issue:aq-30",
+        "issue:aq-31"
+      ],
+      "next_step": "Ta sciezka wspiera zewnetrzny rekomendator zadan i pomaga przekierowywac nowych ludzi do odpowiednich sekcji repo."
+    }
+  ],
+  "issue_templates": {
+    "new_guardian": ".github/ISSUE_TEMPLATE/nowy_straznik.md",
+    "idea": ".github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md",
+    "feedback": ".github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md"
+  },
+  "github_base_url": "https://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI/blob/main/",
+  "issue_new_base_url": "https://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI/issues/new?template="
+}

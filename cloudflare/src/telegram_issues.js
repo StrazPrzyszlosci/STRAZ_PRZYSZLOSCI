@@ -1,3 +1,25 @@
+import {
+  buildChatThrottleReply,
+  buildCommandReply,
+  buildIssueBody,
+  buildIssueModerationReply,
+  buildIssueThrottleReply,
+  buildIssueTitle,
+  checkTelegramChatRateLimit,
+  clearTelegramChatHistory,
+  draftIssueBody,
+  generateChatReply,
+  isTruthy,
+  loadTelegramChatHistory,
+  moderateIssueCandidate,
+  parsePositiveInteger,
+  recordIssueModerationAudit,
+  recommendOnboardingPath,
+  routeTelegramIntent,
+  saveTelegramConversation,
+  sanitizeTelegramReply,
+} from "./telegram_ai.js";
+
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -5,13 +27,6 @@ function jsonResponse(payload, status = 200) {
       "content-type": "application/json; charset=utf-8",
     },
   });
-}
-
-function isTruthy(value) {
-  if (typeof value !== "string") {
-    return false;
-  }
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
 function parseAllowedIds(rawValue) {
@@ -32,58 +47,6 @@ function parseAllowedIds(rawValue) {
   return allowlist.size ? allowlist : null;
 }
 
-function parsePositiveInteger(rawValue, fallback) {
-  const parsed = Number.parseInt(rawValue, 10);
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return parsed;
-  }
-  return fallback;
-}
-
-function stripPrefix(messageText) {
-  if (typeof messageText !== "string") {
-    return null;
-  }
-  const trimmed = messageText.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  const matchers = [
-    {
-      kind: "idea",
-      prefix: "Pomysl",
-      pattern: /^\s*(pomysl|pomysł)\s*:\s*/iu,
-    },
-    {
-      kind: "feedback",
-      prefix: "Uwaga",
-      pattern: /^\s*(uwaga|zastrzezenie|zastrzeżenie)\s*:\s*/iu,
-    },
-  ];
-
-  for (const matcher of matchers) {
-    if (matcher.pattern.test(trimmed)) {
-      const content = trimmed.replace(matcher.pattern, "").trim();
-      if (!content) {
-        return null;
-      }
-      return {
-        kind: matcher.kind,
-        prefix: matcher.prefix,
-        content,
-      };
-    }
-  }
-
-  return null;
-}
-
-function summarizeTitle(prefix, content) {
-  const shortened = content.replace(/\s+/g, " ").trim().slice(0, 80);
-  return `[${prefix}] ${shortened || "zgloszenie z telegrama"}`;
-}
-
 function getConfiguredLabels(kind, env) {
   const labels = [];
   const channelLabel = (env.TELEGRAM_CHANNEL_LABEL || "").trim();
@@ -101,71 +64,6 @@ function getConfiguredLabels(kind, env) {
   return labels;
 }
 
-function formatActor(message) {
-  if (message.username) {
-    return `@${message.username}`;
-  }
-  if (message.user_id) {
-    return `user_id:${message.user_id}`;
-  }
-  return "nieznany";
-}
-
-function buildIssueDraft(message, classification, env) {
-  const title = summarizeTitle(classification.prefix, classification.content);
-  const labels = getConfiguredLabels(classification.kind, env);
-
-  const body = [
-    "## Kanał wejścia",
-    "",
-    "Telegram",
-    "",
-    "## Treść wiadomości",
-    "",
-    classification.content,
-    "",
-    "## Zgłaszający",
-    "",
-    `- nadawca: ${formatActor(message)}`,
-    `- chat_id: ${message.chat_id || "brak"}`,
-    `- message_id: ${message.message_id || "brak"}`,
-    `- chat_type: ${message.chat_type || "brak"}`,
-  ].join("\n");
-
-  return { title, body, labels };
-}
-
-function buildTelegramReplyText(kind, payload = {}) {
-  if (kind === "created") {
-    const issueNumber = payload.issue_number ? ` #${payload.issue_number}` : "";
-    const issueUrl = payload.issue_url ? `\n${payload.issue_url}` : "";
-    return `Zgloszenie przyjete.${issueNumber ? ` Utworzono Issue${issueNumber}.` : ""}${issueUrl}`;
-  }
-
-  if (kind === "throttled") {
-    const retryAfter = payload.retry_after_seconds;
-    const retryLine =
-      typeof retryAfter === "number" && retryAfter > 0
-        ? ` Sprobuj ponownie za okolo ${retryAfter} s.`
-        : " Sprobuj ponownie za chwile.";
-    return `Zgloszenie odrzucone przez filtr antyspamowy.${retryLine}`;
-  }
-
-  if (kind === "unrecognized") {
-    return 'Nie rozpoznalem formatu. Wyslij wiadomosc zaczynajac sie od "Pomysl: ..." albo "Uwaga: ...".';
-  }
-
-  if (kind === "dry_run") {
-    return "Zgloszenie rozpoznane. Bot dziala jeszcze w trybie testowym, wiec ta wiadomosc nie utworzyla Issue.";
-  }
-
-  if (kind === "error") {
-    return "Nie udalo sie zapisac zgloszenia w repozytorium. Sprobuj ponownie za chwile.";
-  }
-
-  return null;
-}
-
 async function sendTelegramReply(env, message, text) {
   const botToken = env.TELEGRAM_BOT_TOKEN;
   if (!botToken || !message?.chat_id || !text) {
@@ -181,7 +79,7 @@ async function sendTelegramReply(env, message, text) {
       },
       body: JSON.stringify({
         chat_id: message.chat_id,
-        text,
+        text: sanitizeTelegramReply(text, env),
         reply_to_message_id: message.message_id || undefined,
         allow_sending_without_reply: true,
         disable_web_page_preview: true,
@@ -190,19 +88,6 @@ async function sendTelegramReply(env, message, text) {
   );
 
   return response.ok;
-}
-
-async function notifyTelegramReply(env, message, kind, payload = {}) {
-  const text = buildTelegramReplyText(kind, payload);
-  if (!text) {
-    return false;
-  }
-
-  try {
-    return await sendTelegramReply(env, message, text);
-  } catch {
-    return false;
-  }
 }
 
 function getTelegramThrottleKey(message) {
@@ -409,12 +294,254 @@ function verifyTelegramSecretToken(request, env) {
   return received === expected;
 }
 
-export async function handleTelegramWebhook(request, env) {
+function buildIssueReplyText(kind, payload = {}) {
+  if (kind === "created") {
+    const issueNumber = payload.issue_number ? ` #${payload.issue_number}` : "";
+    const issueUrl = payload.issue_url ? `\n${payload.issue_url}` : "";
+    return `Zgłoszenie przyjęte.${issueNumber ? ` Utworzono Issue${issueNumber}.` : ""}${issueUrl}`;
+  }
+
+  if (kind === "dry_run") {
+    return "Zgłoszenie przeszło moderację i redakcję, ale bot działa w trybie testowym, więc Issue nie zostało utworzone.";
+  }
+
+  if (kind === "issues_disabled") {
+    return 'Kanał GitHub Issues jest aktualnie wyłączony. Możesz nadal rozmawiać z botem albo wrócić później z prefiksem "Pomysl:" lub "Uwaga:".';
+  }
+
+  if (kind === "error") {
+    return "Nie udało się zapisać zgłoszenia w repozytorium. Spróbuj ponownie za chwilę.";
+  }
+
+  if (kind === "unrecognized") {
+    return 'Jeśli chcesz utworzyć GitHub Issue, wyślij wiadomość zaczynającą się od "Pomysl: ..." albo "Uwaga: ...". Jeśli chcesz onboarding lub zwykłą rozmowę, napisz po prostu normalnie.';
+  }
+
+  if (kind === "ai_unavailable") {
+    return "Serwis AI jest chwilowo niedostępny. Spróbuj ponownie za chwilę.";
+  }
+
+  return null;
+}
+
+function isTelegramIntegrationEnabled(env) {
+  return isTruthy(env.TELEGRAM_ISSUES_ENABLED || "") || isTruthy(env.TELEGRAM_AI_ENABLED || "");
+}
+
+async function processIssueMessage(env, message, classification, dryRun) {
   if (!isTruthy(env.TELEGRAM_ISSUES_ENABLED || "")) {
+    const notificationSent = await sendTelegramReply(
+      env,
+      message,
+      buildIssueReplyText("issues_disabled")
+    );
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "issues_disabled",
+      notification_sent: notificationSent,
+    };
+  }
+
+  const throttleCheck = await checkTelegramThrottle(env, message);
+  if (!throttleCheck.allowed) {
+    const notificationSent = await sendTelegramReply(
+      env,
+      message,
+      buildIssueThrottleReply(throttleCheck.retry_after_seconds || null)
+    );
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "throttled",
+      retry_after_seconds: throttleCheck.retry_after_seconds || null,
+      kind: classification.kind,
+      notification_sent: notificationSent,
+    };
+  }
+
+  const history = isTruthy(env.TELEGRAM_AI_ENABLED || "")
+    ? await loadTelegramChatHistory(env, message)
+    : [];
+
+  let moderation;
+  try {
+    moderation = await moderateIssueCandidate(env, classification, message, history);
+  } catch (error) {
+    const notificationSent = await sendTelegramReply(
+      env,
+      message,
+      buildIssueReplyText("ai_unavailable")
+    );
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "ai_unavailable",
+      kind: classification.kind,
+      error: error instanceof Error ? error.message : "ai_unavailable",
+      notification_sent: notificationSent,
+    };
+  }
+
+  await recordIssueModerationAudit(env, moderation);
+  const moderationReply = buildIssueModerationReply(moderation);
+  if (moderationReply) {
+    const notificationSent = await sendTelegramReply(env, message, moderationReply);
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: moderation.decision,
+      kind: classification.kind,
+      reason_code: moderation.reason_code,
+      reason_text: moderation.reason_text,
+      notification_sent: notificationSent,
+    };
+  }
+
+  const draft = await draftIssueBody(env, classification, history);
+  const issueDraft = {
+    title: buildIssueTitle(classification),
+    body: buildIssueBody(message, classification, draft),
+    labels: getConfiguredLabels(classification.kind, env),
+  };
+
+  if (dryRun) {
+    await recordTelegramThrottle(env, message, throttleCheck.throttleKey);
+    const notificationSent = await sendTelegramReply(
+      env,
+      message,
+      buildIssueReplyText("dry_run")
+    );
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "dry_run",
+      kind: classification.kind,
+      title: issueDraft.title,
+      notification_sent: notificationSent,
+    };
+  }
+
+  let issue;
+  try {
+    issue = await createGitHubIssue(env, issueDraft);
+  } catch (error) {
+    const notificationSent = await sendTelegramReply(
+      env,
+      message,
+      buildIssueReplyText("error")
+    );
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "error",
+      kind: classification.kind,
+      error: error instanceof Error ? error.message : "unknown_error",
+      notification_sent: notificationSent,
+    };
+  }
+
+  await recordTelegramThrottle(env, message, throttleCheck.throttleKey);
+  const notificationSent = await sendTelegramReply(
+    env,
+    message,
+    buildIssueReplyText("created", {
+      issue_number: issue.number,
+      issue_url: issue.html_url,
+    })
+  );
+  return {
+    update_id: message.update_id,
+    message_id: message.message_id,
+    status: "created",
+    kind: classification.kind,
+    issue_number: issue.number,
+    issue_url: issue.html_url,
+    notification_sent: notificationSent,
+  };
+}
+
+async function processConversationMessage(env, message, intent) {
+  if (!isTruthy(env.TELEGRAM_AI_ENABLED || "")) {
+    const notificationSent = await sendTelegramReply(
+      env,
+      message,
+      buildIssueReplyText("unrecognized")
+    );
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "ignored_unrecognized_format",
+      notification_sent: notificationSent,
+    };
+  }
+
+  const limitCheck = await checkTelegramChatRateLimit(env, message);
+  if (!limitCheck.allowed) {
+    const notificationSent = await sendTelegramReply(
+      env,
+      message,
+      buildChatThrottleReply(limitCheck.retry_after_seconds || null)
+    );
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "chat_rate_limited",
+      retry_after_seconds: limitCheck.retry_after_seconds || null,
+      notification_sent: notificationSent,
+    };
+  }
+
+  const history = await loadTelegramChatHistory(env, message);
+
+  try {
+    const response =
+      intent === "onboarding"
+        ? await recommendOnboardingPath(env, message, history)
+        : await generateChatReply(env, message, history);
+    await saveTelegramConversation(env, message, intent, message.text, response.reply_text);
+    const notificationSent = await sendTelegramReply(env, message, response.reply_text);
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: intent === "onboarding" ? "onboarding_replied" : "chat_replied",
+      notification_sent: notificationSent,
+    };
+  } catch (error) {
+    const notificationSent = await sendTelegramReply(
+      env,
+      message,
+      buildIssueReplyText("ai_unavailable")
+    );
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "ai_unavailable",
+      error: error instanceof Error ? error.message : "ai_unavailable",
+      notification_sent: notificationSent,
+    };
+  }
+}
+
+async function processCommandMessage(env, message, command) {
+  if (command === "reset") {
+    await clearTelegramChatHistory(env, message);
+  }
+  const notificationSent = await sendTelegramReply(env, message, buildCommandReply(command));
+  return {
+    update_id: message.update_id,
+    message_id: message.message_id,
+    status: `command_${command}`,
+    notification_sent: notificationSent,
+  };
+}
+
+export async function handleTelegramWebhook(request, env) {
+  if (!isTelegramIntegrationEnabled(env)) {
     return jsonResponse(
       {
         status: "disabled",
-        message: "Integracja Telegram -> GitHub Issues jest wyłączona.",
+        message: "Integracja Telegram jest wyłączona.",
       },
       200
     );
@@ -446,88 +573,20 @@ export async function handleTelegramWebhook(request, env) {
       continue;
     }
 
-    const classification = stripPrefix(message.text);
-    if (!classification) {
-      const notificationSent = await notifyTelegramReply(
-        env,
-        message,
-        "unrecognized"
+    const routing = routeTelegramIntent(message.text);
+    if (routing.intent === "command") {
+      results.push(await processCommandMessage(env, message, routing.command));
+      continue;
+    }
+
+    if (routing.intent === "issue") {
+      results.push(
+        await processIssueMessage(env, message, routing.classification, dryRun)
       );
-      results.push({
-        update_id: message.update_id,
-        message_id: message.message_id,
-        status: "ignored_unrecognized_format",
-        notification_sent: notificationSent,
-      });
       continue;
     }
 
-    const throttleCheck = await checkTelegramThrottle(env, message);
-    if (!throttleCheck.allowed) {
-      const notificationSent = await notifyTelegramReply(
-        env,
-        message,
-        "throttled",
-        {
-          retry_after_seconds: throttleCheck.retry_after_seconds || null,
-        }
-      );
-      results.push({
-        update_id: message.update_id,
-        message_id: message.message_id,
-        status: "throttled",
-        retry_after_seconds: throttleCheck.retry_after_seconds || null,
-        kind: classification.kind,
-        notification_sent: notificationSent,
-      });
-      continue;
-    }
-
-    const draft = buildIssueDraft(message, classification, env);
-    if (dryRun) {
-      await recordTelegramThrottle(env, message, throttleCheck.throttleKey);
-      const notificationSent = await notifyTelegramReply(env, message, "dry_run");
-      results.push({
-        update_id: message.update_id,
-        message_id: message.message_id,
-        status: "dry_run",
-        kind: classification.kind,
-        title: draft.title,
-        notification_sent: notificationSent,
-      });
-      continue;
-    }
-
-    let issue;
-    try {
-      issue = await createGitHubIssue(env, draft);
-    } catch (error) {
-      const notificationSent = await notifyTelegramReply(env, message, "error");
-      results.push({
-        update_id: message.update_id,
-        message_id: message.message_id,
-        status: "error",
-        kind: classification.kind,
-        error: error instanceof Error ? error.message : "unknown_error",
-        notification_sent: notificationSent,
-      });
-      continue;
-    }
-
-    await recordTelegramThrottle(env, message, throttleCheck.throttleKey);
-    const notificationSent = await notifyTelegramReply(env, message, "created", {
-      issue_number: issue.number,
-      issue_url: issue.html_url,
-    });
-    results.push({
-      update_id: message.update_id,
-      message_id: message.message_id,
-      status: "created",
-      kind: classification.kind,
-      issue_number: issue.number,
-      issue_url: issue.html_url,
-      notification_sent: notificationSent,
-    });
+    results.push(await processConversationMessage(env, message, routing.intent));
   }
 
   return jsonResponse(
@@ -535,6 +594,7 @@ export async function handleTelegramWebhook(request, env) {
       status: "accepted",
       processed_messages: messages.length,
       dry_run: dryRun,
+      ai_enabled: isTruthy(env.TELEGRAM_AI_ENABLED || ""),
       results,
     },
     200
