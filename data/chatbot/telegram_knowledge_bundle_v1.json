@@ -1,6 +1,6 @@
 {
   "schema_version": "v1",
-  "generated_at": "2026-04-14T23:14:59.028314+00:00",
+  "generated_at": "2026-04-14T23:46:09.220435+00:00",
   "allowlist": [
     "README.md",
     "MARKETING.md",
@@ -125,7 +125,7 @@
     },
     {
       "path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
-      "title": "12. Autonomiczne Projektowanie PCB z Recyklingu: E-odpady jako Inteligentny Zasób",
+      "title": "[PROJEKT 12] Autonomiczne Projektowanie PCB z Recyklingu i Inwentaryzacja e-Śmieci",
       "category": "document"
     },
     {
@@ -481,7 +481,14 @@
       "content": "### Linki\n- Repozytorium GitHub: [humancomputerintegration/ecoEDA](https://github.com/humancomputerintegration/ecoEDA/tree/main)\n- Publikacja naukowa: [ecoEDA: Recycling E-Waste during Electronics Design](https://doi.org/10.1145/3586183.3606745)\n- Wideo demonstracyjne: [YouTube - ecoEDA](https://youtu.be/XYMRXMVBfNg)\n\n### Analiza Strategiczna\n\n1. **Co już działa i jaki problem rozwiązuje?**\n   ecoEDA rozwiązuje problem marnotrawstwa komponentów elektronicznych, które lądują na wysypiskach, mimo że są sprawne. Narzędzie integryje się z KiCadem i podpowiada projektantowi użycie części z recyklingu, generując tzw. \"Bill of Teardowns\" (BoT) – listę urządzeń, które należy pozyskać i rozmontować, by zbudować dany projekt.\n\n2. **Co z tego da się zaadaptować do standardu Straży Przyszłości?**\n   Przede wszystkim paradygmat projektowania \"pod recykling\". Zamiast BOMu opartego na zakupach, model BoT uczy nas budować z tego, co już mamy w narodowym zasobie elektrośmieci. Mechanizm subcircuit suggestions pozwala na zastępowanie nowoczesnych, drogich układów kaskadami prostszych elementów z odzysku.\n\n3. **Jakie zadania mogą z tego wyniknąć dla nowych Strażników?**\n   - Tworzenie otwartych baz danych urządzeń (inwentaryzacja popularnych w Polsce \"złomów\").\n   - Rozwijanie i dostosowywanie skryptów ecoEDA do polskich realiów.\n   - Integracja baz ecoEDA z projektami rolniczymi Straży."
     },
     {
-      "id": "docs-przyklady-gotowego-kodu-md-5-kicad-mcp-server-autonomiczne-projektowanie-z-ai",
+      "id": "docs-przyklady-gotowego-kodu-md-5-ki-ntree-automatyzacja-inwentaryzacji-i-baz-cz-ci",
+      "source_path": "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+      "title": "Ki-nTree: Automatyzacja Inwentaryzacji i Baz Części",
+      "category": "document",
+      "content": "### Linki\n- Repozytorium GitHub: [sparkmicro/Ki-nTree](https://github.com/sparkmicro/Ki-nTree)\n- Dokumentacja InvenTree: [InvenTree Documentation](https://docs.inventree.org/)\n- Wideo demonstracyjne: [YouTube - Ki-nTree](https://www.youtube.com/watch?v=YeWBqOCb4pw)\n\n### Analiza Strategiczna\n\n1. **Co już działa i jaki problem rozwiązuje?**\n   Ki-nTree automatyzuje proces dodawania nowych komponentów do bazy inwentaryzacyjnej InvenTree oraz tworzenia symboli i footprintów w KiCadzie. Rozwiązuje problem \"żmudnej tabelki\" – zamiast ręcznie wpisywać dane z PDF-ów, narzędzie zaciąga dane (noty katalogowe, parametry) i tworzy gotowe rekordy w kilka sekund.\n\n2. **Co z tego da się zaadaptować do standardu Straży Przyszłości?**\n   Wykorzystujemy Ki-nTree jako **silnik bazy danych dla AI**. Zamiast pisać własny system inwentaryzacji e-odpadów, używamy InvenTree jako backendu, a Ki-nTree jako adaptera. Naszym wkładem jest dopisanie modułu AI (wizja komputerowa/OCR), który rozpoznaje chip na śmieciach i \"podaje\" go do Ki-nTree.\n\n3. **Jakie zadania mogą z tego wyniknąć dla nowych Strażników?**\n   - Konfiguracja i hostowanie instancji InvenTree dla społeczności.\n   - Rozwijanie modułu OCR, który automatycznie wyciąga symbole układów ze zdjęć i przekazuje je do API Ki-nTree.\n   - Tworzenie adapterów dla specyficznych \"rodzin\" e-śmieci (np. bazy zamienników dla zasilaczy czy routerów)."
+    },
+    {
+      "id": "docs-przyklady-gotowego-kodu-md-6-kicad-mcp-server-autonomiczne-projektowanie-z-ai",
       "source_path": "docs/PRZYKLADY_GOTOWEGO_KODU.md",
       "title": "KiCAD-MCP-Server: Autonomiczne Projektowanie z Ai",
       "category": "document",
@@ -1255,56 +1262,42 @@
       "source_path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
       "title": "Wprowadzenie",
       "category": "document",
-      "content": "# 12. Autonomiczne Projektowanie PCB z Recyklingu: E-odpady jako Inteligentny Zasób"
+      "content": "# [PROJEKT 12] Autonomiczne Projektowanie PCB z Recyklingu i Inwentaryzacja e-Śmieci\n\nTen dokument opisuje strategię i narzędzia budujące system suwerennej produkcji elektroniki w oparciu o recykling elektrośmieci oraz Sztuczną Inteligencję."
     },
     {
-      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-1-intelekt-wyprzedza-kapita",
+      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-1-i-filar-1-ecoeda-inteligentny-recykling-komponent-w",
       "source_path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
-      "title": "**Intelekt wyprzedza Kapitał!**",
+      "title": "I. Filar 1: ecoEDA – Inteligentny Recykling Komponentów",
       "category": "document",
-      "content": "W dobie kryzysu surowcowego i narastającej góry elektrośmieci, tradycyjne podejście do projektowania elektroniki – oparte na kupowaniu nowych komponentów z globalnych łańcuchów dostaw – staje się wąskim gardłem dla lokalnej, suwerennej produkcji. Inicjatywa **Straż Przyszłości** stawia na radykalną zmianę paradygmatu: zamiast traktować zepsute telefony, routery czy odkurzacze jako odpad, zaczynamy widzieć w nich **precyzyjnie skatalogowany magazyn części zamiennych**.\n\nDzięki połączeniu dwóch przełomowych narzędzi open-source – **ecoEDA** oraz **KiCAD-MCP-Server** – otwieramy drogę do **autonomicznego projektowania urządzeń elektronicznych bezpośrednio ze śmieci**.\n\n---"
+      "content": "Narzędzie **ecoEDA** to wtyczka do programu KiCad, która analizuje lokalny inwentarz odzyskanych części i sugeruje ich użycie zamiast kupowania nowych komponentów.\n\n- **Bill of Teardowns (BoT):** System generuje instrukcję, jakie konkretnie urządzenia (np. stary router, dekoder) należy rozmontować, aby uzyskać części do nowego projektu.\n- **Różne typy dopasowań:** Sugeruje zamienniki o zbliżonych parametrach lub obudowach."
     },
     {
-      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-2-i-filary-technologiczne-suwerennej-elektroniki",
+      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-2-ii-filar-2-kicad-mcp-server-autonomia-projektowa-z-ai",
       "source_path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
-      "title": "I. Filary Technologiczne suwerennej elektroniki",
+      "title": "II. Filar 2: KiCAD-MCP-Server – Autonomia Projektowa z AI",
       "category": "document",
-      "content": "### 1. ecoEDA: Inteligentny Recykling Komponentów\nNarzędzie **ecoEDA** (developed at University of Chicago) to wtyczka do programu KiCad, która zmienia sposób, w jaki myślimy oliście materiałowej (BOM). Zamiast po prostu dodawać symbole z biblioteki producenta, ecoEDA w czasie rzeczywistym analizuje Twój lokalny inwentarz odzyskanych części i sugeruje zamienniki.\n\n**Kluczowe funkcje ecoEDA:**\n*   **In-editor Suggestions:** Podczas rysowania schematu, system wyświetla pop-upy z sugestiami części, które już masz (np. wylutowane ze starego routera).\n*   **Różne typy dopasowań:** System nie szuka tylko identycznych numerów katalogowych. Potrafi zaproponować rozwiązania typu \"drop-in\" (ten sam pin-out i obudowa) lub nawet całe **subcircuits** (kilka części z recyklingu zastępujących jeden nowoczesny układ).\n*   **Bill of Teardowns (BoT):** Zamiast tradycyjnego BOMu, dostajesz instrukcję: \"Aby zbudować to urządzenie, rozbierz ten model telefonu i ten konkretny router\".\n*   **Library Generator:** Możliwość tworzenia własnych baz danych na podstawie posiadanych \"złomów\" elektronicznych.\n\n### 2. KiCAD-MCP-Server: Autonomia Projektowa z Ai\nDrugim filarem jest **KiCAD-MCP-Server**, który pozwala modelom językowym (np. Claude 3.5 Sonnet) na bezpośrednią ingerencję w pliki projektowe KiCada za pomocą protokołu MCP (Model Context Protocol).\n\n**Możliwości integracji Ai:**\n*   **Automatyczne schematy:** Ai potrafi na podstawie opisu tekstowego (\"Zaprojektuj sterownik nawadniania oparty na ESP32\") dodać komponenty, połączyć piny i sprawdzić poprawność połączeń (ERC).\n*   **Routing i Gerber:** Modele Ai mogą zarządzać autorouterem (Freerouting), układać elementy na płytce i wypluwać gotowe pliki Gerber do produkcji.\n*   **122 specjalistyczne narzędzia:** Od zarządzania netlistami po integrację z katalogiem JLCPCB w poszukiwaniu brakujących ogniw.\n\n---"
+      "content": "**KiCAD-MCP-Server** pozwala modelom językowym (np. Claude) na bezpośrednią ingerencję w pliki projektowe KiCada za pomocą protokołu MCP.\n\n- AI potrafi projektować schematy, układać elementy i wykonywać routing na podstawie opisu w języku naturalnym.\n- Pozwala to na realizację wizji „Intelekt wyprzedza Kapitał” – algorytm zastępuje kosztowny proces inżynieryjny."
     },
     {
-      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-3-ii-synteza-autonomiczna-fabryka-z-odzysku",
+      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-3-iii-filar-3-ki-ntree-inventree-silnik-inwentaryzacji-e-mieci",
       "source_path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
-      "title": "II. Synteza: Autonomiczna Fabryka z Odzysku",
+      "title": "III. Filar 3: Ki-nTree + InvenTree – Silnik Inwentaryzacji e-Śmieci",
       "category": "document",
-      "content": "To, co czyni ten projekt przełomowym dla Straży Przyszłości, to **spięcie tych dwóch kodów**. Wyobraźmy sobie proces:\n\n1.  **Skanowanie Zasobów:** Strażnik Przyszłości ma w warsztacie 10 starych dekoderów TV i 5 zepsutych laptopów. Skrypt katalogujący tworzy bazę dostępnych części (ecoEDA library).\n2.  **Prompt do Ai:** Strażnik wydaje polecenie: \"Zaprojektuj autonomiczny czujnik wilgotności gleby dla projektu [01. Inteligentna Akwakultura](01_inteligentna_akwakultura.md), wykorzystując wyłącznie komponenty dostępne w mojej bazie ecoEDA\".\n3.  **Autonomiczne Projektowanie:** Claude, korzystając z serwera MCP, przeszukuje bibliotekę ecoEDA. Zamiast kazać kupić precyzyjny rezystor SMD, Ai dobiera rezystory przewlekane znalezione w dekoderach, modyfikuje footprinty i dostosowuje routing tak, by zmieścić te często większe, używane elementy.\n4.  **Wynik:** Strażnik dostaje gotowy projekt PCB oraz listę \"Bill of Teardowns\". Pozostaje tylko wylutowanie części i montaż.\n\n**To jest moment, w którym Intelekt (algorytm Ai) zastępuje Kapitał (zakup nowych komponentów).**\n\n---"
+      "content": "System **InvenTree** (baza inwentarzowa) połączony z narzędziem **Ki-nTree** zapewnia AI „widzialność” zasobów.\n\n- **Automatyczne Katalogowanie:** Ki-nTree zaciąga noty katalogowe (PDF), parametry i symbole części w kilka sekund.\n- **Integracja AI:** Moduł OCR rozpoznaje chip na starej płycie i tworzy rekord w bazie przez API. Skatalogowany „wylut” jest od razu dostępny jako symbol dla AI projektującego nową PCB.\n\n---"
     },
     {
-      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-4-iii-cele-operacyjne-i-wdro-enie-w-polsce",
+      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-4-tre-ci-i-za-o-enia",
       "source_path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
-      "title": "III. Cele Operacyjne i Wdrożenie w Polsce",
+      "title": "Treści i Założenia",
       "category": "document",
-      "content": "Jako **Straż Przyszłości** nie chcemy wyważać otwartych drzwi. Kod obu narzędzi jest już dostępny na licencjach open-source. Naszym zadaniem jest:\n1.  **Lokalizacja i Bazy Danych:** Stworzenie wspólnej, polskiej bazy urządzeń powszechnie dostępnych w recyklingu (np. popularne w Polsce routery operatorów, dekodery, stare ładowarki).\n2.  **Integracja:** Opracowanie gotowych \"przepisów\" i promptów dla modeli Ai, które najlepiej radzą sobie z wymianą danych między ecoEDA a serwerem MCP.\n3.  **Społeczność:** Zbudowanie sieci osób, które testują te rozwiązania w praktyce – od projektowania prostych czujników IoT po zaawansowane sterowniki maszyn rolniczych.\n\n---"
+      "content": "Automatyzacja inwentaryzacji elektrośmieci przez AI wymaga solidnej bazy danych. Zamiast pisać ją od zera, wykorzystujemy kod open-source. Ki-nTree świetnie łączy części z magazynem InvenTree i KiCadem, co stanowi silnik dla naszej Sztucznej Inteligencji. \n\nDocelowo rozwijamy moduł AI, który po zeskanowaniu starej płyty ze śmieci sam rozpozna części i je skataloguje. AI potrzebuje bazy danych, z którą się komunikuje – InvenTree zapewnia stabilny backend. Kod na dodawanie części do wirtualnego magazynu i programu projektowego już istnieje. Ki-nTree robi to w kilka sekund. Następnym krokiem jest integracja modułów rozpoznawania obrazu / OCR układów, które automatycznie przekażą symbole wylutowanych części do skryptu, a ten zaciągnie PDF-y z notami katalogowymi i posegreguje zasoby.\n\nPrezentacja ecoEDA – narzędzia open-source integrującego się z programem KiCad, które w czasie rzeczywistym podpowiada, jak użyć komponentów (lub całych obwodów) ze starych urządzeń – zepsutych telefonów, odkurzaczy czy zabawek. Zamiast standardowej listy materiałowej (BOM), system generuje instrukcję pozyskania części z konkretnych elektrośmieci.\n\n---"
     },
     {
-      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-5-iv-materia-y-promocyjne-do-wykorzystania",
+      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-5-zasoby-i-repozytoria",
       "source_path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
-      "title": "IV. Materiały Promocyjne (Do wykorzystania)",
+      "title": "Zasoby i Repozytoria",
       "category": "document",
-      "content": "W celu budowania społeczności przygotowaliśmy gotowe wzorce komunikacji. Każdy Strażnik może ich użyć do promowania idei w sieci:\n\n### 🟠 Wersja na Wykop (Znalezisko)\n**Tytuł:** Inteligentny recykling e-odpadów w projektowaniu PCB. Straż Przyszłości działa!\n**Opis:** ecoEDA to wtyczka m.in. do KiCada. Zamiast kupować nowe części, algorytm sugeruje użycie komponentów z elektrośmieci i generuje instrukcję ich demontażu. Jako \"Straż Przyszłości\" chcemy rozwijać ten projekt w PL. Kod open-source już jest! #elektronika #diy #kicad #ai\n\n**Pierwszy komentarz (od OP):**\nWykopki, patrzcie na to. Model językowy (Claude) wpięty bezpośrednio w KiCada przez MCP. AI dostaje prompta i buduje schemat, układa elementy i robi routing. A teraz najlepsze: spięcie tego z ecoEDA pozwala na projektowanie płytek z elementów, które macie w szafie w zepsutych routerach czy ładowarkach. Kod leży w sieci za darmo. Kto z tagów #programowanie, #ai, #elektronika chce to z nami testować?\n\n---"
-    },
-    {
-      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-6-v-zasoby-i-repozytoria",
-      "source_path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
-      "title": "V. Zasoby i Repozytoria",
-      "category": "document",
-      "content": "Wspieramy i promujemy twórców tych narzędzi. Dołącz do nas i współtwórz narodowy zasób technologiczny:\n\n*   **ecoEDA (Recykling):** [humancomputerintegration/ecoEDA](https://github.com/humancomputerintegration/ecoEDA/tree/main)\n*   **KiCAD-MCP-Server (Automatyzacja Ai):** [mixelpixx/KiCAD-MCP-Server](https://github.com/mixelpixx/KiCAD-MCP-Server)\n*   **Wideo Prezentacyjne (ecoEDA):** [YouTube - ecoEDA](https://www.youtube.com/watch?v=XYMRXMVBfNg)\n*   **Wideo Prezentacyjne (KiCAD-MCP):** [YouTube - KiCAD AI](https://www.youtube.com/watch?v=C9n7eC16u-Y)\n\n---"
-    },
-    {
-      "id": "projekty-12-autonomiczne-pcb-ze-smieci-md-7-powi-zane-projekty-w-tym-repozytorium",
-      "source_path": "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
-      "title": "Powiązane projekty w tym repozytorium:",
-      "category": "document",
-      "content": "*   **[04. Solarne Okna z Recyklingu TV](04_lampa_z_recyklingu_tv.md)** – Inny przykład upcyklingu elektrośmieci.\n*   **[05. Laserowy Recykling Paneli PV](05_recykling_pv_laserem.md)** – Zaawansowany odzysk surowców.\n*   **[06. Smartfony jako Sterowniki](06_smartfony_jako_sterowniki.md)** – Wykorzystanie starego hardware'u jako jednostek obliczeniowych.\n\n---\n*Intelekt wyprzedza kapitał!*"
+      "content": "*   **ecoEDA (Recykling):** [humancomputerintegration/ecoEDA](https://github.com/humancomputerintegration/ecoEDA/tree/main)\n*   **KiCAD-MCP-Server (Automatyzacja AI):** [mixelpixx/KiCAD-MCP-Server](https://github.com/mixelpixx/KiCAD-MCP-Server)\n*   **Ki-nTree (Inwentaryzacja):** [sparkmicro/Ki-nTree](https://github.com/sparkmicro/Ki-nTree)\n*   **InvenTree (Baza):** [InvenTree Documentation](https://docs.inventree.org/)\n\n**Materiały Wideo:**\n*   [ecoEDA - Recykling w KiCad](https://www.youtube.com/watch?v=XYMRXMVBfNg)\n*   [KiCAD AI - Projektowanie z MCP](https://www.youtube.com/watch?v=C9n7eC16u-Y)\n*   [Ki-nTree - Budowa Bazy Części](https://www.youtube.com/watch?v=YeWBqOCb4pw)\n\n---\n*Intelekt wyprzedza kapitał!*"
     },
     {
       "id": "github-issue-template-nowy-straznik-md-template",

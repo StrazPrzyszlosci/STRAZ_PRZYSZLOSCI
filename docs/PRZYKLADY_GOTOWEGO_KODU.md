@@ -97,6 +97,26 @@ Jeżeli odpowiedź na te trzy pytania jest jasna, przykład nie jest ciekawostk�
    - Rozwijanie i dostosowywanie skryptów ecoEDA do polskich realiów.
    - Integracja baz ecoEDA z projektami rolniczymi Straży.
 
+## Ki-nTree: Automatyzacja Inwentaryzacji i Baz Części
+
+### Linki
+- Repozytorium GitHub: [sparkmicro/Ki-nTree](https://github.com/sparkmicro/Ki-nTree)
+- Dokumentacja InvenTree: [InvenTree Documentation](https://docs.inventree.org/)
+- Wideo demonstracyjne: [YouTube - Ki-nTree](https://www.youtube.com/watch?v=YeWBqOCb4pw)
+
+### Analiza Strategiczna
+
+1. **Co już działa i jaki problem rozwiązuje?**
+   Ki-nTree automatyzuje proces dodawania nowych komponentów do bazy inwentaryzacyjnej InvenTree oraz tworzenia symboli i footprintów w KiCadzie. Rozwiązuje problem "żmudnej tabelki" – zamiast ręcznie wpisywać dane z PDF-ów, narzędzie zaciąga dane (noty katalogowe, parametry) i tworzy gotowe rekordy w kilka sekund.
+
+2. **Co z tego da się zaadaptować do standardu Straży Przyszłości?**
+   Wykorzystujemy Ki-nTree jako **silnik bazy danych dla AI**. Zamiast pisać własny system inwentaryzacji e-odpadów, używamy InvenTree jako backendu, a Ki-nTree jako adaptera. Naszym wkładem jest dopisanie modułu AI (wizja komputerowa/OCR), który rozpoznaje chip na śmieciach i "podaje" go do Ki-nTree.
+
+3. **Jakie zadania mogą z tego wyniknąć dla nowych Strażników?**
+   - Konfiguracja i hostowanie instancji InvenTree dla społeczności.
+   - Rozwijanie modułu OCR, który automatycznie wyciąga symbole układów ze zdjęć i przekazuje je do API Ki-nTree.
+   - Tworzenie adapterów dla specyficznych "rodzin" e-śmieci (np. bazy zamienników dla zasilaczy czy routerów).
+
 ## KiCAD-MCP-Server: Autonomiczne Projektowanie z Ai
 
 ### Linki
