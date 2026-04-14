@@ -1,6 +1,6 @@
 {
   "schema_version": "v1",
-  "generated_at": "2026-04-13T20:40:08.135769+00:00",
+  "generated_at": "2026-04-14T13:46:07.225785+00:00",
   "allowlist": [
     "README.md",
     "MARKETING.md",
@@ -1221,7 +1221,14 @@
       "source_path": "PROJEKTY/11_autonomiczne_systemy_rd.md",
       "title": "V. Sortowanie Odpadów Brudnych i Medycznych",
       "category": "document",
-      "content": "*   **Smart-Waste-Segregator:** Rozpoznawanie i rozdzielanie odpadów na taśmach bez ingerencji ludzkich rąk.\n    *   *Repo:* [shaya-lr/smart-waste-segregator](https://github.com/shaya-lr/smart-waste-segregator)\n*   **MechaSort / RoboSort:** Zastępowanie pracowników przy najbrudniejszych etapach segregacji.\n    *   *Repo:* [qppd/robo-sort](https://github.com/qppd/robo-sort) / [Gaurang-1402/MechaSort](https://github.com/Gaurang-1402/MechaSort)\n\n*Klucz do sukcesu Straży Przyszłości leży tam, gdzie inni nie odważą się nawet zajrzeć – w domykaniu obiegu materii tam, gdzie inni widzą tylko odpad i smród.*"
+      "content": "*   **Smart-Waste-Segregator:** Rozpoznawanie i rozdzielanie odpadów na taśmach bez ingerencji ludzkich rąk.\n    *   *Repo:* [shaya-lr/smart-waste-segregator](https://github.com/shaya-lr/smart-waste-segregator)\n*   **MechaSort / RoboSort:** Zastępowanie pracowników przy najbrudniejszych etapach segregacji.\n    *   *Repo:* [qppd/robo-sort](https://github.com/qppd/robo-sort) / [Gaurang-1402/MechaSort](https://github.com/Gaurang-1402/MechaSort)\n---"
+    },
+    {
+      "id": "projekty-11-autonomiczne-systemy-rd-md-7-zasoby-wideo-youtube",
+      "source_path": "PROJEKTY/11_autonomiczne_systemy_rd.md",
+      "title": "Zasoby Wideo (YouTube)",
+      "category": "document",
+      "content": "Wizualizacja procesów i technologiczne dowody słuszności:\n\n*   **[Automated Black Soldier Fly Larvae System](https://www.youtube.com/watch?v=jm8QH7YGtC8)** – Mechanizacja procesu żywienia i zbioru larw w celu produkcji nawozów i paszy.\n*   **[How to begin Black Soldier Flies farming](https://www.youtube.com/watch?v=4_ILVdh2HHE)** – Film instytucji Better Insect Solutions, prezentujący automatyzację produkcji larw muchy czarnej (BSF) na dużą skalę.\n\n*Klucz do sukcesu Straży Przyszłości leży tam, gdzie inni nie odważą się nawet zajrzeć – w domykaniu obiegu materii tam, gdzie inni widzą tylko odpad i smród.*"
     },
     {
       "id": "github-issue-template-nowy-straznik-md-template",

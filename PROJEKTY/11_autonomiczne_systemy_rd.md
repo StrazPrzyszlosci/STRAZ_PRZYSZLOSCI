@@ -43,17 +43,12 @@ Technologie operujące w ściekach i szlamie.
     *   *Repo:* [shaya-lr/smart-waste-segregator](https://github.com/shaya-lr/smart-waste-segregator)
 *   **MechaSort / RoboSort:** Zastępowanie pracowników przy najbrudniejszych etapach segregacji.
     *   *Repo:* [qppd/robo-sort](https://github.com/qppd/robo-sort) / [Gaurang-1402/MechaSort](https://github.com/Gaurang-1402/MechaSort)
-
 ---
 ## Zasoby Wideo (YouTube)
 Wizualizacja procesów i technologiczne dowody słuszności:
 
+*   **[Automated Black Soldier Fly Larvae System](https://www.youtube.com/watch?v=jm8QH7YGtC8)** – Mechanizacja procesu żywienia i zbioru larw w celu produkcji nawozów i paszy.
 *   **[How to begin Black Soldier Flies farming](https://www.youtube.com/watch?v=4_ILVdh2HHE)** – Film instytucji Better Insect Solutions, prezentujący automatyzację produkcji larw muchy czarnej (BSF) na dużą skalę.
-*   **[Black Soldier Fly Larvae vs. Whole Chicken (2026 Timelapse)](https://www.youtube.com/watch?v=U-N1tG1r79Y)** – Pokaz tempa utylizacji biomasy przez larwy.
-*   **[Automated Black Soldier Fly Larvae System](https://www.youtube.com/watch?v=jm8QH7YGtC8)** – Mechanizacja procesu oddzielania nawozów i paszy.
-*   **[Artificial Nose - Microsoft AI Show Edition](https://www.youtube.com/watch?v=t77L5C-d800)** – Demonstracja rozpoznawania zapachów przez AI.
-*   **[DIY Sewer Inspection Robot Build](https://www.youtube.com/watch?v=J1Qv3tB4z8g)** – Praca robota wewnątrz systemów kanalizacyjnych.
-*   **[Deep Learning Waste Classification Robot](https://www.youtube.com/watch?v=zAnpD8_F4Bw)** – Segregacja śmieci przy użyciu YOLO.
 
 *Klucz do sukcesu Straży Przyszłości leży tam, gdzie inni nie odważą się nawet zajrzeć – w domykaniu obiegu materii tam, gdzie inni widzą tylko odpad i smród.*
 
