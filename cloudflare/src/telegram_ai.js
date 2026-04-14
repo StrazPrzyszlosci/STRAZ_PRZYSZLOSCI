@@ -6,7 +6,6 @@ const ISSUE_DECISIONS = new Set([
   "reject_abuse",
   "reject_too_short",
   "reject_off_topic",
-  "needs_more_detail",
 ]);
 
 const ROUTE_KEYWORD_BOOSTS = {
@@ -486,14 +485,13 @@ function buildModerationSystemInstruction() {
     "Tryb: moderacja zgłoszenia do GitHub Issue.",
     "Oceń wyłącznie bieżącą wiadomość użytkownika po prefiksie Pomysl/Uwaga.",
     "Zwróć JSON z polami decision, reason_code, reason_text.",
-    "Decision musi być jednym z: accept, reject_spam, reject_abuse, reject_too_short, reject_off_topic, needs_more_detail.",
-    "BĄDŹ MAKSYMALNIE OTWARTY: Każdy, nawet najbardziej ogólny lecz merytoryczny pomysł ZAWSZE musi być zaakceptowany (accept).",
-    "NIGDY nie odrzucaj pomysłu ani nie proś o szczegóły (needs_more_detail) tylko dlatego, że brakuje 'analizy', 'harmonogramu' czy 'sposobu realizacji'. To są GitHub Issues dla społeczności – pomysł ma być impulsem, a nie gotową dokumentacją.",
-    "Decyzję 'needs_more_detail' stosuj TYLKO jeśli tekst jest kompletnie bełkotliwy i nie wiadomo nawet czego dotyczy.",
+    "Decision musi być jednym z: accept, reject_spam, reject_abuse, reject_too_short, reject_off_topic.",
+    "MANDATORY ACCEPTANCE: Każdy, nawet najbardziej ogólny lecz merytoryczny pomysł MUSI zostać zaakceptowany (decision: accept).",
+    "NIGDY nie odrzucaj pomysłu ani nie proś o szczegóły tylko dlatego, że brakuje mu technicznego opisu czy harmonogramu. GitHub Issues służą właśnie do tego, by te szczegóły dopracować ze społecznością.",
+    "BĄDŹ MAKSYMALNIE OTWARTY - pomysł ma być impulsem (ziarnem), a nie gotowym projektem.",
     "reject_spam tylko dla reklam i treści losowych.",
     "reject_abuse dla agresji.",
-    "reject_off_topic tylko gdy treść jest zupełnie niezwiązana z inicjatywą (np. przepis na ciasto).",
-    "W każdym innym przypadku: ACCEPT.",
+    "W każdym innym przypadku: accept.",
     "Nie dołączaj nic poza JSON.",
   ].join(" ");
 }
@@ -1186,9 +1184,22 @@ export async function moderateIssueCandidate(env, classification, message, histo
   );
 
   const parsed = extractJsonObject(response.text);
-  const decision = String(parsed.decision || "").trim();
+  let decision = String(parsed.decision || "").trim();
+  
+  // Jeśli model uparcie zwraca needs_more_detail mimo instrukcji, forsujemy accept
+  if (decision === "needs_more_detail") {
+    decision = "accept";
+  }
+
   if (!ISSUE_DECISIONS.has(decision)) {
-    throw new Error("Model zwrócił nieobsługiwaną decyzję moderacyjną.");
+    // Jeśli model zwrócił coś innego niż dopuszczalne decyzje, 
+    // to w przypadku braku jawnego odrzucenia (spam/abuse itp.) - akceptujemy.
+    if (!decision.startsWith("reject")) {
+      decision = "accept";
+    } else if (!ISSUE_DECISIONS.has(decision)) {
+       // Jeśli to jakaś nieznana forma odrzucenia - rzucamy błąd, aby fallback zadziałał lub logi pokazały błąd
+       throw new Error(`Model zwrócił nieobsługiwaną decyzję moderacyjną: ${decision}`);
+    }
   }
 
   return {
