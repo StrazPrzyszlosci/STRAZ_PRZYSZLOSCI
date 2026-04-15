@@ -608,8 +608,9 @@ async function runFetchWithTimeout(fetchImpl, url, init, timeoutMs) {
   }
 }
 
-function buildGoogleGenerateContentBody(promptPayload, options = {}) {
-  const inlineSystemInstruction = options.inlineSystemInstruction === true;
+function buildGoogleGenerateContentBody(promptPayload, model, options = {}) {
+  const isGemma = (model || "").toLowerCase().includes("gemma");
+  const inlineSystemInstruction = options.inlineSystemInstruction === true || isGemma;
   
   const userParts = [];
   
@@ -646,9 +647,12 @@ function buildGoogleGenerateContentBody(promptPayload, options = {}) {
       temperature: promptPayload.temperature,
       topP: 0.95,
       maxOutputTokens: promptPayload.maxTokens,
-      responseMimeType: promptPayload.responseMimeType || "text/plain",
     },
   };
+
+  if (!isGemma && promptPayload.responseMimeType) {
+    body.generationConfig.responseMimeType = promptPayload.responseMimeType;
+  }
 
   if (!inlineSystemInstruction && promptPayload.systemInstruction) {
     body.systemInstruction = {
@@ -698,7 +702,7 @@ async function callGoogleProvider(env, promptPayload, options = {}) {
       headers: {
         "content-type": "application/json; charset=utf-8",
       },
-      body: JSON.stringify(buildGoogleGenerateContentBody(promptPayload)),
+      body: JSON.stringify(buildGoogleGenerateContentBody(promptPayload, model)),
     },
     timeoutMs
   );
@@ -714,7 +718,7 @@ async function callGoogleProvider(env, promptPayload, options = {}) {
           "content-type": "application/json; charset=utf-8",
         },
         body: JSON.stringify(
-          buildGoogleGenerateContentBody(promptPayload, {
+          buildGoogleGenerateContentBody(promptPayload, model, {
             inlineSystemInstruction: true,
           })
         ),
@@ -1778,6 +1782,23 @@ async function ensureRecycledKnowledgeSchema(db) {
   ).run();
 
   await db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS telegram_user_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        session_type TEXT NOT NULL,
+        active_device_id INTEGER,
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(chat_id, user_id, session_type),
+        FOREIGN KEY (active_device_id) REFERENCES recycled_devices(id) ON DELETE SET NULL
+    )
+    `
+  ).run();
+
+  await db.prepare(
     `CREATE INDEX IF NOT EXISTS idx_recycled_parts_device_id ON recycled_parts(device_id)`
   ).run();
   await db.prepare(
@@ -1857,7 +1878,7 @@ function buildPartLookupReply(queryText, matches) {
   return lines.join("\n");
 }
 
-async function recordRecycledSubmission(env, payload) {
+export async function recordRecycledSubmission(env, payload) {
   const db = env.DB;
   if (!db) {
     return;
@@ -1902,6 +1923,41 @@ async function recordRecycledSubmission(env, payload) {
     payload.raw_payload_json ? JSON.stringify(payload.raw_payload_json) : null,
     toIsoNow()
   ).run();
+}
+
+export async function upsertUserSession(env, chat_id, user_id, session_type, device_id) {
+  const db = env.DB;
+  const now = toIsoNow();
+  await db.prepare(
+    `
+    INSERT INTO telegram_user_sessions (chat_id, user_id, session_type, active_device_id, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'active', ?, ?)
+    ON CONFLICT(chat_id, user_id, session_type) DO UPDATE SET
+      active_device_id = EXCLUDED.active_device_id,
+      status = 'active',
+      updated_at = EXCLUDED.updated_at
+    `
+  ).bind(chat_id, user_id, session_type, device_id, now, now).run();
+}
+
+export async function getUserSession(env, chat_id, user_id, session_type) {
+  const db = env.DB;
+  return await db.prepare(
+    `SELECT * FROM telegram_user_sessions WHERE chat_id = ? AND user_id = ? AND session_type = ? AND status = 'active'`
+  ).bind(chat_id, user_id, session_type).first();
+}
+
+export async function closeUserSession(env, chat_id, user_id, session_type) {
+  const db = env.DB;
+  const now = toIsoNow();
+  await db.prepare(
+    `UPDATE telegram_user_sessions SET status = 'closed', updated_at = ? WHERE chat_id = ? AND user_id = ? AND session_type = ?`
+  ).bind(now, chat_id, user_id, session_type).run();
+}
+
+export async function getDeviceById(env, deviceId) {
+  const db = env.DB;
+  return await db.prepare(`SELECT * FROM recycled_devices WHERE id = ?`).bind(deviceId).first();
 }
 
 export async function getPartsForModel(env, modelName) {
@@ -2155,8 +2211,17 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
         status: "matched_device",
         raw_payload_json: identity,
       });
+
       return {
-        reply_text: buildDeviceCatalogReply(dbResult),
+        reply_text: `Zidentyfikowano: ${formatDeviceName(dbResult.device)}. Czy chcesz teraz dodać zdjęcia konkretnych części z tego egzemplarza?`,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "✅ Tak, dodaję części", callback_data: `recycled_add_parts:${dbResult.device.id}` },
+              { text: "❌ Nie, tylko info", callback_data: `recycled_show_info:${dbResult.device.id}` }
+            ]
+          ]
+        },
         provider_name: visionResp.provider_name,
         model_name: visionResp.model_name
       };
@@ -2179,7 +2244,15 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
     });
 
     return {
-      reply_text: `Zidentyfikowano urządzenie: ${formatDeviceName(identity)}. Nie mam go jeszcze w katalogu reuse, ale zgłoszenie trafiło do kolejki kuracji GitHub-first.`,
+      reply_text: `Zidentyfikowano urządzenie: ${formatDeviceName(identity)}. Nie mam go jeszcze w katalogu reuse, ale zgłoszenie trafiło do kolejki kuracji. Czy mimo to chcesz przesłać zdjęcia jego części dla dokumentacji?`,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✅ Tak, prześlij części", callback_data: `recycled_add_parts_unknown:${encodeURIComponent(formatDeviceName(identity))}` },
+            { text: "❌ Nie", callback_data: "recycled_cancel" }
+          ]
+        ]
+      },
       provider_name: visionResp.provider_name,
       model_name: visionResp.model_name
     };

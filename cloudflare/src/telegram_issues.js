@@ -21,6 +21,11 @@ import {
   fetchTelegramFileAsBase64,
   handleRecycledKnowledgeLookup,
   recognizeDeviceAndListParts,
+  recordRecycledSubmission,
+  getUserSession,
+  upsertUserSession,
+  closeUserSession,
+  getDeviceById,
 } from "./telegram_ai.js";
 
 function jsonResponse(payload, status = 200) {
@@ -67,7 +72,7 @@ function getConfiguredLabels(kind, env) {
   return labels;
 }
 
-async function sendTelegramReply(env, message, text) {
+async function sendTelegramReply(env, message, text, replyMarkup = null) {
   const botToken = env.TELEGRAM_BOT_TOKEN;
   if (!botToken || !message?.chat_id || !text) {
     return false;
@@ -86,6 +91,7 @@ async function sendTelegramReply(env, message, text) {
         reply_to_message_id: message.message_id || undefined,
         allow_sending_without_reply: true,
         disable_web_page_preview: true,
+        reply_markup: replyMarkup || undefined,
       }),
     }
   );
@@ -514,17 +520,42 @@ async function processConversationMessage(env, message, intent) {
     };
   }
 
-  const history = await loadTelegramChatHistory(env, message);
+    const history = await loadTelegramChatHistory(env, message);
 
   try {
     let response;
     if (intent === "device_media") {
-      await sendTelegramReply(env, message, "Otrzymałem zdjęcie. Proszę o chwilę, analizuję model urządzenia...");
-      const base64 = await fetchTelegramFileAsBase64(env, message.file_id);
-      if (base64) {
-        response = await recognizeDeviceAndListParts(env, message, base64);
+      // Sprawdź czy mamy aktywną sesję
+      const session = await getUserSession(env, message.chat_id, message.user_id, "recycled_parts");
+      if (session) {
+        // Mamy aktywną sesję dodawania części dla konkretnego urządzenia!
+        // Rejestrujemy jako część, bez ponownej identyfikacji vizyjnej całego urządzenia 
+        // (AI może być użyte do identyfikacji konkretnej CZĘŚCI, ale kontekst urządzenia mamy z sesji).
+        await sendTelegramReply(env, message, "Otrzymałem zdjęcie części. Przypisuję je do aktywnego urządzenia...");
+        
+        
+        await recordRecycledSubmission(env, {
+          chat_id: message?.chat_id,
+          user_id: message?.user_id,
+          message_id: message?.message_id,
+          lookup_kind: "part_media",
+          matched_device_id: session.active_device_id,
+          attachment_file_id: message?.file_id,
+          attachment_mime_type: message?.mime_type,
+          status: "queued"
+        });
+
+        response = {
+          reply_text: "✅ Zdjęcie części dodane do kolejki. Możesz wysłać kolejne lub wpisz /stop aby zakończyć."
+        };
       } else {
-        response = { reply_text: "Nie udało się pobrać zdjęcia do analizy." };
+        await sendTelegramReply(env, message, "Otrzymałem zdjęcie. Proszę o chwilę, analizuję model urządzenia...");
+        const base64 = await fetchTelegramFileAsBase64(env, message.file_id);
+        if (base64) {
+          response = await recognizeDeviceAndListParts(env, message, base64);
+        } else {
+          response = { reply_text: "Nie udało się pobrać zdjęcia do analizy." };
+        }
       }
     } else if (intent === "device_lookup") {
       response = await handleRecycledKnowledgeLookup(env, message);
@@ -536,7 +567,7 @@ async function processConversationMessage(env, message, intent) {
     }
 
     await saveTelegramConversation(env, message, intent, message.text || "[media]", response.reply_text);
-    const notificationSent = await sendTelegramReply(env, message, response.reply_text);
+    const notificationSent = await sendTelegramReply(env, message, response.reply_text, response.reply_markup);
     return {
       update_id: message.update_id,
       message_id: message.message_id,
@@ -551,10 +582,11 @@ async function processConversationMessage(env, message, intent) {
       notification_sent: notificationSent,
     };
   } catch (error) {
+    const errorString = error instanceof Error ? error.message : JSON.stringify(error);
     const notificationSent = await sendTelegramReply(
       env,
       message,
-      buildIssueReplyText("ai_unavailable")
+      `[DEBUG AI ERROR]: ${errorString}\n\n` + buildIssueReplyText("ai_unavailable")
     );
     return {
       update_id: message.update_id,
@@ -569,6 +601,10 @@ async function processConversationMessage(env, message, intent) {
 async function processCommandMessage(env, message, command) {
   if (command === "reset") {
     await clearTelegramChatHistory(env, message);
+  } else if (command === "stop") {
+    await closeUserSession(env, message.chat_id, message.user_id, "recycled_parts");
+    await sendTelegramReply(env, message, "Zakończyłem sesję dodawania części.");
+    return { status: "session_closed" };
   }
   const notificationSent = await sendTelegramReply(env, message, buildCommandReply(command));
   return {
@@ -577,6 +613,45 @@ async function processCommandMessage(env, message, command) {
     status: `command_${command}`,
     notification_sent: notificationSent,
   };
+}
+
+async function handleTelegramCallback(env, callback) {
+  const { id, from, message, data } = callback;
+  const chat_id = String(message.chat.id);
+  const user_id = String(from.id);
+
+  if (data.startsWith("recycled_add_parts:")) {
+    const deviceId = parseInt(data.split(":")[1]);
+    await upsertUserSession(env, chat_id, user_id, "recycled_parts", deviceId);
+    
+    await answerCallbackQuery(env, id, "Tryb dodawania części aktywny!");
+    await sendTelegramReply(env, { chat_id, message_id: message.message_id }, "✅ Tryb dodawania części AKTYWNY. Każde kolejne zdjęcie zostanie przypisane do tego urządzenia. Aby zakończyć, wpisz /stop.");
+  } else if (data === "recycled_cancel") {
+    await closeUserSession(env, chat_id, user_id, "recycled_parts");
+    await answerCallbackQuery(env, id, "Anulowano.");
+    await sendTelegramReply(env, { chat_id, message_id: message.message_id }, "Przerwałem proces dodawania części.");
+  } else if (data.startsWith("recycled_show_info:")) {
+    const deviceId = parseInt(data.split(":")[1]);
+    await closeUserSession(env, chat_id, user_id, "recycled_parts");
+    
+    const device = await getDeviceById(env, deviceId);
+    await answerCallbackQuery(env, id, "Wyświetlam katalog.");
+    await sendTelegramReply(env, { chat_id, message_id: message.message_id }, `Katalog dla ${device.brand} ${device.model} jest dostępny w repozytorium.`);
+  }
+
+  return jsonResponse({ status: "ok" });
+}
+
+async function answerCallbackQuery(env, callbackQueryId, text) {
+  const botToken = env.TELEGRAM_BOT_TOKEN;
+  await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      callback_query_id: callbackQueryId,
+      text: text
+    })
+  });
 }
 
 export async function handleTelegramWebhook(request, env) {
@@ -597,15 +672,24 @@ export async function handleTelegramWebhook(request, env) {
   let payload;
   try {
     payload = await request.json();
-  } catch {
-    return jsonResponse({ error: "Nieprawidłowy JSON webhooka Telegram." }, 400);
+  } catch (error) {
+    return jsonResponse({ error: "Nieprawidłowy body JSON." }, 400);
+  }
+
+  // Handle Callback Queries (Buttons)
+  if (payload.callback_query) {
+    return await handleTelegramCallback(env, payload.callback_query);
   }
 
   const messages = collectInboundMessages(payload);
   const dryRun = isTruthy(env.TELEGRAM_ISSUES_DRY_RUN || "");
   const allowedChatIds = parseAllowedIds(env.TELEGRAM_ALLOWED_CHAT_IDS || "");
-  const results = [];
 
+  if (!messages || messages.length === 0) {
+    return jsonResponse({ status: "ok", message: "Brak komunikatów do przetworzenia." });
+  }
+
+  const results = [];
   for (const message of messages) {
     if (allowedChatIds && !allowedChatIds.has(String(message.chat_id))) {
       results.push({
@@ -615,7 +699,6 @@ export async function handleTelegramWebhook(request, env) {
       });
       continue;
     }
-
     const routing = routeTelegramIntent(message);
     if (routing.intent === "command") {
       results.push(await processCommandMessage(env, message, routing.command));
