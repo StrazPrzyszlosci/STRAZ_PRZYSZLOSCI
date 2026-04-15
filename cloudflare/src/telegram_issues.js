@@ -519,6 +519,7 @@ async function processConversationMessage(env, message, intent) {
   try {
     let response;
     if (intent === "device_media") {
+      await sendTelegramReply(env, message, "Otrzymałem zdjęcie. Proszę o chwilę, analizuję model urządzenia...");
       const base64 = await fetchTelegramFileAsBase64(env, message.file_id);
       if (base64) {
         response = await recognizeDeviceAndListParts(env, message, base64);

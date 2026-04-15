@@ -33,6 +33,8 @@ ALLOWLIST = [
     "PROJEKTY/10_lacznosc_mesh_lora.md",
     "PROJEKTY/11_autonomiczne_systemy_rd.md",
     "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
+    "PROJEKTY/13_baza_czesci_recykling/README.md",
+    "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
     ".github/ISSUE_TEMPLATE/nowy_straznik.md",
     ".github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md",
     ".github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md",

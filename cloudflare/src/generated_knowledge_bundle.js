@@ -1,6 +1,6 @@
 export const knowledgeBundle = {
   "schema_version": "v1",
-  "generated_at": "2026-04-14T23:46:09.220435+00:00",
+  "generated_at": "2026-04-15T13:40:09.212297+00:00",
   "allowlist": [
     "README.md",
     "MARKETING.md",
@@ -22,6 +22,8 @@ export const knowledgeBundle = {
     "PROJEKTY/10_lacznosc_mesh_lora.md",
     "PROJEKTY/11_autonomiczne_systemy_rd.md",
     "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
+    "PROJEKTY/13_baza_czesci_recykling/README.md",
+    "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
     ".github/ISSUE_TEMPLATE/nowy_straznik.md",
     ".github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md",
     ".github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md",
@@ -129,6 +131,16 @@ export const knowledgeBundle = {
       "category": "document"
     },
     {
+      "path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "[PROJEKT 13] GitHub-First Baza Czesci z Recyklingu",
+      "category": "document"
+    },
+    {
+      "path": "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
+      "title": "14. Autonomiczne Projektowanie 3D i CAD (MCP)",
+      "category": "document"
+    },
+    {
       "path": ".github/ISSUE_TEMPLATE/nowy_straznik.md",
       "title": "Kim jesteś i co Cię tu przyciąga",
       "category": "issue_template"
@@ -205,7 +217,7 @@ export const knowledgeBundle = {
       "source_path": "README.md",
       "title": "Projekty Pilotażowe i Inspiracje",
       "category": "document",
-      "content": "W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiązań, które mogą zostać wdrożone w modelu Open-Source przez Narodowe Siły Intelektualne:\n\n*   **[01. Inteligentna Akwakultura](PROJEKTY/01_inteligentna_akwakultura.md)** – Autonomiczne węzły produkcji ryb oparte na IoT i AI.\n*   **[02. Wirtualne Ogrodzenia](PROJEKTY/02_wirtualne_ogrodzenia.md)** – Cyfrowy wypas zwierząt bez fizycznej infrastruktury.\n*   **[03. Edge AI w Pasterstwie](PROJEKTY/03_ai_monitoring_porodow.md)** – Lokalna analityka obrazu wspierająca hodowców w trudnych warunkach.\n*   **[04. Solarne Okna z Recyklingu TV](PROJEKTY/04_lampa_z_recyklingu_tv.md)** – Upcykling elektrośmieci jako źródło darmowego światła i kapitału.\n*   **[05. Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md)** – Zaawansowany odzysk ogniw krzemowych przy użyciu technologii CNC.\n*   **[06. Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md)** – Wykorzystanie starej elektroniki jako potężnych węzłów sterujących (Edge Computing). Zobacz również: [08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md).\n*   **[07. Uniwersalna Platforma Sterowania](PROJEKTY/07_uniwersalna_platforma_sterowania.md)** – Przykład pozyskiwania zaawansowanego kodu (PhoneUAV) jako strategicznego zasobu intelektualnego NSI.\n*   **[08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md)** – Smartfon jako mózg robota AI: nawigacja w czasie rzeczywistym i autonomia maszyn.\n*   **[09. Monitoring IoT i Akcelerometria](PROJEKTY/09_monitoring_iot_livestock.md)** – Inteligentna obroża AI (Smart Health Tracker) z wykorzystaniem czujników smartfona.\n*   **[10. Łączność Mesh i LoRa](PROJEKTY/10_lacznosc_mesh_lora.md)** – Suwerenna sieć komunikacyjna Mesh (Meshtastic, Reticulum) do monitorowania zasobów gospodarczych.\n*   **[11. Autonomiczne Systemy R+D](PROJEKTY/11_autonomiczne_systemy_rd.md)** – Omijanie paradygmatu \"czystych\" technologii na rzecz brudnej, śmiałej automatyzacji.\n*   **[12. Autonomiczne PCB ze śmieci](PROJEKTY/12_autonomiczne_pcb_ze_smieci.md)** – Połączenie Ai i recyklingu e-odpadów w celu budowy suwerennej elektroniki bez kapitału.\n\n**Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**"
+      "content": "W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiązań, które mogą zostać wdrożone w modelu Open-Source przez Narodowe Siły Intelektualne:\n\n*   **[01. Inteligentna Akwakultura](PROJEKTY/01_inteligentna_akwakultura.md)** – Autonomiczne węzły produkcji ryb oparte na IoT i AI.\n*   **[02. Wirtualne Ogrodzenia](PROJEKTY/02_wirtualne_ogrodzenia.md)** – Cyfrowy wypas zwierząt bez fizycznej infrastruktury.\n*   **[03. Edge AI w Pasterstwie](PROJEKTY/03_ai_monitoring_porodow.md)** – Lokalna analityka obrazu wspierająca hodowców w trudnych warunkach.\n*   **[04. Solarne Okna z Recyklingu TV](PROJEKTY/04_lampa_z_recyklingu_tv.md)** – Upcykling elektrośmieci jako źródło darmowego światła i kapitału.\n*   **[05. Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md)** – Zaawansowany odzysk ogniw krzemowych przy użyciu technologii CNC.\n*   **[06. Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md)** – Wykorzystanie starej elektroniki jako potężnych węzłów sterujących (Edge Computing). Zobacz również: [08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md).\n*   **[07. Uniwersalna Platforma Sterowania](PROJEKTY/07_uniwersalna_platforma_sterowania.md)** – Przykład pozyskiwania zaawansowanego kodu (PhoneUAV) jako strategicznego zasobu intelektualnego NSI.\n*   **[08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md)** – Smartfon jako mózg robota AI: nawigacja w czasie rzeczywistym i autonomia maszyn.\n*   **[09. Monitoring IoT i Akcelerometria](PROJEKTY/09_monitoring_iot_livestock.md)** – Inteligentna obroża AI (Smart Health Tracker) z wykorzystaniem czujników smartfona.\n*   **[10. Łączność Mesh i LoRa](PROJEKTY/10_lacznosc_mesh_lora.md)** – Suwerenna sieć komunikacyjna Mesh (Meshtastic, Reticulum) do monitorowania zasobów gospodarczych.\n*   **[11. Autonomiczne Systemy R+D](PROJEKTY/11_autonomiczne_systemy_rd.md)** – Omijanie paradygmatu \"czystych\" technologii na rzecz brudnej, śmiałej automatyzacji.\n*   **[12. Autonomiczne PCB ze śmieci](PROJEKTY/12_autonomiczne_pcb_ze_smieci.md)** – Połączenie Ai i recyklingu e-odpadów w celu budowy suwerennej elektroniki bez kapitału.\n*   **[13. GitHub-first baza części z recyklingu](PROJEKTY/13_baza_czesci_recykling/README.md)** – Kanoniczny katalog urządzeń-dawców i części (JSONL) + generatory artefaktów dla ecoEDA, seed dla Cloudflare D1 oraz zasób pod przyszły lookup MCP.\n*   **[14. Autonomiczne Projektowanie 3D i CAD (MCP)](PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md)** – Kolejny łańcuch automatyzacji R+D: wykorzystanie AI oraz protokołu MCP do iteracyjnego projektowania brył 3D we FreeCAD i docelowej generacji G-code.\n\n**Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**"
     },
     {
       "id": "readme-md-6-zapotrzebowanie-marketingowe-i-promocyjne",
@@ -233,7 +245,7 @@ export const knowledgeBundle = {
       "source_path": "README.md",
       "title": "Publiczny Bot Telegram",
       "category": "document",
-      "content": "Publiczny bot inicjatywy nazywa się **Straż Przyszłości** i działa pod adresem:\n\n* **[`@straz_przyszlosci_bot`](https://t.me/straz_przyszlosci_bot)**\n\n<img src=\"docs/assets/telegram_bot_qr.jpg\" alt=\"QR do bota Telegram Straż Przyszłości\" width=\"160\">\n\nTo jest najprostszy mobilny kanał wejścia dla osób, które chcą szybko zapisać myśl do repozytorium bez otwierania formularzy GitHub.\n\nJak się połączyć:\n\n1. Otwórz Telegram.\n2. Wyszukaj `@straz_przyszlosci_bot` albo wejdź przez link `https://t.me/straz_przyszlosci_bot`.\n3. Otwórz czat z botem `Straż Przyszłości`.\n4. Wyślij wiadomość zaczynającą się od:\n   `Pomysl: ...`\n   albo\n   `Uwaga: ...`\n\nCo robi bot:\n\n* zamienia wiadomość Telegram w `GitHub Issue` w publicznym repo Straży Przyszłości,\n* pozwala szybko zgłosić pomysł, zastrzeżenie albo ryzyko z telefonu,\n* odsyła krótką informację zwrotną, czy zgłoszenie zostało przyjęte albo zatrzymane przez filtr antyspamowy,\n* nie służy do przesyłania danych providerskich ani do sterowania urządzeniami.\n\nJeżeli chcesz wejść do systemu jako provider danych lub węzeł pomiarowy, użyj szablonu zgłoszenia:\n\n* **[Nowy provider danych / węzeł pomiarowy](.github/ISSUE_TEMPLATE/provider_danych.md)**\n\n**Dołącz, jeśli chcesz współtworzyć przyszłość Polskiej Gospodarki!**\n\n**Strona internetowa inicjatywy:** [spa-nsi.pages.dev](https://spa-nsi.pages.dev/)"
+      "content": "Publiczny bot inicjatywy nazywa się **Straż Przyszłości** i działa pod adresem:\n\n* **[`@straz_przyszlosci_bot`](https://t.me/straz_przyszlosci_bot)**\n\n<img src=\"docs/assets/telegram_bot_qr.jpg\" alt=\"QR do bota Telegram Straż Przyszłości\" width=\"160\">\n\nTo jest najprostszy mobilny kanał wejścia dla osób, które chcą szybko zapisać myśl do repozytorium bez otwierania formularzy GitHub.\n\nJak się połączyć:\n\n1. Otwórz Telegram.\n2. Wyszukaj `@straz_przyszlosci_bot` albo wejdź przez link `https://t.me/straz_przyszlosci_bot`.\n3. Otwórz czat z botem `Straż Przyszłości`.\n4. Wyślij wiadomość zaczynającą się od:\n   `Pomysl: ...`\n   albo\n   `Uwaga: ...`\n\nCo robi bot:\n\n* zamienia wiadomość Telegram w `GitHub Issue` w publicznym repo Straży Przyszłości,\n* pozwala szybko zgłosić pomysł, zastrzeżenie albo ryzyko z telefonu,\n* odsyła krótką informację zwrotną, czy zgłoszenie zostało przyjęte albo zatrzymane przez filtr antyspamowy,\n* nie służy do przesyłania danych providerskich ani do sterowania urządzeniami.\n\nJeżeli chcesz wejść do systemu jako provider danych lub węzeł pomiarowy, użyj szablonu zgłoszenia:\n\n* **[Nowy provider danych / węzeł pomiarowy](.github/ISSUE_TEMPLATE/provider_danych.md)**\n\n**Dołącz, jeśli chcesz współtworzyć przyszłość Polskiej Gospodarki!**\n\n**Strona internetowa inicjatywy:** [https://www.strazprzyszlosci.pl](https://www.strazprzyszlosci.pl)"
     },
     {
       "id": "readme-md-10-media-spo-eczno-ciowe",
@@ -1298,6 +1310,97 @@ export const knowledgeBundle = {
       "title": "Zasoby i Repozytoria",
       "category": "document",
       "content": "*   **ecoEDA (Recykling):** [humancomputerintegration/ecoEDA](https://github.com/humancomputerintegration/ecoEDA/tree/main)\n*   **KiCAD-MCP-Server (Automatyzacja AI):** [mixelpixx/KiCAD-MCP-Server](https://github.com/mixelpixx/KiCAD-MCP-Server)\n*   **Ki-nTree (Inwentaryzacja):** [sparkmicro/Ki-nTree](https://github.com/sparkmicro/Ki-nTree)\n*   **InvenTree (Baza):** [InvenTree Documentation](https://docs.inventree.org/)\n\n**Materiały Wideo:**\n*   [ecoEDA - Recykling w KiCad](https://www.youtube.com/watch?v=XYMRXMVBfNg)\n*   [KiCAD AI - Projektowanie z MCP](https://www.youtube.com/watch?v=C9n7eC16u-Y)\n*   [Ki-nTree - Budowa Bazy Części](https://www.youtube.com/watch?v=YeWBqOCb4pw)\n\n---\n*Intelekt wyprzedza kapitał!*"
+    },
+    {
+      "id": "projekty-13-baza-czesci-recykling-readme-md-intro",
+      "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# [PROJEKT 13] GitHub-First Baza Czesci z Recyklingu\n\nTen projekt zamienia elektroodpady w publicznie dostepny katalog czesci dla AI, KiCada i spolecznosci. Glowna zasada jest prosta:\n\n- `GitHub` przechowuje kanoniczna, kuratorowana baze wiedzy o urzadzeniach-dawcach i czesciach.\n- `Cloudflare D1` sluzy tylko jako operacyjny indeks do szybkich lookupow w Telegramie i przyszlych rekomendacji AI.\n- `ecoEDA`, `Ki-nTree` i `KiCAD-MCP-Server` sa zasilane z tego samego katalogu zrodlowego."
+    },
+    {
+      "id": "projekty-13-baza-czesci-recykling-readme-md-1-zweryfikowane-zalozenia",
+      "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "Zweryfikowane zalozenia",
+      "category": "document",
+      "content": "Plan jest zgodny z realnymi rolami zewnetrznych projektow:\n\n- [`ecoEDA`](https://github.com/humancomputerintegration/ecoEDA) nie jest baza danych magazynowej. To narzedzie do KiCada, ktore generuje biblioteke z pliku `.csv`, a potem robi sugestie reuse i `Bill of Teardowns`.\n- [`Ki-nTree`](https://github.com/sparkmicro/Ki-nTree) automatyzuje tworzenie czesci dla `KiCad` i `InvenTree`, korzysta z konfiguracji kategorii i mapowania parametrow, ale nie utrzymuje sam z siebie katalogu \"urzadzenie -> odzyskiwane czesci\".\n- [`KiCAD-MCP-Server`](https://github.com/mixelpixx/KiCAD-MCP-Server) daje narzedzia MCP i zasoby projektowe dla KiCada, ale nie ma natywnego feedu z czesciami z elektroodpadow. Dlatego rekomendacje reuse trzeba podpiac jako osobny zasob albo dodatkowe narzedzie.\n\nWniosek: najczystsza architektura to osobny katalog donorow i czesci w tym repo, a dopiero z niego eksport do `ecoEDA`, `Ki-nTree` i warstwy MCP."
+    },
+    {
+      "id": "projekty-13-baza-czesci-recykling-readme-md-2-architektura",
+      "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "Architektura",
+      "category": "document",
+      "content": "Przeplyw danych:\n\n1. `Telegram / OCR / scraping forow / PDF / teardowny` dostarczaja surowe sygnaly.\n2. Sygnaly trafiaja do kolejki kuracji i sa porzadkowane do katalogu w `data/devices.jsonl` oraz `data/device_parts.jsonl`.\n3. Skrypt budujacy generuje artefakty:\n   - `data/inventory.csv` dla `ecoEDA`\n   - `data/recycled_parts_seed.sql` do zasilenia `Cloudflare D1`\n   - `data/mcp_reuse_catalog.json` jako zasob do lookupow reuse po stronie MCP\n4. `Cloudflare Worker` korzysta z D1 do szybkich odpowiedzi bota i logowania zgloszen.\n5. `Ki-nTree` pobiera z katalogu dane o czesciach i mapuje je do KiCad/InvenTree.\n6. `KiCAD-MCP-Server` moze czytac `mcp_reuse_catalog.json` albo przyszle narzedzie `query_recycled_parts`."
+    },
+    {
+      "id": "projekty-13-baza-czesci-recykling-readme-md-3-dlaczego-github-jako-source-of-truth",
+      "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "Dlaczego GitHub jako source of truth",
+      "category": "document",
+      "content": "To jest wymagane nie tylko organizacyjnie, ale i technicznie:\n\n- katalog jest publiczny, przegladalny i wersjonowany,\n- zmiany mozna recenzowac przez commit / PR zamiast przepisywac dane w ciszy do prywatnej bazy,\n- eksport do `ecoEDA` i D1 da sie odtworzyc z jednego zrodla,\n- spolecznosc moze dokladac rekordy urzadzen i czesci bez dostepu operatorskiego do chmury."
+    },
+    {
+      "id": "projekty-13-baza-czesci-recykling-readme-md-4-struktura-projektu",
+      "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "Struktura projektu",
+      "category": "document",
+      "content": "- `data/devices.jsonl`: kanoniczny katalog urzadzen-dawcow\n- `data/device_parts.jsonl`: kanoniczny katalog czesci i ich donorow\n- `data/inventory.csv`: wygenerowany eksport zgodny z `ecoEDA`\n- `data/recycled_parts_seed.sql`: wygenerowany seed dla `Cloudflare D1`\n- `data/mcp_reuse_catalog.json`: wygenerowany katalog lookupow dla MCP\n- `schemas/`: schematy rekordow katalogu\n- `scripts/build_catalog_artifacts.py`: generator artefaktow z danych GitHub\n- `docs/`: opis przeplywu scrapingu i kontraktu integracyjnego"
+    },
+    {
+      "id": "projekty-13-baza-czesci-recykling-readme-md-5-komendy",
+      "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "Komendy",
+      "category": "document",
+      "content": "Walidacja katalogu:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py validate\n```\n\nPrzebudowa wszystkich artefaktow:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-all\n```\n\nTylko eksport `ecoEDA`:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-ecoeda\n```\n\nTylko seed do D1:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-d1-sql\n```\n\nSynchronizacja kolejki `queued` z Telegram/D1 do katalogu GitHub-first (dry-run):\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --limit 25\n```\n\nZapis zmian + przebudowa artefaktow + aktualizacja statusow D1:\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --apply --sync-d1-status\n```\n\nAutomatyczny branch + commit + push + PR:\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --apply --git-mode pr --push --create-pr --sync-d1-status\n```"
+    },
+    {
+      "id": "projekty-13-baza-czesci-recykling-readme-md-6-rekomendacje-projektowe",
+      "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "Rekomendacje projektowe",
+      "category": "document",
+      "content": "- Marketplace i grupy spolecznosciowe warto traktowac jako strumien sygnalow, nie jako kanoniczna baze wiedzy. Do GitHub najlepiej zapisywac rekordy znormalizowane, a nie surowe ogloszenia.\n- Zdjecia, OCR i wpisy z Telegrama powinny najpierw trafic do kolejki kuracji. Dopiero po potwierdzeniu warto dopisywac je do katalogu zrodlowego w repo.\n- `ecoEDA` powinna dostawac wygenerowany `inventory.csv`, a nie recznie edytowany plik.\n- `Ki-nTree` najlepiej traktowac jako warstwe publikacji danych o czesciach do `KiCad` i `InvenTree`, a nie jako miejsce kuracji wiedzy o donorach.\n- `KiCAD-MCP-Server` powinien dostac lekki, deterministyczny zasob reuse, zamiast bezposrednio czytac rozproszone fora, PDF-y i marketplace'y."
+    },
+    {
+      "id": "projekty-13-baza-czesci-recykling-readme-md-7-kolejny-etap",
+      "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
+      "title": "Kolejny etap",
+      "category": "document",
+      "content": "Po dopieciu katalogu GitHub-first nastepny logiczny krok to automatyczna kuracja:\n\n1. zdjecie / model / numer czesci w Telegramie,\n2. zapis do kolejki w D1,\n3. review,\n4. commit lub PR do katalogu w GitHub,\n5. regeneracja `ecoEDA`, D1 i zasobu MCP z jednego polecenia."
+    },
+    {
+      "id": "projekty-14-autonomiczne-projektowanie-3d-cad-md-intro",
+      "source_path": "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
+      "title": "Wprowadzenie",
+      "category": "document",
+      "content": "# 14. Autonomiczne Projektowanie 3D i CAD (MCP)"
+    },
+    {
+      "id": "projekty-14-autonomiczne-projektowanie-3d-cad-md-1-wizja-fabryka-w-formie-czatu",
+      "source_path": "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
+      "title": "Wizja: Fabryka w formie czatu",
+      "category": "document",
+      "content": "Projekt 14 to kolejny krok w procesie budowy **Autonomicznych Systemów R+D**. Naszym celem jest usunięcie bariery wejścia w zaawansowaną inżynierię mechaniczną poprzez wykorzystanie agentów AI do bezpośredniej manipulacji oprogramowaniem CAD.\n\nZamiast ręcznie rysować bryły w programach projektowych, Strażnik Przyszłości opisuje potrzebny element, a AI – korzystając z protokołu MCP (Model Context Protocol) – projektuje go, waliduje i przygotowuje do produkcji."
+    },
+    {
+      "id": "projekty-14-autonomiczne-projektowanie-3d-cad-md-2-a-cuch-narz-dziowy-toolchain",
+      "source_path": "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
+      "title": "Łańcuch narzędziowy (Toolchain)",
+      "category": "document",
+      "content": "System opiera się na synergii trzech potężnych technologii:\n\n1.  **Claude 4.6 Sonnet (Orkiestrator):** Pełni rolę głównego inżyniera. Analizuje prompt użytkownika, decyduje o strategii modelowania i pisze skrypty w Pythonie dla FreeCAD. Dzięki swoim zdolnościom do rozumowania (reasoning), potrafi iteracyjnie poprawiać błędy geometrii i ograniczeń API.\n2.  **Gemma 3 lub inny model (Edge/Local R+D):** Wykorzystywana jako lokalna instancja AI (na brzegu sieci) do szybkich obliczeń pomocniczych, walidacji parametrów wytrzymałościowych oraz generowania powtarzalnych skryptów modelowania w scenariuszach, gdzie wymagana jest suwerenność danych i niska latencja.\n3.  **FreeCAD (Silnik Open-Source):** Wybrany jako fundament ze względu na potężne API Pythona i brak uzależnienia od licencji chmurowych wielkich korporacji (jak Autodesk czy SolidWorks)."
+    },
+    {
+      "id": "projekty-14-autonomiczne-projektowanie-3d-cad-md-3-proces-autonomicznego-projektowania",
+      "source_path": "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
+      "title": "Proces Autonomicznego Projektowania",
+      "category": "document",
+      "content": "1.  **Prompt:** \"Zaprojektuj wspornik pod silnik NEMA17 o grubości 5mm, z otworem centrującym i czterema otworami montażowymi 3.5mm.\"\n2.  **Kodowanie:** AI generuje skrypt `model.py` wykorzystujący moduł PartDesign we FreeCAD.\n3.  **Iteracja MCP:** Jeśli API FreeCAD zwróci błąd (np. błąd wiązań szkicu), Claude/Gemma czytają logi, analizują przyczynę i modyfikują skrypt aż do wygenerowania poprawnej bryły.\n4.  **Eksport:** Automatyczne generowanie pliku `.STEP` oraz `G-code` na drukarkę 3D lub frezarkę CNC."
+    },
+    {
+      "id": "projekty-14-autonomiczne-projektowanie-3d-cad-md-4-cel-strategiczny-ucieczka-przed-monopolem",
+      "source_path": "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
+      "title": "Cel Strategiczny: Ucieczka przed Monopolem",
+      "category": "document",
+      "content": "Większość profesjonalnych narzędzi CAD przechodzi na model subskrypcyjny i chmurowy, co w dobie pełnej automatyzacji czyni produkcję zależną od kapitału i decyzji zagranicznych korporacji. **Projekt 14 przywraca suwerenność technologiczną**, budując \"intelektualną fabrykę\" opartą na darmowych, otwartych narzędziach zintegrowanych z najnowocześniejszymi modelami AI.\n\n---\n**Zobacz inspirację wideo:** [Claude 3.7 projektuje w FreeCAD przez MCP](https://www.youtube.com/watch?v=HQDMvA-gN1c)"
     },
     {
       "id": "github-issue-template-nowy-straznik-md-template",
