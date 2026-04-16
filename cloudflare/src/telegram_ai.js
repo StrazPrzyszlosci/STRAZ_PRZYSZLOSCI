@@ -1971,7 +1971,7 @@ export async function getPartsForModel(env, modelName) {
 
   await ensureRecycledKnowledgeSchema(db);
   const wildcard = `%${queryText}%`;
-  const device = await db.prepare(
+  let device = await db.prepare(
     `
     SELECT DISTINCT
       d.id,
@@ -2014,7 +2014,17 @@ export async function getPartsForModel(env, modelName) {
   ).first();
 
   if (!device) {
-    return null;
+    // Try to find a "virtual" device from submissions
+    const submissionDevice = await db.prepare(
+      `SELECT DISTINCT query_text as model, recognized_brand as brand FROM recycled_device_submissions 
+       WHERE (LOWER(query_text) = LOWER(?) OR LOWER(recognized_model) = LOWER(?))
+       AND query_text IS NOT NULL LIMIT 1`
+    ).bind(queryText, queryText).first();
+
+    if (!submissionDevice) {
+      return null;
+    }
+    device = { ...submissionDevice, id: null, description: " Urządzenie w kolejce do weryfikacji." };
   }
 
   const parts = await db.prepare(
@@ -2051,9 +2061,10 @@ export async function getPartsForModel(env, modelName) {
       NULL as kicad_footprint,
       matched_part_number as part_number
     FROM recycled_device_submissions
-    WHERE matched_device_id = ? AND lookup_kind = 'part_media' AND matched_part_name IS NOT NULL
+    WHERE (matched_device_id = ? OR (matched_device_id IS NULL AND (LOWER(query_text) = LOWER(?) OR LOWER(recognized_model) = LOWER(?))))
+    AND lookup_kind = 'part_media' AND matched_part_name IS NOT NULL
     `
-  ).bind(device.id).all();
+  ).bind(device.id, device.model, device.model).all();
 
   const allParts = [
     ...(parts.results || []),
