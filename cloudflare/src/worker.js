@@ -395,7 +395,7 @@ export default {
 
     try {
       if (request.method === "POST" && isTelegramWebhookRequest(url, env)) {
-        return await handleTelegramWebhook(request, env);
+        return await handleTelegramWebhook(request, env, ctx);
       }
 
       if (request.method === "GET" && url.pathname === "/integrations/telegram/webhook-info") {

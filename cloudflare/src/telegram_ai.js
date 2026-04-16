@@ -2334,7 +2334,7 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
   };
 }
 
-export async function recognizePartAndRecord(env, message, mediaBase64, session) {
+export async function recognizePartAndRecord(env, message, mediaBase64, session, ctx = null) {
   const mediaData = [{ data: mediaBase64, mime_type: message.mime_type || "image/jpeg" }];
   
   const visionSystem = [
@@ -2392,11 +2392,100 @@ export async function recognizePartAndRecord(env, message, mediaBase64, session)
   if (partNumber && partNumber !== "Brak wyraźnych oznaczeń") {
     replyText += `\n🔢 Oznaczenia odczytane przez AI: \`${partNumber}\``;
   }
-  replyText += `\n\nMożesz wysłać kolejną część lub wpisz /stop aby zakończyć sesję dla tego urządzenia.`;
+  // Trigger automated batch curation check in background
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(curateSubmissions(env));
+  }
 
   return {
     reply_text: replyText,
     provider_name: visionResp.provider_name,
     model_name: visionResp.model_name
   };
+}
+
+export async function curateSubmissions(env) {
+  const db = env.DB;
+  if (!db) return;
+
+  // Pobieramy nieprzetworzone submisje części (batch 5)
+  const submissions = await db.prepare(
+    "SELECT * FROM recycled_device_submissions WHERE status = 'queued' AND lookup_kind = 'part_media' LIMIT 5"
+  ).all();
+
+  const items = submissions.results || [];
+  if (items.length < 5) {
+    // Czekamy aż nazbiera się przynajmniej 5 wpisów lub wymuszamy jeśli minęło dużo czasu (uproszczenie: tylko threshold)
+    return { status: "waiting", count: items.length };
+  }
+
+  const batchDescription = items.map((sub, idx) => `
+    ITEM #${idx + 1} (SubID: ${sub.id}):
+    Urządzenie: ${sub.query_text}
+    Oznaczenia: ${sub.matched_part_number}
+    Wstępna nazwa: ${sub.matched_part_name}
+  `).join("\n---\n");
+
+  const curationPrompt = `
+    Jesteś ekspertem kuracji komponentów elektronicznych dla projektu EcoEDA.
+    Otrzymujesz listę ${items.length} części do zweryfikowania i wzbogacenia.
+
+    DLA KAŻDEGO ELEMENTU:
+    1. Znajdź prawdziwą tożsamość.
+    2. Wyodrębnij układy scalone (chips).
+    3. Zidentyfikuj interfejs.
+    4. Zaproponuj symbole i footprinty KiCad.
+
+    LISTA ELEMENTÓW:
+    ${batchDescription}
+
+    Zwróć wynik jako JSON (tablica obiektów przypisanych po SubID):
+    {
+      "curations": [
+        {
+          "sub_id": 12,
+          "corrected_name": "...",
+          "technical_details": "...",
+          "chips": ["..."],
+          "interface": "...",
+          "ecoEDA": { "symbol": "...", "footprint": "..." }
+        },
+        ...
+      ]
+    }
+  `;
+
+  try {
+    const visionResp = await callNvidiaProvider(env, {
+      systemInstruction: "Zwracasz czysty JSON. Pomagasz w kuracji bazy EcoEDA. Jesteś precyzyjny i techniczny.",
+      userPrompt: curationPrompt,
+      temperature: 0.1,
+      maxTokens: 2000
+    });
+
+    const result = extractJsonObject(visionResp.text);
+    if (result && result.curations) {
+      for (const cur of result.curations) {
+        await db.prepare(`
+          UPDATE recycled_device_submissions 
+          SET matched_part_name = ?, 
+              matched_part_number = ?, 
+              status = 'curated',
+              raw_payload_json = ?
+          WHERE id = ?
+        `).bind(
+          cur.corrected_name,
+          `Curated: ${cur.technical_details}`,
+          JSON.stringify({ curation: cur }),
+          cur.sub_id
+        ).run();
+        results.push({ id: cur.sub_id, name: cur.corrected_name });
+      }
+      return { status: "success", count: results.length };
+    }
+  } catch (e) {
+    console.error("Błąd batchowej kuracji:", e);
+    throw e;
+  }
+  return { status: "error", message: "No results from AI" };
 }

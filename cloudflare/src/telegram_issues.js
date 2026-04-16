@@ -492,7 +492,7 @@ async function processIssueMessage(env, message, classification, dryRun) {
   };
 }
 
-async function processConversationMessage(env, message, intent) {
+async function processConversationMessage(env, message, intent, ctx = null) {
   if (!isTruthy(env.TELEGRAM_AI_ENABLED || "")) {
     const notificationSent = await sendTelegramReply(
       env,
@@ -539,7 +539,7 @@ async function processConversationMessage(env, message, intent) {
         const base64 = await fetchTelegramFileAsBase64(env, message.file_id);
         if (base64) {
           // Import the function dynamically if needed, or rely on it being imported at top
-          response = await recognizePartAndRecord(env, message, base64, session);
+          response = await recognizePartAndRecord(env, message, base64, session, ctx);
         } else {
           response = { reply_text: "Nie udało się pobrać zdjęcia części do analizy." };
         }
@@ -622,7 +622,7 @@ async function processCommandMessage(env, message, command) {
   };
 }
 
-async function handleTelegramCallback(env, callback) {
+async function handleTelegramCallback(env, callback, ctx = null) {
   const { id, from, message, data } = callback;
   const chat_id = message ? String(message.chat.id) : null;
   const user_id = String(from.id);
@@ -709,7 +709,7 @@ async function removeInlineKeyboard(env, chat_id, message_id) {
   });
 }
 
-export async function handleTelegramWebhook(request, env) {
+export async function handleTelegramWebhook(request, env, ctx = null) {
   if (!isTelegramIntegrationEnabled(env)) {
     return jsonResponse(
       {
@@ -734,7 +734,7 @@ export async function handleTelegramWebhook(request, env) {
 
   // Handle Callback Queries (Buttons)
   if (payload.callback_query) {
-    return await handleTelegramCallback(env, payload.callback_query);
+    return await handleTelegramCallback(env, payload.callback_query, ctx);
   }
 
   const messages = collectInboundMessages(payload);
@@ -768,7 +768,7 @@ export async function handleTelegramWebhook(request, env) {
       continue;
     }
 
-    results.push(await processConversationMessage(env, message, routing.intent));
+    results.push(await processConversationMessage(env, message, routing.intent, ctx));
   }
 
   return jsonResponse(
