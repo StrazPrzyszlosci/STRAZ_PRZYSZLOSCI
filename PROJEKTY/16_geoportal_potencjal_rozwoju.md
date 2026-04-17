@@ -1,13 +1,29 @@
-# [PROJEKT 16] Analiza Danych Geoprzestrzennych (Geoportal, Google Maps) dla Potencjału Rozwoju Automatyzacji
+# [PROJEKT 16] Agentyczna Analiza Geoprzestrzenna i Logistyczna: Optymalizacja Narodowego Potencjału Rozwoju
 
-## Cel Projektu
-Stworzenie zaawansowanego systemu analizy danych ogólnodostępnych z portali takich jak Geoportal oraz Google Maps w celu budowy bazy danych potencjału rozwoju infrastrukturalnego i gospodarczego. Projekt ma stanowić nowoczesną, opartą o AI wersję planowania przestrzennego, zorientowaną na przyszłe procesy automatyzacji.
+## Wizja Projektu
+Stworzenie agentycznego systemu AI, którego celem jest całościowa analiza terytorium kraju pod kątem rozmieszczenia procesów automatyzacji w miejscach o największym potencjale lokalnym. Projekt wykracza poza tradycyjne planowanie przestrzenne – to dynamiczne badanie synergii między zasobami naturalnymi, infrastrukturą, logistyką a kapitałem ludzkim danej lokalizacji.
 
-## Kluczowe Funkcjonalności
-1.  **Ekstrakcja Cech Terenu:** Analiza zdjęć satelitarnych i map pod kątem identyfikacji nieużytków, dachów budynków (potencjał PV), cieków wodnych oraz infrastruktury przesyłowej.
-2.  **Ocena Potencjału Automatyzacji:** Klasyfikacja obszarów pod kątem przydatności dla autonomicznych systemów rolniczych, monitoringu środowiskowego czy logistyki dronowej.
-3.  **Lepsze Planowanie Przestrzenne:** Wsparcie dla decyzji planistycznych poprzez dostarczanie precyzyjnych danych o ukształtowaniu terenu, zalesieniu i istniejącej zabudowie, przetworzonych przez modele AI.
-4.  **Synergia z Inicjatywą:** Dane z tego projektu będą służyć jako warstwa kontekstowa dla innych projektów Straży Przyszłości (np. lokalizacja węzłów LoRa Mesh, planowanie inteligentnej akwakultury).
+## Kluczowe Filary Strategiczne
 
-## Zastosowanie AI
-Wykorzystanie wizji komputerowej do segmentacji obrazów satelitarnych oraz algorytmów uczenia maszynowego do przewidywania optymalnych ścieżek rozwoju infrastruktury w oparciu o trendy demograficzne i gospodarcze.
+### 1. Agentyczne Badanie Potencjału Krajowego
+Wykorzystanie autonomicznych agentów AI do nieustannego skanowania i syntezy danych z wielu źródeł:
+- **Geoportal i Mapy:** ukształtowanie terenu, zalesienie, sieć hydrologiczna, dostępność gruntów.
+- **Logistyka i Infrastruktura:** bliskość węzłów transportowych, potencjał dla logistyki dronowej i autonomicznego transportu kołowego.
+- **Zasoby i Ludzie:** dane o lokalnych specjalizacjach, potrzebach społeczności i dostępnych zasobach surowcowych.
+
+### 2. Logistyczna Optymalizacja Rozproszenia Procesów
+Zamiast centralizacji, system rekomenduje optymalne rozstawienie rozproszonych procesów automatyzacji (np. mikrofaktorie, węzły przetwórcze, autonomiczne farmy) tam, gdzie mają one największy sens ekonomiczny i logistyczny, minimalizując marnotrawstwo energii i czasu.
+
+### 3. Human-Centric Optimization (Dobrostan ponad Algorytm)
+Kluczowym elementem systemu jest uznanie, że czysta efektywność algorytmiczna nie zawsze pokrywa się z dobrostanem ludzi.
+- **Rekomendacje, nie Nakazy:** System generuje niezobowiązujące sugestie rozwoju, które stanowią bazę do decyzji podejmowanych przez ludzi.
+- **Analiza Konfliktów Potencjału:** AI bada ryzyko kolizji między technokratycznymi priorytetami a potrzebami lokalnej społeczności. Rozpoznajemy, że narzucenie procesów wbrew woli mieszkańców niszczy potencjał społeczny i generuje opór, co jest kontrproduktywne.
+- **Ewaluacja Dobrostanu:** Włączanie do modeli danych o jakości życia, lokalnej kulturze i aspiracjach mieszkańców jako równorzędnych parametrów optymalizacji.
+
+## Zastosowanie Technologiczne (Agentic AI + GIS)
+- **Vision AI:** Automatyczna segmentacja i klasyfikacja zdjęć satelitarnych pod kątem przydatności dla OZE (PV na dachach, mikrowodnie).
+- **Multi-Agent Systems (MAS):** Agenci specjalizujący się w różnych dziedzinach (energia, transport, rolnictwo, socjologia) negocjujący wspólny "Mapę Rekomendacji".
+- **Predictive Analytics:** Przewidywanie wąskich gardeł logistycznych i zmian demograficznych w celu wyprzedzającego planowania infrastruktury automatyzacji.
+
+## Cel Ostateczny
+Budowa cyfrowego bliźniaka potencjału Polski, który pozwala na "włączanie" odpowiednich procesów automatyzacji tam, gdzie zadziałają one najskuteczniej, przy pełnym poszanowaniu i wsparciu dla dobrostanu lokalnych społeczności.
