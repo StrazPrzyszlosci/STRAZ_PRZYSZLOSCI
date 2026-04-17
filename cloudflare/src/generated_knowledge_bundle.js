@@ -1,6 +1,6 @@
 export const knowledgeBundle = {
   "schema_version": "v1",
-  "generated_at": "2026-04-17T23:16:18.691764+00:00",
+  "generated_at": "2026-04-17T23:37:05.148357+00:00",
   "allowlist": [
     "README.md",
     "MARKETING.md",
@@ -1330,7 +1330,7 @@ export const knowledgeBundle = {
       "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
       "title": "Architektura",
       "category": "document",
-      "content": "Przeplyw danych:\n\n1. `Telegram / OCR / scraping forow / PDF / teardowny` dostarczaja surowe sygnaly.\n2. Sygnaly trafiaja do kolejki kuracji i sa porzadkowane do katalogu w `data/devices.jsonl` oraz `data/device_parts.jsonl`.\n3. Skrypt budujacy generuje artefakty:\n   - `data/inventory.csv` dla `ecoEDA`\n   - `data/recycled_parts_seed.sql` do zasilenia `Cloudflare D1`\n   - `data/mcp_reuse_catalog.json` jako zasob do lookupow reuse po stronie MCP\n4. `Cloudflare Worker` korzysta z D1 do szybkich odpowiedzi bota i logowania zgloszen.\n5. `Ki-nTree` pobiera z katalogu dane o czesciach i mapuje je do KiCad/InvenTree.\n6. `KiCAD-MCP-Server` moze czytac `mcp_reuse_catalog.json` albo przyszle narzedzie `query_recycled_parts`."
+      "content": "Przeplyw danych:\n\n1. `Telegram / OCR / scraping forow / PDF / teardowny` dostarczaja surowe sygnaly.\n2. **AI Enrichment Agent** (uruchamiany periodycznie):\n   - skanuje internet w poszukiwaniu brakujacych danych dla modeli w bazie,\n   - analizuje schematy ideowe (PDF), datasheety, fora techniczne (np. BadCaps, Elektroda),\n   - przetwarza transkrypcje i obraz z filmów YouTube (kanały naprawcze jak Louis Rossmann, NorthridgeFix itp.) w celu ekstrakcji list komponentów,\n   - weryfikuje i poprawia bledne wpisy w bazie na podstawie krzyzowej analizy zrodel.\n3. Sygnaly trafiaja do kolejki kuracji i sa porzadkowane do katalogu w `data/devices.jsonl` oraz `data/device_parts.jsonl`.\n4. Skrypt budujacy generuje artefakty:\n   - `data/inventory.csv` dla `ecoEDA`\n   - `data/recycled_parts_seed.sql` do zasilenia `Cloudflare D1`\n   - `data/mcp_reuse_catalog.json` jako zasob do lookupow reuse po stronie MCP\n5. `Cloudflare Worker` korzysta z D1 do szybkich odpowiedzi bota i logowania zgloszen.\n6. `Ki-nTree` podbiera z katalogu dane o czesciach i mapuje je do KiCad/InvenTree.\n7. `KiCAD-MCP-Server` moze czytac `mcp_reuse_catalog.json` albo przyszle narzedzie `query_recycled_parts`."
     },
     {
       "id": "projekty-13-baza-czesci-recykling-readme-md-3-dlaczego-github-jako-source-of-truth",
@@ -1358,14 +1358,14 @@ export const knowledgeBundle = {
       "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
       "title": "Rekomendacje projektowe",
       "category": "document",
-      "content": "- Marketplace i grupy spolecznosciowe warto traktowac jako strumien sygnalow, nie jako kanoniczna baze wiedzy. Do GitHub najlepiej zapisywac rekordy znormalizowane, a nie surowe ogloszenia.\n- Zdjecia, OCR i wpisy z Telegrama powinny najpierw trafic do kolejki kuracji. Dopiero po potwierdzeniu warto dopisywac je do katalogu zrodlowego w repo.\n- `ecoEDA` powinna dostawac wygenerowany `inventory.csv`, a nie recznie edytowany plik.\n- `Ki-nTree` najlepiej traktowac jako warstwe publikacji danych o czesciach do `KiCad` i `InvenTree`, a nie jako miejsce kuracji wiedzy o donorach.\n- `KiCAD-MCP-Server` powinien dostac lekki, deterministyczny zasob reuse, zamiast bezposrednio czytac rozproszone fora, PDF-y i marketplace'y."
+      "content": "- Marketplace i grupy spolecznosciowe warto traktowac jako strumien sygnalow, nie jako kanoniczna baze wiedzy. Do GitHub najlepiej zapisywac rekordy znormalizowane, a nie surowe ogloszenia.\n- Zdjecia, OCR i wpisy z Telegrama powinny najpierw trafic do kolejki kuracji. Dopiero po potwierdzeniu warto dopisywac je do katalogu zrodlowego w repo.\n- `ecoEDA` powinna dostawac wygenerowany `inventory.csv`, a nie recznie edytowany plik.\n- `Ki-nTree` najlepiej traktowac jako warstwe publikacji danych o czesciach do `KiCad` i `InvenTree`, a nie jako miejsce kuracji wiedzy o donorach.\n- `KiCAD-MCP-Server` powinien dostac lekki, deterministyczny zasob reuse, zamiast bezposrednio czytac rozproszone fora, PDF-y i marketplace'y.\n- **Automatyczne Wzbogacanie (AI Agent):** Baza nie powinna polegać wyłącznie na zgłoszeniach użytkowników. Agent AI musi periodycznie \"odpytywać\" internet o każdy model w bazie, wyciągając listy części ze schematów i filmów naprawczych, co drastycznie zwiększy gęstość danych bez angażowania ludzi."
     },
     {
       "id": "projekty-13-baza-czesci-recykling-readme-md-7-kolejny-etap",
       "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
       "title": "Kolejny etap",
       "category": "document",
-      "content": "Po dopieciu katalogu GitHub-first nastepny logiczny krok to automatyczna kuracja:\n\n1. zdjecie / model / numer czesci w Telegramie,\n2. zapis do kolejki w D1,\n3. review,\n4. commit lub PR do katalogu w GitHub,\n5. regeneracja `ecoEDA`, D1 i zasobu MCP z jednego polecenia."
+      "content": "Po dopieciu katalogu GitHub-first nastepny logiczny krok to automatyczna kuracja i wzbogacanie:\n\n1. zdjecie / model / numer czesci w Telegramie,\n2. zapis do kolejki w D1,\n3. **AI Periodic Enrichment:** agent skanuje schematy, fora i filmy YT dla danego modelu,\n4. review i scalanie danych,\n5. commit lub PR do katalogu w GitHub,\n6. regeneracja `ecoEDA`, D1 i zasobu MCP z jednego polecenia."
     },
     {
       "id": "projekty-14-autonomiczne-projektowanie-3d-cad-md-intro",
