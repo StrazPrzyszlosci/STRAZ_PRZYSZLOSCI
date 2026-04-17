@@ -26,5 +26,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'cloudflare'
-          environment: 'prod'
-          command: deploy
+          wranglerVersion: '3'
+          command: deploy --env prod
