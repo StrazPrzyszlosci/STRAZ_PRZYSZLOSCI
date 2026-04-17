@@ -1149,6 +1149,7 @@ export async function saveTelegramConversation(env, message, intent, userText, a
     { role: "user", text: userText },
     { role: "assistant", text: assistantText },
   ]) {
+    const safeText = (entry.text || "").replace(/\b\d{15}\b/g, "[REDACTED IMEI]");
     await db.prepare(
       `
       INSERT INTO telegram_chat_messages (
@@ -2395,7 +2396,10 @@ export async function recognizePartAndRecord(env, message, mediaBase64, session,
   if (partNumber && partNumber !== "Brak wyraźnych oznaczeń") {
     replyText += `\n🔢 Oznaczenia odczytane przez AI: \`${partNumber}\``;
   }
-  replyText += `\n\nCzy chcesz dodać tę część do bazy danych urządzenia?`;
+  replyText += `\n\nCzy zgadza się to z rzeczywistością? Uruchomiłem tryb edycji. Możesz teraz podać poprawną nazwę i numer części w formacie: \`Nazwa | Numer\` (np. \`Karta WiFi | 631954-001\`), albo po prostu zatwierdzić przyciskiem poniżej.`;
+
+  // Automatyczne uruchomienie sesji edycji zgodnie z życzeniem użytkownika
+  await upsertUserSession(env, message?.chat_id, message?.user_id, "recycled_parts_edit", submissionId, "Editing");
 
   const replyMarkup = {
     inline_keyboard: [
