@@ -8,7 +8,8 @@ build/
 *.log
 autonomous_test/results/
 autonomous_test/logs/
-temp_*.mp4
+*.mp4
+*.part
 temp_frame_*.jpg
 .codex
 .firecrawl/

@@ -27,9 +27,9 @@ HISTORY_FILE = BASE_DIR / "processed_videos.json"
 LOG_DIR = BASE_DIR / "logs"
 
 # === PRIORYTETY ===
-# 1. Konkretne Kanały o największym potencjale (Handles i Usernames)
-PRIORITY_CHANNELS = [
-    "@Kris0725PL",
+# 1. Konkretne Kanały o największym potencjale (Handles i Usernames z Twojej listy)
+PRIORITY_CHANNELS =[
+    #"@Kris0725PL",
     "@Mymatevince",
     "@TechCornerTV",
     "@pl.elektronik",
@@ -37,23 +37,7 @@ PRIORITY_CHANNELS = [
     "@TotenSerwisPolska",
     "AdamantComputers",
     "redliquid1",
-    "VirtualFutureTV",
-    "UCLaXgfNlVxY149shiA1pykQ",
-    "UCooKQlg-HZ0PFAPc4Ymg3RA",
-    "UC8q23MpiyWjv9vd4r85oj1A",
-    "UCMsi03EhTUsUs2OtPus6XDQ",
-    "UCMiC9bSMux7i2Ds6sIqDaFg",
-    "greatscottlab",
-    "VideoBlogTech",
-    "PcONlineBE",
-    "SlaVoy",
-    "UCFX1Z9N6aPWuCN_KR8UZ2vg",
-    "UCD8mHfy-nYshusT3iE7WJGQ",
-    "TechCemetery",
-    "DiodeGoneWild",
-    "UCNMiZVxQ2lHLiSSmKlq68yQ",
-    "UCInsBABCP2aylnudcVZb6jg",
-    "Serwis24ŁukaszWarszawa"
+    "VirtualFutureTV"
 ]
 
 # 2. Słowa kluczowe (wyszukiwanie ogólne)
@@ -74,9 +58,11 @@ class YTPartsExtractor:
         self.current_key_idx = 0
         self.clients =[genai.Client(api_key=k) for k in api_keys]
         
-        # WPISZ TUTAJ MODEL: "gemma-4-31b-it" lub np. "gemini-3.1-flash-lite"
-        self.MODEL_ANALYSIS = "gemini-3.1-flash-lite" 
-        self.MODEL_VERIFICATION = "gemini-3.1-flash-lite" 
+        # WPISZ TUTAJ MODEL:
+        # Stabilne Gemini wspierające audio: "gemini-2.5-flash", "gemini-1.5-flash"
+        # Modele Gemma (bez audio): "gemma-4-31b-it", "gemma-3-27b-it"
+        self.MODEL_ANALYSIS = "gemini-3.1-flash-lite-preview" 
+        self.MODEL_VERIFICATION = "gemini-3.1-flash-lite-preview" 
         
     def get_client(self):
         client = self.clients[self.current_key_idx]
@@ -97,6 +83,7 @@ class YTPartsExtractor:
             return 0.0
 
     def verify_with_frame(self, high_res_video_path: str, timestamp: int, expected_part_number: str):
+        """Faza 2: Skupia się na DOKŁADNYM odczytaniu napisu ze zdjęcia HQ."""
         frame_path = f"temp_frame_{timestamp}.jpg"
         print(f"📸 Wycinam klatkę HQ ({timestamp}s)...")
         
@@ -113,14 +100,33 @@ class YTPartsExtractor:
             with open(frame_path, "rb") as f:
                 img_data = f.read()
 
-            prompt = f"Spójrz na to zdjęcie. Czy widzisz na nim wyraźnie numer: '{expected_part_number}'? Odpowiedz TYLKO JSON: {{\"verified\": true/false, \"observed_text\": \"co widzisz\"}}"
+            # Nowy prompt skupiony na odczycie OCR (nawet jeśli model fazy 1 nic nie odczytał)
+            prompt = (
+                f"Spójrz na tę klatkę w wysokiej rozdzielczości wyciągniętą z filmu o naprawie elektroniki. "
+                f"Twoim jedynym zadaniem jest dokładne odczytanie numerów seryjnych, oznaczeń modeli (np. układów KBC, chipów, modułów) "
+                f"lub kodów kreskowych z elementu ukazanego w kadrze.\n"
+                f"Model fazy 1 zasugerował: '{expected_part_number}'. Jeśli to 'REQUIRES_HQ_CHECK', zignoruj tę podpowiedź i po prostu odczytaj to co widzisz.\n"
+                f"Odpowiedz TYLKO i WYŁĄCZNIE w formacie JSON:\n"
+                f"{{\"verified\": true/false, \"observed_text\": \"DOKŁADNY_ODCZYTANY_NUMER_LUB_BRAK\"}}"
+            )
+            
+            contents = [
+                genai_types.Content(
+                    role="user",
+                    parts=[
+                        genai_types.Part.from_bytes(data=img_data, mime_type="image/jpeg"),
+                        genai_types.Part.from_text(text=prompt)
+                    ]
+                )
+            ]
             
             response = client.models.generate_content(
                 model=self.MODEL_VERIFICATION,
-                contents=[
-                    genai_types.Part.from_bytes(data=img_data, mime_type="image/jpeg"),
-                    genai_types.Part.from_text(text=prompt)
-                ]
+                contents=contents,
+                config=genai_types.GenerateContentConfig(
+                    temperature=0.1,
+                    response_mime_type="application/json"
+                )
             )
             
             os.remove(frame_path)
@@ -150,47 +156,47 @@ class YTPartsExtractor:
         if video_file.state.name == "FAILED":
             raise Exception("Błąd przetwarzania wideo przez Google File API.")
 
-        # Detekcja modelu dla promptu i potoku audio
         is_gemma = "gemma" in self.MODEL_ANALYSIS.lower()
-        audio_rules = "Otrzymujesz wideo BEZ DŹWIĘKU." if is_gemma else "Otrzymujesz wideo Z DŹWIĘKIEM. Możesz wspomagać się komentarzem serwisanta, ale numer części dodaj do bazy TYLKO jeśli widnieje fizycznie na części."
+        audio_rules = "Otrzymujesz wideo BEZ DŹWIĘKU." if is_gemma else "Otrzymujesz wideo Z DŹWIĘKIEM. Możesz i powinieneś posiłkować się tym, co mówi serwisant (np. 'Wymieniamy układ KBC IT8586E')."
 
+        # KOMPLETNIE PRZEBUDOWANY PROMPT (Faza 1 jako Scout / Odkrywca kadrów)
         system_instruction = f"""
-        Jesteś ekspertem inżynierii odwrotnej. Twoim zadaniem jest identyfikacja konkretnych części z filmu z naprawy.
+        Jesteś ekspertem inżynierii odwrotnej. Analizujesz wideo w formacie PROXY (NISKA ROZDZIELCZOŚĆ).
         
-        ZASADY ANTY-HALUCYNACYJNE:
+        ZASADY:
         1. {audio_rules}
-        2. Musisz podać DOKŁADNY CZAS (timestamp w sekundach), w którym dana część jest najlepiej widoczna.
-        3. Jeśli widzisz część, ale numer jest niewyraźny lub nie możesz go odczytać - oznacz go ZAWSZE jako "UNCERTAIN".
-        4. Rozróżniaj model całego urządzenia od numeru konkretnej części.
+        2. Twoim zadaniem w tej fazie NIE JEST odczytanie drobnych napisów. Wiesz, że wideo ma niską jakość.
+        3. Twoim GŁÓWNYM CELM jest znalezienie DOKŁADNYCH CZASÓW (timestamp w sekundach), w których serwisant pokazuje w kadrze, na zbliżeniu lub na mikroskopie konkretne komponenty (chipy, płyty główne, zasilacze, naklejki znamionowe).
+        4. Jeśli zidentyfikujesz taki moment, zapisz go! Podaj nazwę elementu (np. z audio lub wyglądu). 
+        5. W polu "part_number", jeśli obraz jest zamazany, ZAMIAST odrzucać element, wpisz obowiązkowo flagę "REQUIRES_HQ_CHECK". My później pobierzemy klatkę w wysokiej rozdzielczości z tego ułamka sekundy i odczytamy ją za Ciebie. Jeśli jednak nazwa padła wyraźnie w audio, wpisz ją.
         
         FORMAT WYJŚCIOWY (JSON):
         {{
-          "device_model": "Dokładny model urządzenia",
+          "device_model": "Dokładny model urządzenia (jeśli padł w filmie, inaczej Nieznany)",
           "detected_parts":[
             {{
-              "part_name": "Nazwa części (np. zasilacz / płyta główna)",
-              "part_number": "Numer seryjny/katalogowy (lub UNCERTAIN)",
+              "part_name": "Nazwa części (np. układ przetwornicy, matryca, naklejka płyty głównej)",
+              "part_number": "Odgadnięty numer LUB 'REQUIRES_HQ_CHECK'",
               "timestamp_seconds": 124,
               "confidence": 0.0-1.0,
-              "context_note": "Dlaczego uważasz, że to ta część?"
+              "context_note": "Dlaczego wybrałeś ten moment? Co to za element?"
             }}
           ]
         }}
         """
         
-        prompt = f"Przeanalizuj film z YouTube ({youtube_url}). Skup się na identyfikacji części z ich numerami. Podaj precyzyjne czasy dla każdej znalezionej części."
-        print(f"🧠 Analiza multimodalna przez {self.MODEL_ANALYSIS} w toku...")
+        prompt = f"Przeanalizuj film z YouTube ({youtube_url}). Skup się na wyłapywaniu momentów ekspozycji części elektronicznych. Nie odrzucaj części z powodu niskiej rozdzielczości – użyj flagi REQUIRES_HQ_CHECK."
+        print(f"🧠 Analiza multimodalna (Scout) przez {self.MODEL_ANALYSIS} w toku...")
         
-        if is_gemma:
-            contents =[
-                genai_types.Content(role="user", parts=[
+        contents =[
+            genai_types.Content(
+                role="user",
+                parts=[
                     genai_types.Part.from_uri(file_uri=video_file.uri, mime_type=video_file.mime_type),
                     genai_types.Part.from_text(text=prompt)
-                ])
-            ]
-        else:
-            # Uproszczony format - Gemini File API lepiej trawi obiekty natywnie
-            contents = [video_file, prompt]
+                ]
+            )
+        ]
 
         response = client.models.generate_content(
             model=self.MODEL_ANALYSIS,
@@ -231,7 +237,6 @@ class YTPartsExtractor:
             print(f"❌ Błąd: yt-dlp nie mógł pobrać filmu (odrzucony / zablokowany).")
             return None
 
-        # LIMIT CZASU (800 sek = bufor pod tokeny TPM)
         duration = self.get_video_duration(video_low)
         speed_factor = 1.0
         TARGET_MAX_SECONDS = 800.0 
@@ -290,10 +295,13 @@ class YTPartsExtractor:
         try:
             analysis = self.analyze_video_context(video_low, youtube_url)
             final_results =[]
-            parts_to_verify = [p for p in analysis.get("detected_parts", []) if p.get("part_number", "UNCERTAIN") != "UNCERTAIN"]
+            
+            # Pobieramy do weryfikacji wszystkie części wykryte przez model w Fazie 1.
+            # Skoro kazaliśmy mu wstawiać REQUIRES_HQ_CHECK, to bierzemy je wszystkie pod uwagę.
+            parts_to_verify = analysis.get("detected_parts",[])
             
             if parts_to_verify:
-                print(f"🌟 Znaleziono {len(parts_to_verify)} części! Pobieram plik High-Res...")
+                print(f"🌟 Znaleziono {len(parts_to_verify)} potencjalnych kadrów! Pobieram wideo High-Res...")
                 subprocess.run([
                     "yt-dlp",
                     "--cookies-from-browser", "firefox",
@@ -306,20 +314,29 @@ class YTPartsExtractor:
                 ], capture_output=True)
                 high_res_downloaded = os.path.exists(video_high)
             else:
-                print(f"⏭ {self.MODEL_ANALYSIS} nie znalazł numerów. Pomijam High-Res.")
+                print(f"⏭ {self.MODEL_ANALYSIS} nie znalazł w Fazie 1 żadnych ciekawych kadrów z elektroniką.")
 
-            for part in analysis.get("detected_parts",[]):
+            for part in parts_to_verify:
                 original_ts = int(part.get("timestamp_seconds", 0) * speed_factor)
                 part["timestamp_seconds"] = original_ts
                 
-                if part.get("part_number", "UNCERTAIN") != "UNCERTAIN":
-                    if high_res_downloaded:
-                        ver, err = self.verify_with_frame(video_high, original_ts, part["part_number"])
-                        part["verification"] = ver
-                    else:
-                        part["verification"] = {"verified": False, "observed_text": "Brak pliku High-Res do weryfikacji"}
+                if high_res_downloaded:
+                    ver, err = self.verify_with_frame(video_high, original_ts, part.get("part_number", ""))
+                    part["verification"] = ver
+                    
+                    if ver and ver.get("verified") in [True, False]:
+                        obs_text = ver.get("observed_text", "").strip()
+                        
+                        # DODANA LINIJKA - INFORMACJA Z FAZY 2:
+                        print(f"   🔍 Faza 2 (HQ) odczytała: {obs_text}")
+                        
+                        if obs_text and obs_text.lower() not in ["", "brak", "nie widzę", "niewyraźne"]:
+                            # Nie nadpisuj, jeśli API rzuciło błędem
+                            if "błąd" not in obs_text.lower():
+                                part["part_number"] = obs_text
                 else:
-                    part["verification"] = {"verified": False, "observed_text": "Brak numeru do weryfikacji"}
+                    part["verification"] = {"verified": False, "observed_text": "Brak pliku High-Res do weryfikacji"}
+                    print("   ❌ Pominięto weryfikację Fazy 2 (Brak wideo HQ)")
                 
                 part["yt_link_with_time"] = f"{youtube_url}&t={original_ts}s"
                 final_results.append(part)
@@ -431,6 +448,7 @@ class YTHunter:
             print(f"⏭️ Pomijam (już w bazie): {vid_id}")
             return
             
+        # Nareszcie i definitywnie zaimplementowany pełny link!
         yt_url = f"https://www.youtube.com/watch?v={vid_id}"
         print(f"🎯 Atakuję film: {v_item['snippet']['title']} ({yt_url})")
         
@@ -439,7 +457,13 @@ class YTHunter:
             
             if result and result.get("results"):
                 self.save_result(result)
-                print(f"✨ Sukces! Wyciągnięto {len(result['results'])} części.")
+                
+                # Podliczamy te części, które nie są zignorowane ("REQUIRES_HQ_CHECK" bez poprawki z Fazy 2)
+                valid_parts = sum(1 for p in result["results"] if p.get("part_number") != "REQUIRES_HQ_CHECK")
+                
+                print(f"✨ Sukces! Zweryfikowano i zapisano do bazy {valid_parts} części (z {len(result['results'])} pobranych kadrów).")
+            else:
+                print(f"ℹ️ Brak użytecznych numerów części na wideo {vid_id}.")
             
             self.history.add(vid_id)
             self.save_history()
@@ -458,7 +482,7 @@ class YTHunter:
                 continue
                 
             print(f"✅ Znaleziono ID dla {channel_name}: {ch_id}. Pobieram bazę najnowszych filmów...")
-            videos = self.search_videos_by_channel(ch_id, max_results=5) # Możesz zwiększyć do np. 15
+            videos = self.search_videos_by_channel(ch_id, max_results=5) 
             for v in videos:
                 self._process_video_item(v)
 
@@ -474,12 +498,17 @@ class YTHunter:
             url = result.get("url", "")
             
             for part in result.get("results",[]):
+                # Filtrujemy do bazy wyniki, które mają jaki-taki odczyt (nie są czystymi placeholderami)
+                part_number_val = part.get("part_number", "")
+                if part_number_val == "REQUIRES_HQ_CHECK":
+                    continue # Faza 2 nic nie poprawiła, pomijamy śmieć w pliku finalnym
+                    
                 record = {
                     "timestamp_db": time.strftime("%Y-%m-%d %H:%M:%S"),
                     "device": device,
                     "part_name": part.get("part_name"),
-                    "part_number": part.get("part_number"),
-                    "confidence": part.get("confidence"),
+                    "part_number": part_number_val,
+                    "confidence": part.get("confidence", 0.0),
                     "yt_link": part.get("yt_link_with_time"),
                     "verification": part.get("verification", {}),
                     "source_video": url
@@ -499,5 +528,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     hunter = YTHunter(YT_KEY, GEMINI_KEYS)
-    print("🚦 Start Autonomicznego Łowcy Części (Priorytet Kanałów + Audio Detect)...")
+    print("🚦 Start Autonomicznego Łowcy Części (2-Fazowy Agent HQ)...")
     hunter.hunt()
