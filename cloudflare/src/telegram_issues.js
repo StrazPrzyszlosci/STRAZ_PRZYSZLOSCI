@@ -675,7 +675,10 @@ async function processCommandMessage(env, message, command) {
     await sendTelegramReply(env, message, "Nie jesteś obecnie w procesie analizy części. Wyślij PDF lub nazwę części, aby zacząć.");
     return { status: "command_ignored" };
   }
-  const notificationSent = await sendTelegramReply(env, message, buildCommandReply(command), getMainMenuKeyboard());
+  const reply = buildCommandReply(command);
+  const replyText = typeof reply === "object" ? reply.text : reply;
+  const replyMarkup = typeof reply === "object" ? reply.reply_markup : getMainMenuKeyboard();
+  const notificationSent = await sendTelegramReply(env, message, replyText, replyMarkup);
   return {
     update_id: message.update_id,
     message_id: message.message_id,

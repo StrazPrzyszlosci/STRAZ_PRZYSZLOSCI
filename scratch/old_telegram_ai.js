@@ -1,5 +1,4 @@
 import { knowledgeBundle } from "./generated_knowledge_bundle.js";
-import { sendTelegramReply, getMainMenuKeyboard } from "./telegram_utils.js";
 
 const ISSUE_DECISIONS = new Set([
   "accept",
@@ -1552,33 +1551,49 @@ export async function generateChatReply(env, message, history = [], options = {}
 
   return {
     reply_text: sanitizeTelegramReply(response.text, env),
-    reply_markup: getMainMenuKeyboard(),
     provider_name: response.provider_name,
     model_name: response.model_name,
   };
 }
 
 export function buildCommandReply(command) {
-  if (command === "start" || command === "help") {
-    return {
-      text: [
-        "Inicjatywa Straż Przyszłości – Intelekt wyprzedza Kapitał! 🇵🇱",
-        "",
-        "Witaj! Jestem Twoim terminalem do budowy Narodowych Sił Intelektualnych.",
-        "Wybierz z menu poniżej, co chcesz zrobić, lub po prostu zadaj mi pytanie.",
-        "",
-        "Mogę działać w sześciu trybach:",
-        "🤖 Asystent: Zadaj dowolne pytanie o inicjatywę i dokumenty.",
-        "🧭 Onboarding: Opisz swoje kompetencje, a wskażę Ci ścieżkę.",
-        "🚀 Zgłoszenia: Wyślij wiadomość z prefiksem \"Pomysl:\" lub \"Uwaga:\", aby utworzyć Issue na GitHubie.",
-        "♻️ Recykling: Wyślij model lub zdjęcie PCB, a sprawdzę bazę reuse.",
-        "📄 Datasheet: Wyślij PDF lub nazwę części, aby pobrać dokumentację i zadać pytanie AI (RAG).",
-        "🎨 Rezystory: Wyślij zdjęcie rezystora z podpisem \"rezystor\", a odczytam jego wartość.",
-        "",
-        "Komendy: /help, /reset",
-      ].join("\n"),
-      reply_markup: getMainMenuKeyboard()
-    };
+  if (command === "start") {
+    return [
+      "Inicjatywa Straż Przyszłości – Intelekt wyprzedza Kapitał! 🇵🇱",
+      "",
+      "Jestem Twoim terminalem do budowy Narodowych Sił Intelektualnych. Pomogę Ci odnaleźć się w repozytorium, dopasować zadania do Twoich pasji oraz przekazać Twoje pomysły do zespołu.",
+      "",
+      "Mogę działać w czterech trybach:",
+      "🤖 Asystent: Zadaj dowolne pytanie o inicjatywę i dokumenty.",
+      "🧭 Onboarding: Opisz swoje kompetencje, a wskażę Ci ścieżkę.",
+      "🚀 Zgłoszenia: Wyślij wiadomość z prefiksem \"Pomysl:\" lub \"Uwaga:\", aby utworzyć Issue na GitHubie.",
+      "♻️ Recykling: Wyślij model lub zdjęcie PCB, a sprawdzę bazę reuse.",
+      "📄 Datasheet: Wyślij PDF lub nazwę części, aby pobrać dokumentację i zadać pytanie AI (RAG).",
+      "🎨 Rezystory: Wyślij zdjęcie rezystora, a odczytam jego wartość (paski/SMD).",
+      "",
+      "Komendy: /help, /reset",
+    ].join("\n");
+  }
+
+  if (command === "help") {
+    return [
+      "Jak używać bota:",
+      "- opisz, czym się zajmujesz, a dopasuję Ci ścieżkę i zadania",
+      "- zadaj zwykłe pytanie o inicjatywę, repo albo dokumenty",
+      '- wyślij "Pomysl: ..." albo "Uwaga: ...", jeśli chcesz utworzyć zgłoszenie do GitHub Issues',
+      "",
+      "Jak zgłaszać modele i części (recykling / e-waste):",
+      "- najprościej: wyślij sam model, np. \"Sonoff Basic R2\" albo \"HP LaserJet P1102\"",
+      "- part number / oznaczenie układu: wyślij sam token, np. \"ATmega328P\", \"ESP8266EX\", \"TPS62160\"",
+      "- możesz dopisać kontekst w 1 linijce, np. \"Model: <...> / PCB: <...>\" albo \"Part: <...>\"",
+      "- zdjęcia: wyślij zdjęcie etykiety znamionowej (model/PN/SN) albo zbliżenie PCB z nadrukami; w opisie zdjęcia dopisz jeśli możesz model i/lub oznaczenia układów",
+      "",
+      "Przykłady:",
+      '- "ATmega328P"',
+      '- "Jakie części są w Sonoff Basic?"',
+      '- "Model: Sonoff Basic R2, na PCB: ESP8266EX"',
+      "- /reset czyści krótką pamięć rozmowy",
+    ].join("\n");
   }
 
   if (command === "reset") {
@@ -1995,14 +2010,6 @@ export async function closeUserSession(env, chat_id, user_id, session_type) {
   await db.prepare(
     `UPDATE telegram_user_sessions SET status = 'closed', updated_at = ? WHERE chat_id = ? AND user_id = ? AND session_type = ?`
   ).bind(now, chat_id, user_id, session_type).run();
-}
-
-export async function closeAllUserSessions(env, chat_id, user_id) {
-  const db = env.DB;
-  const now = toIsoNow();
-  await db.prepare(
-    `UPDATE telegram_user_sessions SET status = 'closed', updated_at = ? WHERE chat_id = ? AND user_id = ?`
-  ).bind(now, chat_id, user_id).run();
 }
 
 export async function getDeviceById(env, deviceId) {
