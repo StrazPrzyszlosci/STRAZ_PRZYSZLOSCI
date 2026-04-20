@@ -472,6 +472,22 @@ async function processIssueMessage(env, message, classification, dryRun) {
 }
 
 async function handleActiveSessions(env, message, ctx) {
+  // --- SESJA ODCZYTU REZYSTORA ---
+  const resistorSession = await getUserSession(env, message.chat_id, message.user_id, "resistor_wait_photo");
+  if (resistorSession) {
+    if (message.file_id) {
+      await closeUserSession(env, message.chat_id, message.user_id, "resistor_wait_photo");
+      return await handleResistorAnalysis(env, message);
+    } else if (message.text && !message.text.startsWith("/")) {
+      return {
+        reply_text: "Oczekuję na zdjęcie rezystora. Czy chcesz przerwać?",
+        reply_markup: {
+          inline_keyboard: [[{ text: "❌ Anuluj", callback_data: "cancel_session:resistor_wait_photo" }]]
+        }
+      };
+    }
+  }
+
   // --- SESJA ZGŁASZANIA POMYSŁU ---
   const issueSession = await getUserSession(env, message.chat_id, message.user_id, "issue_wait_idea");
   if (issueSession) {
@@ -770,6 +786,13 @@ const CALLBACK_HANDLERS = {
   "menu_onboarding": async (env, id, chat_id, user_id, message, data) => {
     await answerCallbackQuery(env, id, "Onboarding.");
     await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, "Napisz mi kilka słów o sobie, czym się zajmujesz lub co potrafisz, a ja zasugeruję Ci pasujące zadania i miejsce w projekcie Straż Przyszłości.");
+  },
+  "menu_resistor": async (env, id, chat_id, user_id, message, data) => {
+    await upsertUserSession(env, chat_id, user_id, "resistor_wait_photo");
+    await answerCallbackQuery(env, id, "Odczyt rezystora.");
+    await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, "Prześlij mi proszę zdjęcie rezystora (THT lub SMD), a odczytam jego wartość.", {
+      inline_keyboard: [[{ text: "❌ Anuluj", callback_data: "cancel_session:resistor_wait_photo" }]]
+    });
   },
   "datasheet_start_search": async (env, id, chat_id, user_id, message, data) => {
     const partQuery = data.substring("datasheet_start_search:".length);

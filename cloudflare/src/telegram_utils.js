@@ -73,10 +73,11 @@ export function getMainMenuKeyboard() {
         { text: "📖 Analiza Datasheet", callback_data: "menu_datasheet" }
       ],
       [
-        { text: "🔍 Szukaj w Bazie", callback_data: "menu_search" },
-        { text: "💡 Zgłoś Pomysł", callback_data: "menu_issue" }
+        { text: "🎨 Odczytaj Rezystor", callback_data: "menu_resistor" },
+        { text: "🔍 Szukaj w Bazie", callback_data: "menu_search" }
       ],
       [
+        { text: "💡 Zgłoś Pomysł", callback_data: "menu_issue" },
         { text: "❓ Onboarding", callback_data: "menu_onboarding" }
       ]
     ]

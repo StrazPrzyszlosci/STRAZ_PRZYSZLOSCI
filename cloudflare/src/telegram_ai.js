@@ -2273,8 +2273,9 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
     "Jesteś ekspertem od recyklingu elektroniki.",
     "Zidentyfikuj model urządzenia ze zdjęcia (etykieta, naklejka znamionowa, napisy na obudowie).",
     "BEZWZGLĘDNIE POMIJAJ numery IMEI - to dane wrażliwe, które nie mogą trafić do bazy.",
-    "Zwróć TYLKO nazwę modelu i marki w formacie JSON: { \"brand\": \"...\", \"model\": \"...\", \"confidence\": 0.9 }",
-    "Jeżeli nie widzisz modelu, zwróć { \"error\": \"not_found\" }."
+    "Jeżeli na zdjęciu znajduje się JEDYNIE pojedynczy element elektroniczny będący rezystorem, zwróć: { \"type\": \"resistor\" }.",
+    "W przeciwnym wypadku, zwróć TYLKO nazwę modelu i marki w formacie JSON: { \"brand\": \"...\", \"model\": \"...\", \"confidence\": 0.9 }",
+    "Jeżeli nie widzisz modelu ani rezystora, zwróć { \"error\": \"not_found\" }."
   ].join(" ");
   
   const visionResp = await callProviderWithFallback(
@@ -2287,6 +2288,11 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
   );
   
   const identity = extractJsonObject(visionResp.text);
+  
+  if (identity.type === "resistor") {
+      return await handleResistorAnalysis(env, message, mediaBase64);
+  }
+
   if (identity.model) {
     const combinedQuery = [identity.brand, identity.model].filter(Boolean).join(" ");
     const dbResult =
@@ -2704,14 +2710,14 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
 /**
  * Funkcja Czytnika Rezystorów (6. funkcjonalność)
  */
-export async function handleResistorAnalysis(env, message) {
+export async function handleResistorAnalysis(env, message, preFetchedBase64 = null) {
     if (!message.file_id) {
         return { reply_text: "Aby odczytać rezystor, wyślij jego zdjęcie." };
     }
     
     await sendTelegramReply(env, message, "🎨 Analizuję paski/kod na rezystorze...");
     
-    const base64 = await fetchTelegramFileAsBase64(env, message.file_id);
+    const base64 = preFetchedBase64 || await fetchTelegramFileAsBase64(env, message.file_id);
     if (!base64) return { reply_text: "Nie udało się pobrać zdjęcia." };
 
     const systemPrompt = [
