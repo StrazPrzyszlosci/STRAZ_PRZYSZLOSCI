@@ -329,6 +329,9 @@ export function routeTelegramIntent(message) {
   }
 
   if (hasTelegramFile(message)) {
+    if (message.mime_type === "application/pdf") {
+      return { intent: "datasheet_analysis" };
+    }
     return { intent: "device_media" };
   }
 
@@ -1560,7 +1563,8 @@ export function buildCommandReply(command) {
       "🤖 Asystent: Zadaj dowolne pytanie o inicjatywę i dokumenty.",
       "🧭 Onboarding: Opisz swoje kompetencje, a wskażę Ci ścieżkę.",
       "🚀 Zgłoszenia: Wyślij wiadomość z prefiksem \"Pomysl:\" lub \"Uwaga:\", aby utworzyć Issue na GitHubie.",
-      "♻️ Recykling: Wyślij model, part number lub zdjęcie etykiety/PCB, a sprawdzę katalog części i bazę reuse.",
+      "♻️ Recykling: Wyślij model lub zdjęcie PCB, a sprawdzę bazę reuse.",
+      "📄 Datasheet: Wyślij PDF lub nazwę części, aby pobrać dokumentację i zadać pytanie AI (RAG).",
       "",
       "Komendy: /help, /reset",
     ].join("\n");
@@ -1875,7 +1879,16 @@ function buildPartLookupReply(queryText, matches) {
     lines.push(`Przykladowy teardown: ${teardown}`);
   }
   lines.push("Katalog GitHub: PROJEKTY/13_baza_czesci_recykling/data/");
-  return lines.join("\n");
+  
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: "📄 Datasheet & AI", callback_data: `datasheet_start_search:${queryText}` }
+      ]
+    ]
+  };
+
+  return { text: lines.join("\n"), reply_markup: replyMarkup };
 }
 
 export async function recordRecycledSubmission(env, payload) {
@@ -2228,8 +2241,10 @@ export async function handleRecycledKnowledgeLookup(env, message) {
       status: "matched_part",
       raw_payload_json: { query_text: queryText },
     });
+    const reply = buildPartLookupReply(queryText, partMatches);
     return {
-      reply_text: buildPartLookupReply(queryText, partMatches),
+      reply_text: reply.text,
+      reply_markup: reply.reply_markup,
       provider_name: "local",
       model_name: "d1",
     };
@@ -2432,6 +2447,9 @@ export async function recognizePartAndRecord(env, message, mediaBase64, session,
       [
         { text: "✅ Dodaj do bazy", callback_data: `recycled_part_add:${submissionId}` },
         { text: "✏️ Edytuj dane części", callback_data: `recycled_part_edit:${submissionId}` }
+      ],
+      [
+        { text: "📄 Datasheet & AI", callback_data: `datasheet_start_search:${partNumber || partName}` }
       ]
     ]
   };
@@ -2533,4 +2551,97 @@ export async function curateSubmissions(env) {
     throw e;
   }
   return { status: "error", message: "No results from AI" };
+}
+
+/**
+ * Inicjuje proces datasheetu - prosi o model urządzenia przed analizą.
+ */
+export async function initDatasheetWorkflow(env, message, intent) {
+    const query = message.text || message.caption || "Analiza dokumentu PDF";
+    const fileId = message.file_id || null;
+    
+    // Tworzymy sesję oczekiwania na model
+    await upsertUserSession(env, message.chat_id, message.user_id, "datasheet_wait_model", fileId, query);
+    
+    const replyText = [
+        `📄 *Asystent Dokumentacji Aktywny!*`,
+        "",
+        `Aby kontynuować i zasilić Narodową Bazę Wiedzy, muszę wiedzieć, skąd pochodzi ta część.`,
+        "",
+        `👉 *Wyślij zdjęcie etykiety/modelu urządzenia* lub *wpisz jego nazwę* (np. HP LaserJet P1102).`,
+        "",
+        `Jeśli absolutnie nie masz modelu, wpisz /niemammodelu.`,
+        "",
+        `_Twoja informacja pomoże innym w naprawach i recyklingu!_`
+    ].join("\n");
+    
+    return { reply_text: replyText };
+}
+
+/**
+ * Finalna analiza RAG po podaniu modelu urządzenia.
+ */
+export async function handleFinalDatasheetRag(env, message, session, deviceModel, ctx = null) {
+    const partQuery = session.active_device_name; // Nazwa części lub PDF caption
+    const fileId = session.active_device_id; // Telegram File ID dla PDF
+    
+    await sendTelegramReply(env, message, `⏳ Przetwarzam... Urządzenie: *${deviceModel}*, Część: *${partQuery}*. Szukam dokumentacji i analizuję parametry.`);
+
+    let aiContext = "";
+    let datasheetUrl = "";
+
+    if (fileId && message.mime_type === "application/pdf") {
+        // SCENARIUSZ A: Mamy plik PDF od użytkownika
+        const base64 = await fetchTelegramFileAsBase64(env, fileId);
+        if (base64) {
+            const ragSystem = [
+                "Jesteś inżynierem elektronikiem. Analizujesz datasheet PDF.",
+                "1. Wyodrębnij parametry techniczne (VCC, prąd, obudowa, funkcje).",
+                "2. Zidentyfikuj Pinout.",
+                "3. Zapisz dane do bazy wiedzy.",
+                "Zwróć odpowiedź dla użytkownika: co to za układ i odpowiedz na jego pytanie (jeśli zadał w opisie).",
+                `KONTEKST URZĄDZENIA: Ta część pochodzi z: ${deviceModel}`
+            ].join(" ");
+            
+            const ragPrompt = `Przeanalizuj ten datasheet. Użytkownik pyta/opisuje: ${partQuery}`;
+            
+            const visionResp = await callGoogleProvider(env, {
+                systemInstruction: ragSystem,
+                userPrompt: ragPrompt,
+                temperature: 0.2,
+                maxTokens: 1500,
+                media: [{ data: base64, mime_type: "application/pdf" }]
+            });
+            
+            aiContext = visionResp.text;
+            datasheetUrl = "Przesłany przez użytkownika";
+        }
+    } else {
+        // SCENARIUSZ B: Szukamy datasheetu po nazwie
+        const searchPrompt = `Znajdź informacje i stabilny link do datasheetu (najlepiej PDF) dla części: ${partQuery}. Pochodzi z urządzenia: ${deviceModel}. Odpowiedz technicznie, podaj parametry i link.`;
+        const searchResp = await generateChatReply(env, { text: searchPrompt }, []);
+        aiContext = searchResp.reply_text;
+        datasheetUrl = "Znaleziony przez AI";
+    }
+
+    // ZAPIS DO BAZY (D1)
+    await recordRecycledSubmission(env, {
+        chat_id: message?.chat_id,
+        user_id: message?.user_id,
+        message_id: message?.message_id,
+        lookup_kind: "datasheet_rag",
+        query_text: deviceModel,
+        matched_part_name: partQuery,
+        matched_part_number: partQuery,
+        attachment_file_id: fileId,
+        attachment_mime_type: fileId ? "application/pdf" : null,
+        status: "approved",
+        raw_payload_json: { ai_analysis: aiContext, device_model: deviceModel }
+    });
+
+    await closeUserSession(env, message.chat_id, message.user_id, "datasheet_wait_model");
+
+    return { 
+        reply_text: `✅ *Analiza ukończona!*\n\n*Urządzenie:* ${deviceModel}\n*Dokumentacja:* ${datasheetUrl}\n\n${aiContext}`
+    };
 }

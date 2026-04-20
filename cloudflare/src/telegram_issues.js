@@ -571,13 +571,28 @@ async function processConversationMessage(env, message, intent, ctx = null) {
           response = { reply_text: "Nie udało się pobrać zdjęcia do analizy." };
         }
       }
-    } else if (intent === "device_lookup") {
-      response = await handleRecycledKnowledgeLookup(env, message);
+    } else if (intent === "datasheet_analysis") {
+      response = await initDatasheetWorkflow(env, message, intent);
     } else {
-      response =
-        intent === "onboarding"
-          ? await recommendOnboardingPath(env, message, history)
-          : await generateChatReply(env, message, history);
+      const datasheetSession = await getUserSession(env, message.chat_id, message.user_id, "datasheet_wait_model");
+      if (datasheetSession) {
+          // Użytkownik podał model (tekst lub zdjęcie)
+          let deviceModel = message.text || "Zidentyfikowany ze zdjęcia";
+          if (intent === "device_media") {
+              await sendTelegramReply(env, message, "Otrzymałem zdjęcie urządzenia. Identyfikuję model...");
+              const base64 = await fetchTelegramFileAsBase64(env, message.file_id);
+              const vision = await recognizeDeviceAndListParts(env, message, base64);
+              deviceModel = vision.recognized_model || "Nieznany model ze zdjęcia";
+          }
+          response = await handleFinalDatasheetRag(env, message, datasheetSession, deviceModel, ctx);
+      } else if (intent === "device_lookup") {
+          response = await handleRecycledKnowledgeLookup(env, message);
+      } else {
+          response =
+            intent === "onboarding"
+              ? await recommendOnboardingPath(env, message, history)
+              : await generateChatReply(env, message, history);
+      }
     }
 
     await saveTelegramConversation(env, message, intent, message.text || "[media]", response.reply_text);
@@ -631,6 +646,15 @@ async function processCommandMessage(env, message, command) {
     }
     await sendTelegramReply(env, message, stopMsg);
     return { status: "session_closed" };
+  } else if (command === "niemammodelu") {
+    const session = await getUserSession(env, message.chat_id, message.user_id, "datasheet_wait_model");
+    if (session) {
+        // Kontynuujemy bez modelu
+        const res = await handleFinalDatasheetRag(env, message, session, "Nieznany (użytkownik nie posiada)");
+        return { status: "datasheet_processed", ...res };
+    }
+    await sendTelegramReply(env, message, "Nie jesteś obecnie w procesie analizy części. Wyślij PDF lub nazwę części, aby zacząć.");
+    return { status: "command_ignored" };
   }
   const notificationSent = await sendTelegramReply(env, message, buildCommandReply(command));
   return {
@@ -697,6 +721,13 @@ async function handleTelegramCallback(env, callback, ctx = null) {
       await upsertUserSession(env, chat_id, user_id, "recycled_parts_edit", null, `submission:${submissionId}`);
       await answerCallbackQuery(env, id, "Tryb edycji aktywny.");
       await sendTelegramReply(env, { chat_id: chat_id, message_id: message?.message_id }, "Proszę, podaj poprawną nazwę i numer części w formacie: `Nazwa | Numer` (np. `Karta WiFi | 631954-001`).");
+    } else if (data.startsWith("datasheet_start_search:")) {
+      const partQuery = data.substring("datasheet_start_search:".length);
+      // Uruchamiamy workflow datasheetu (bez fileId, bo to wyszukiwanie tekstowe)
+      const mockMessage = { chat_id, user_id, text: partQuery };
+      const res = await initDatasheetWorkflow(env, mockMessage, "datasheet_analysis");
+      await answerCallbackQuery(env, id, "Uruchamiam asystenta datasheet.");
+      await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, res.reply_text);
     } else {
       await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, "Nieznana komenda.");
     }
