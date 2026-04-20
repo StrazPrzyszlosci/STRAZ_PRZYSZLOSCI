@@ -2645,7 +2645,8 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
             datasheetUrl = "Przesłany przez użytkownika";
         }
     } else {
-        const foundUrl = await searchAllDatasheet(partQuery);
+        // SCENARIUSZ B: Szukamy datasheetu w sieci (Wielostopniowy PDF Hunter)
+        const foundUrl = await findDatasheetPdfLink(partQuery);
         datasheetUrl = foundUrl || "Nie znaleziono bezpośredniego linku PDF";
         
         const searchPrompt = `Przeanalizuj informacje o części: ${partQuery}. Pochodzi z: ${deviceModel}. Link do dokumentacji: ${datasheetUrl}. Odpowiedz na pytanie użytkownika: ${userQuestion}.`;
@@ -2668,8 +2669,17 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
 
     await closeUserSession(env, message.chat_id, message.user_id, "datasheet_wait_question");
 
+    const replyMarkup = datasheetUrl.startsWith("http") ? null : {
+        inline_keyboard: [
+            [
+                { text: "🔍 Szukaj PDF w Google", url: `https://www.google.com/search?q=${encodeURIComponent(partQuery)}+datasheet+filetype:pdf` }
+            ]
+        ]
+    };
+
     return { 
-        reply_text: `✅ *Analiza zakończona!*\n\n${aiContext}\n\n🔗 *Źródło:* ${datasheetUrl}`
+        reply_text: `✅ *Analiza zakończona!*\n\n${aiContext}\n\n🔗 *Źródło:* ${datasheetUrl}`,
+        reply_markup: replyMarkup
     };
 }
 
@@ -2710,28 +2720,48 @@ export async function handleResistorAnalysis(env, message) {
 }
 
 /**
- * Szuka linku do datasheetu na AllDataSheet (Metoda 2)
+ * Główny koordynator poszukiwania dokumentacji (Multi-Source Hunter)
+ */
+async function findDatasheetPdfLink(part) {
+    // 1. Próbujemy AllDataSheet
+    let link = await searchAllDatasheet(part);
+    if (link) return link;
+
+    // 2. Fallback: DatasheetCatalog (często ma inne PDFy)
+    link = await searchDatasheetCatalog(part);
+    if (link) return link;
+
+    return null;
+}
+
+/**
+ * Szuka linku do datasheetu na AllDataSheet
  */
 async function searchAllDatasheet(part) {
     try {
         const searchUrl = `https://www.alldatasheet.com/view.jsp?Searchword=${encodeURIComponent(part)}`;
         const response = await fetch(searchUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
         });
         const html = await response.text();
-        
-        // Szukamy pierwszego linku do PDF w formacie /datasheet-pdf/pdf/...
         const pdfLinkRegex = /\/datasheet-pdf\/pdf\/[^\s'"]+/;
         const match = html.match(pdfLinkRegex);
-        
-        if (match) {
-            return `https://www.alldatasheet.com${match[0]}`;
-        }
-        return null;
-    } catch (e) {
-        console.error("Błąd wyszukiwania datasheetu:", e);
-        return null;
-    }
+        return match ? `https://www.alldatasheet.com${match[0]}` : null;
+    } catch (e) { return null; }
+}
+
+/**
+ * Szuka linku do datasheetu na DatasheetCatalog
+ */
+async function searchDatasheetCatalog(part) {
+    try {
+        const searchUrl = `https://www.datasheetcatalog.com/catalog/search/?query=${encodeURIComponent(part)}`;
+        const response = await fetch(searchUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
+        });
+        const html = await response.text();
+        const pdfLinkRegex = /https:\/\/pdf[0-9]*\.datasheetcatalog\.com\/[^\s'"]+\.pdf/i;
+        const match = html.match(pdfLinkRegex);
+        return match ? match[0] : null;
+    } catch (e) { return null; }
 }
