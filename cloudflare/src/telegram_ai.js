@@ -369,9 +369,14 @@ function withMainMenuReply(response) {
   };
 }
 
-function buildAiChainErrorReply(code, messageText) {
+function buildAiChainErrorReply(code, messageText, errorObj = null) {
+  let msg = `❌ Kod błędu: \`${code}\`\n${messageText}`;
+  if (errorObj) {
+    const errorString = errorObj instanceof Error ? errorObj.message : String(errorObj);
+    msg += `\n\nSzczegóły: \`${errorString}\``;
+  }
   return withMainMenuReply({
-    reply_text: `❌ Kod błędu: \`${code}\`\n${messageText}`,
+    reply_text: msg,
   });
 }
 
@@ -3241,7 +3246,8 @@ export async function answerDeviceLookupQuestion(env, session, userQuestion) {
     console.error("[answerDeviceLookupQuestion]", error instanceof Error ? error.message : String(error));
     return buildAiChainErrorReply(
       "DS-AI-CHAIN-UNAVAILABLE",
-      `Nie udało się przygotować odpowiedzi o urządzeniu ${deviceLabel}.`
+      `Nie udało się przygotować odpowiedzi o urządzeniu ${deviceLabel}.`,
+      error
     );
   }
 }
@@ -4007,7 +4013,8 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
     console.error("[handleFinalDatasheetRagFinal]", error instanceof Error ? error.message : String(error));
     return buildAiChainErrorReply(
       "DS-AI-CHAIN-UNAVAILABLE",
-      `Nie udało się przeanalizować datasheetu dla części ${partQuery}.`
+      `Nie udało się przeanalizować datasheetu dla części ${partQuery}.`,
+      error
     );
   }
 }
@@ -4251,7 +4258,8 @@ calcResult = _calcSMD(identity.smd_code);
       console.error("Błąd handleResistorAnalysis:", e);
       return buildAiChainErrorReply(
         "RES-AI-CHAIN-UNAVAILABLE",
-        `Nie udało się odczytać rezystora. ${e instanceof Error ? e.message : "Nieznany błąd AI"}. Spróbuj ponownie za chwilę lub wpisz kolory ręcznie.`
+        "Wystąpił błąd podczas próby odczytania rezystora przez AI.",
+        e
       );
     }
   }

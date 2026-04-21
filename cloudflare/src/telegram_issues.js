@@ -347,7 +347,14 @@ function buildIssueReplyText(kind, payload = {}) {
   }
 
   if (kind === "ai_unavailable") {
-    return "Serwis AI jest chwilowo niedostępny. Spróbuj ponownie za chwilę.";
+    let msg = "Serwis AI jest chwilowo niedostępny. Spróbuj ponownie za chwilę.";
+    if (payload.error) {
+      msg += `\n\n❌ Błąd: \`${payload.error}\``;
+    }
+    if (payload.location) {
+      msg += `\n📍 Lokalizacja: \`${payload.location}\``;
+    }
+    return msg;
   }
 
   return null;
@@ -402,7 +409,10 @@ async function processIssueMessage(env, message, classification, dryRun) {
     const notificationSent = await sendTelegramReply(
       env,
       message,
-      buildIssueReplyText("ai_unavailable"),
+      buildIssueReplyText("ai_unavailable", {
+        error: error instanceof Error ? error.message : String(error),
+        location: "moderateIssueCandidate"
+      }),
       getMainMenuKeyboard()
     );
     return {
@@ -833,7 +843,10 @@ async function processConversationMessage(env, message, intent, ctx = null) {
     const notificationSent = await sendTelegramReply(
       env,
       message,
-      buildIssueReplyText("ai_unavailable"),
+      buildIssueReplyText("ai_unavailable", {
+        error: errorString,
+        location: "processConversationMessage"
+      }),
       getMainMenuKeyboard()
     );
     return {
@@ -847,13 +860,15 @@ async function processConversationMessage(env, message, intent, ctx = null) {
 }
 
 async function processCommandMessage(env, message, command) {
+  // Każda komenda przerywa aktywne sesje
+  await closeAllUserSessions(env, message.chat_id, message.user_id);
+
   if (command === "reset") {
     await clearTelegramChatHistory(env, message);
-    await closeAllUserSessions(env, message.chat_id, message.user_id);
     await sendTelegramReply(env, message, "Zresetowałem całą historię i aktywne sesje.", getMainMenuKeyboard());
     return { status: "reset_complete" };
   } else if (command === "start" || command === "help" || command === "menu") {
-    await closeAllUserSessions(env, message.chat_id, message.user_id);
+    // Sesje zamknięte wyżej
   } else if (command === "stop" || command === "anuluj") {
     const session = await getUserSession(env, message.chat_id, message.user_id, "recycled_parts");
     await closeAllUserSessions(env, message.chat_id, message.user_id);
