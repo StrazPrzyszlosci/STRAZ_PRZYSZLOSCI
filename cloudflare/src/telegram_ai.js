@@ -3237,6 +3237,7 @@ export async function answerDeviceLookupQuestion(env, session, userQuestion) {
       )
     );
 
+    await closeUserSession(env, session.chat_id, session.user_id, "device_lookup_question");
     return withMainMenuReply({
       reply_text: sanitizeTelegramReply(response.text, env),
       provider_name: response.provider_name,
@@ -3756,7 +3757,7 @@ export async function initDatasheetWorkflow(env, message, intent) {
       file_name: message.file_name || "",
       scan_summary: scanSummary,
     });
-    await upsertUserSession(env, message.chat_id, message.user_id, "datasheet_wait_question", null, sessionPayload);
+    await upsertUserSession(env, message.chat_id, message.user_id, "datasheet_wait_model", null, sessionPayload);
     await recordRecycledSubmission(env, {
       chat_id: message?.chat_id,
       user_id: message?.user_id,
@@ -3777,11 +3778,16 @@ export async function initDatasheetWorkflow(env, message, intent) {
       reply_text: [
         `📄 *PDF przyjęty i zeskanowany.*`,
         "",
-        `Część zapisana w bazie jako: *${enrichedRecord?.part_name || query}*`,
-        scanSummary ? `Opis z PDF: ${scanSummary}` : "",
+        `Rozpoznana część: \`${enrichedRecord?.part_name || query}\``,
         "",
-        `💬 O co chcesz zapytać?`,
-      ].filter(Boolean).join("\n"),
+        `Podaj teraz *model elektrośmiecia*, z którego pochodzi ta część (np. \`Dell Latitude E6410\`), aby powiązać ją z dawcą.`,
+        `Jeśli nie znasz modelu, kliknij *Nie znam modelu* i wtedy przejdziemy do pytań o dokument.`,
+      ].join("\n"),
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🤷‍♂️ Nie znam modelu", callback_data: "datasheet_no_model" }]
+        ]
+      }
     });
   }
 
@@ -4003,11 +4009,15 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
       raw_payload_json: { question: userQuestion, answer: aiContext, device: deviceModel, pdf_url: payload.pdf_url || "" },
     });
 
+    await closeUserSession(env, message?.chat_id, message?.user_id, "datasheet_wait_question");
     return withMainMenuReply({
       reply_text: `✅ *Analiza zakończona!*\n\n${aiContext}`,
-      reply_markup: payload.pdf_url
-        ? { inline_keyboard: [[{ text: "📄 Otwórz PDF z linka", url: payload.pdf_url }]] }
-        : undefined,
+      reply_markup: {
+        inline_keyboard: [
+          ...(payload.pdf_url ? [[{ text: "📄 Otwórz PDF z linka", url: payload.pdf_url }]] : []),
+          [{ text: "💬 Zadaj kolejne pytanie", callback_data: `datasheet_continue:${partQuery}` }]
+        ]
+      }
     });
   } catch (error) {
     console.error("[handleFinalDatasheetRagFinal]", error instanceof Error ? error.message : String(error));
