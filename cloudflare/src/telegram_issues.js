@@ -362,7 +362,8 @@ async function processIssueMessage(env, message, classification, dryRun) {
     const notificationSent = await sendTelegramReply(
       env,
       message,
-      buildIssueReplyText("issues_disabled")
+      buildIssueReplyText("issues_disabled"),
+      getMainMenuKeyboard()
     );
     return {
       update_id: message.update_id,
@@ -377,7 +378,8 @@ async function processIssueMessage(env, message, classification, dryRun) {
     const notificationSent = await sendTelegramReply(
       env,
       message,
-      buildIssueThrottleReply(throttleCheck.retry_after_seconds || null)
+      buildIssueThrottleReply(throttleCheck.retry_after_seconds || null),
+      getMainMenuKeyboard()
     );
     return {
       update_id: message.update_id,
@@ -400,7 +402,8 @@ async function processIssueMessage(env, message, classification, dryRun) {
     const notificationSent = await sendTelegramReply(
       env,
       message,
-      buildIssueReplyText("ai_unavailable")
+      buildIssueReplyText("ai_unavailable"),
+      getMainMenuKeyboard()
     );
     return {
       update_id: message.update_id,
@@ -458,7 +461,8 @@ async function processIssueMessage(env, message, classification, dryRun) {
     const notificationSent = await sendTelegramReply(
       env,
       message,
-      buildIssueReplyText("error")
+      buildIssueReplyText("error"),
+      getMainMenuKeyboard()
     );
     return {
       update_id: message.update_id,
@@ -477,7 +481,8 @@ async function processIssueMessage(env, message, classification, dryRun) {
     buildIssueReplyText("created", {
       issue_number: issue.number,
       issue_url: issue.html_url,
-    })
+    }),
+    getMainMenuKeyboard()
   );
   return {
     update_id: message.update_id,
@@ -707,7 +712,7 @@ async function processConversationMessage(env, message, intent, ctx = null) {
   }
 
   if (!isTruthy(env.TELEGRAM_AI_ENABLED || "")) {
-    const notificationSent = await sendTelegramReply(env, message, buildIssueReplyText("unrecognized"));
+    const notificationSent = await sendTelegramReply(env, message, buildIssueReplyText("unrecognized"), getMainMenuKeyboard());
     return {
       update_id: message.update_id,
       message_id: message.message_id,
@@ -828,7 +833,8 @@ async function processConversationMessage(env, message, intent, ctx = null) {
     const notificationSent = await sendTelegramReply(
       env,
       message,
-      buildIssueReplyText("ai_unavailable")
+      buildIssueReplyText("ai_unavailable"),
+      getMainMenuKeyboard()
     );
     return {
       update_id: message.update_id,
@@ -844,7 +850,7 @@ async function processCommandMessage(env, message, command) {
   if (command === "reset") {
     await clearTelegramChatHistory(env, message);
     await closeAllUserSessions(env, message.chat_id, message.user_id);
-    await sendTelegramReply(env, message, "Zresetowałem całą historię i aktywne sesje.");
+    await sendTelegramReply(env, message, "Zresetowałem całą historię i aktywne sesje.", getMainMenuKeyboard());
     return { status: "reset_complete" };
   } else if (command === "stop" || command === "anuluj") {
     const session = await getUserSession(env, message.chat_id, message.user_id, "recycled_parts");
@@ -860,7 +866,7 @@ async function processCommandMessage(env, message, command) {
         }
       }
     }
-    await sendTelegramReply(env, message, stopMsg);
+    await sendTelegramReply(env, message, stopMsg, getMainMenuKeyboard());
     return { status: "session_closed" };
   } else if (command === "niemammodelu") {
     const session = await getUserSession(env, message.chat_id, message.user_id, "datasheet_wait_model");
@@ -869,11 +875,11 @@ async function processCommandMessage(env, message, command) {
         const res = await handleFinalDatasheetRag(env, message, session, "Nieznany (użytkownik nie posiada)");
         // handleFinalDatasheetRag wysyła "Przyjąłem model", ale prompt do pytania musimy wysłać sami
         if (res && res.reply_text) {
-            await sendTelegramReply(env, message, res.reply_text);
+            await sendTelegramReply(env, message, res.reply_text, getMainMenuKeyboard());
         }
         return { status: "datasheet_processed" };
     }
-    await sendTelegramReply(env, message, "Nie jesteś obecnie w procesie analizy części. Wyślij PDF lub nazwę części, aby zacząć.");
+    await sendTelegramReply(env, message, "Nie jesteś obecnie w procesie analizy części. Wyślij PDF lub nazwę części, aby zacząć.", getMainMenuKeyboard());
     return { status: "command_ignored" };
   }
   const reply = buildCommandReply(command);
@@ -1051,7 +1057,7 @@ const CALLBACK_HANDLERS = {
       scan_summary: "",
     }));
     await answerCallbackQuery(env, id, "Zadaj pytanie.");
-    await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, `💡 Analiza datasheet dla *${partQuery}*. Wpisz pytanie (np. "Jaki jest pinout?", "Podaj napięcie zasilania"):`);
+    await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, `💡 Analiza datasheet dla *${partQuery}*. Wpisz pytanie (np. "Jaki jest pinout?", "Podaj napięcie zasilania"):`, getMainMenuKeyboard());
   },
   "datasheet_continue": async (env, id, chat_id, user_id, message, data) => {
     const partQuery = data.substring("datasheet_continue:".length);
@@ -1069,7 +1075,7 @@ const CALLBACK_HANDLERS = {
       scan_summary: "",
     }));
     await answerCallbackQuery(env, id, "Kontynuacja analizy.");
-    await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, `💡 Kontynuuję analizę dla *${partQuery}*. O co chcesz zapytać?`);
+    await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, `💡 Kontynuuję analizę dla *${partQuery}*. O co chcesz zapytać?`, getMainMenuKeyboard());
   }
 };
 
@@ -1092,14 +1098,14 @@ async function handleTelegramCallback(env, callback, ctx = null) {
     if (handler) {
       await handler(env, id, chat_id, user_id, message, data);
     } else {
-      await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, "Nieznana komenda.");
+      await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, "Nieznana komenda.", getMainMenuKeyboard());
     }
 
     return jsonResponse({ status: "ok" });
   } catch (error) {
     const errorString = error instanceof Error ? error.message : String(error);
     await answerCallbackQuery(env, id, "Wystąpił błąd.");
-    await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, `⚠️ [CALLBACK ERROR]: ${errorString}`);
+    await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, `⚠️ [CALLBACK ERROR]: ${errorString}`, getMainMenuKeyboard());
     return jsonResponse({ status: "error", error: errorString });
   }
 }
