@@ -56,6 +56,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git add PROJEKTY/13_baza_czesci_recykling/data/backups/
           git commit -m "Auto: Public D1 Parts Catalog Backup ${TIMESTAMP}" || echo "No changes to commit"
+          git pull --rebase origin main
           git push
 
       - name: Push Private Backup to separate repository
@@ -71,4 +72,5 @@ jobs:
           git config --local user.name "GitHub Action"
           git add backups/
           git commit -m "Auto: Private Chat History Backup ${TIMESTAMP}" || echo "No changes to commit"
+          git pull --rebase origin main
           git push
