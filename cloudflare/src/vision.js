@@ -10,17 +10,25 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
   const visionSystem = [
     "Jesteś ekspertem elektroniki i recyklingu.",
     "Na zdjęciu może znajdować się etykieta urządzenia, chip LUB rezystor.",
-    "Jeśli to rezystor (THT/SMD), odczytaj jego wartość i zwróć JSON: { \"type\": \"resistor\", \"value\": \"... Ohm\", \"confidence\": 0.9 }",
+    "Jeśli to rezystor (THT/SMD), odczytaj jego wartość i zwróć JSON: { \"type\": \"resistor\", \"value\": \"... Ohm\", \"tolerance\": \"...%\", \"confidence\": 0.9 }",
     "Jeśli to urządzenie/chip, zidentyfikuj model i zwróć: { \"type\": \"device\", \"brand\": \"...\", \"model\": \"...\", \"confidence\": 0.9 }",
+    "Jeśli nie rozpoznajesz obiektu, zwróć: { \"type\": \"unknown\", \"confidence\": 0.0 }",
     "BEZWZGLĘDNIE POMIJAJ numery IMEI - to dane wrażliwe.",
     "Zwróć TYLKO wynik w formacie JSON bez Markdownu."
   ].join(" ");
-  
-  const visionResp = await callProviderWithFallback(env, buildPromptPayload(visionSystem, "Zidentyfikuj obiekt na zdjęciu (urządzenie lub rezystor).", env, {
-    media: mediaData, responseMimeType: "application/json", maxTokens: 300
-  }));
-  
-  const identity = extractJsonObject(visionResp.text);
+
+  let identity;
+  let visionResp;
+  try {
+    visionResp = await callProviderWithFallback(env, buildPromptPayload(visionSystem, "Zidentyfikuj obiekt na zdjęciu (urządzenie lub rezystor).", env, {
+      media: mediaData, responseMimeType: "application/json", maxTokens: 300
+    }));
+    identity = extractJsonObject(visionResp.text);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[recognizeDeviceAndListParts] AI error:", errorMsg);
+    return { reply_text: `❌ Błąd analizy obrazu: ${errorMsg}. Spróbuj ponownie za chwilę lub prześlij wyraźniejsze zdjęcie.` };
+  }
 
   if (identity.type === "resistor") {
     return {
@@ -149,11 +157,40 @@ export async function handleResistorAnalysis(env, message) {
   if (!message.file_id) return { reply_text: "Aby odczytać rezystor, wyślij jego zdjęcie." };
   await sendTelegramReply(env, message, "🎨 Analizuję paski/kod na rezystorze...");
   const base64 = await fetchTelegramFileAsBase64(env, message.file_id);
-  if (!base64) return { reply_text: "Nie udało się pobrać zdjęcia." };
+  if (!base64) return { reply_text: "❌ Nie udało się pobrać zdjęcia z Telegrama. Spróbuj przesłać je ponownie." };
 
-  const visionResp = await callProviderWithFallback(env, buildPromptPayload("Jesteś ekspertem. Zidentyfikuj wartość rezystora ze zdjęcia.", "Podaj wartość tego rezystora.", env, {
-    media: [{ data: base64, mime_type: message.mime_type || "image/jpeg" }], maxTokens: 500
-  }));
+  const resistorSystem = [
+    "Jesteś ekspertem elektroniki specjalizującym się w odczycie rezystorów.",
+    "Na zdjęciu znajduje się rezystor. Odczytaj jego wartość na podstawie pasków kolorów (THT) lub kodu alfanumerycznego (SMD).",
+    "Zwróć TYLKO JSON w formacie: { \"type\": \"resistor\", \"value\": \"... Ohm\", \"tolerance\": \"...%\", \"bands\": [\"kolor1\", \"kolor2\", ...], \"code_format\": \"THT\" lub \"SMD\", \"confidence\": 0.9 }",
+    "Jeśli nie jesteś w stanie odczytać wartości, zwróć: { \"type\": \"resistor\", \"error\": \"nie_udało_sie_odczytać\", \"reason\": \"opis powodu\" }",
+    "Zwróć TYLKO JSON bez Markdown."
+  ].join(" ");
 
-  return { reply_text: `🎨 *Wynik odczytu rezystora:*\n\n${visionResp.text}`, provider_name: visionResp.provider_name, model_name: visionResp.model_name };
+  try {
+    const visionResp = await callProviderWithFallback(env, buildPromptPayload(resistorSystem, "Odczytaj wartość tego rezystora ze zdjęcia.", env, {
+      media: [{ data: base64, mime_type: message.mime_type || "image/jpeg" }], responseMimeType: "application/json", maxTokens: 400
+    }));
+
+    const identity = extractJsonObject(visionResp.text);
+
+    if (identity.error) {
+      return {
+        reply_text: `🎨 *Odczyt rezystora:*\nNie udało się jednoznacznie odczytać wartości.\n_powód: ${identity.reason || "niewyraźne zdjęcie"}_\n\nSpróbuj przesłać wyraźniejsze zdjęcie z bliska.`,
+        provider_name: visionResp.provider_name, model_name: visionResp.model_name
+      };
+    }
+
+    let replyText = `🎨 *Wynik odczytu rezystora:*\n\n📊 Wartość: *${identity.value}*`;
+    if (identity.tolerance) replyText += `\n📏 Tolerancja: ${identity.tolerance}`;
+    if (identity.code_format) replyText += `\n🔧 Format: ${identity.code_format}`;
+    if (identity.bands && identity.bands.length > 0) replyText += `\n🎨 Paski: ${identity.bands.join(" → ")}`;
+    if (identity.confidence) replyText += `\n✅ Pewność: ${Math.round(identity.confidence * 100)}%`;
+
+    return { reply_text: replyText, provider_name: visionResp.provider_name, model_name: visionResp.model_name };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[handleResistorAnalysis] AI error:", errorMsg);
+    return { reply_text: `❌ Wystąpił błąd podczas analizy rezystora: ${errorMsg}. Spróbuj ponownie za chwilę.` };
+  }
 }

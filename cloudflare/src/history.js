@@ -58,12 +58,30 @@ export async function recordIssueModerationAudit(env, record) {
 export async function fetchTelegramFileAsBase64(env, fileId) {
   const botToken = env.TELEGRAM_BOT_TOKEN;
   if (!botToken || !fileId) return null;
-  const fileInfoResp = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
-  const fileInfo = await fileInfoResp.json();
-  if (!fileInfo.ok || !fileInfo.result.file_path) return null;
-  const filePath = fileInfo.result.file_path;
-  const fileContentResp = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
-  const arrayBuffer = await fileContentResp.arrayBuffer();
-  const { Buffer } = await import("node:buffer");
-  return Buffer.from(arrayBuffer).toString('base64');
+  try {
+    const fileInfoResp = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+    const fileInfo = await fileInfoResp.json();
+    if (!fileInfo.ok || !fileInfo.result.file_path) {
+      console.error("[fetchTelegramFileAsBase64] getFile failed:", JSON.stringify(fileInfo));
+      return null;
+    }
+    const filePath = fileInfo.result.file_path;
+    const fileContentResp = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
+    if (!fileContentResp.ok) {
+      console.error("[fetchTelegramFileAsBase64] file download failed, status:", fileContentResp.status);
+      return null;
+    }
+    const arrayBuffer = await fileContentResp.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+  } catch (error) {
+    console.error("[fetchTelegramFileAsBase64] error:", error instanceof Error ? error.message : String(error));
+    return null;
+  }
 }

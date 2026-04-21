@@ -215,6 +215,7 @@ function collectInboundMessages(payload) {
 
     let fileId = null;
     let mimeType = null;
+    let fileName = null;
 
     if (photo && photo.length > 0) {
       // Get the largest photo size
@@ -223,6 +224,7 @@ function collectInboundMessages(payload) {
     } else if (document) {
       fileId = document.file_id;
       mimeType = document.mime_type;
+      fileName = document.file_name;
     }
 
     result.push({
@@ -230,6 +232,7 @@ function collectInboundMessages(payload) {
       message_id: item.message_id || null,
       text: text || null,
       file_id: fileId,
+      file_name: fileName,
       mime_type: mimeType,
       date: item.date || null,
       chat_id: item.chat?.id !== undefined ? String(item.chat.id) : null,
@@ -548,9 +551,15 @@ async function handleActiveSessions(env, message, ctx) {
     
     let deviceModel = message.text || "Zidentyfikowany ze zdjęcia";
     if (message.file_id) {
-      await sendTelegramReply(env, message, "Otrzymałem zdjęcie urządzenia. Identyfikuję model...");
+      await sendTelegramReply(env, message, "Otrzymałem zdjęcie. Identyfikuję model urządzenia...");
       const base64 = await fetchTelegramFileAsBase64(env, message.file_id);
       const vision = await recognizeDeviceAndListParts(env, message, base64);
+      
+      if (vision && vision.type === "resistor") {
+          await closeUserSession(env, message.chat_id, message.user_id, "datasheet_wait_model");
+          return vision; // Zwracamy wynik analizy rezystora, który już został wysłany
+      }
+      
       deviceModel = vision.recognized_model || "Nieznany model ze zdjęcia";
     }
     

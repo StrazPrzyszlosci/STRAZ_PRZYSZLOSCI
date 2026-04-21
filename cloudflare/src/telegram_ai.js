@@ -1618,21 +1618,32 @@ export function buildChatThrottleReply(retryAfterSeconds) {
 export async function fetchTelegramFileAsBase64(env, fileId) {
   const botToken = env.TELEGRAM_BOT_TOKEN;
   if (!botToken || !fileId) return null;
-
-  const fileInfoResp = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
-  const fileInfo = await fileInfoResp.json();
-  if (!fileInfo.ok || !fileInfo.result.file_path) return null;
-
-  const filePath = fileInfo.result.file_path;
-  const fileContentResp = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
-  const buffer = await fileContentResp.arrayBuffer();
-  
-  const uint8Array = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < uint8Array.byteLength; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
+  try {
+    const fileInfoResp = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+    const fileInfo = await fileInfoResp.json();
+    if (!fileInfo.ok || !fileInfo.result.file_path) {
+      console.error("[fetchTelegramFileAsBase64] getFile failed:", JSON.stringify(fileInfo));
+      return null;
+    }
+    const filePath = fileInfo.result.file_path;
+    const fileContentResp = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
+    if (!fileContentResp.ok) {
+      console.error("[fetchTelegramFileAsBase64] file download failed, status:", fileContentResp.status);
+      return null;
+    }
+    const arrayBuffer = await fileContentResp.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+  } catch (error) {
+    console.error("[fetchTelegramFileAsBase64] error:", error instanceof Error ? error.message : String(error));
+    return null;
   }
-  return btoa(binary);
 }
 
 async function getTableColumns(db, tableName) {
@@ -2291,7 +2302,17 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
   const identity = extractJsonObject(visionResp.text);
   
   if (identity.type === "resistor") {
-      return await handleResistorAnalysis(env, message, mediaBase64);
+      const res = await handleResistorAnalysis(env, message, mediaBase64);
+      await recordRecycledSubmission(env, {
+        chat_id: message?.chat_id,
+        user_id: message?.user_id,
+        message_id: message?.message_id,
+        lookup_kind: "resistor_media",
+        query_text: "resistor",
+        status: "approved",
+        raw_payload_json: { analysis: res.reply_text, provider: res.provider_name, model: res.model_name }
+      });
+      return { ...res, type: "resistor" };
   }
 
   if (identity.model) {
@@ -2318,6 +2339,7 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
       });
 
       return {
+        recognized_model: combinedQuery || identity.model,
         reply_text: `Zidentyfikowano: ${formatDeviceName(dbResult.device)}. Czy chcesz teraz dodać zdjęcia konkretnych części z tego egzemplarza?`,
         reply_markup: {
           inline_keyboard: [
@@ -2349,6 +2371,7 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
     });
 
     return {
+      recognized_model: combinedQuery || identity.model,
       reply_text: `Zidentyfikowano urządzenie: ${formatDeviceName(identity)}. Nie mam go jeszcze w katalogu reuse, ale zgłoszenie trafiło do kolejki kuracji. Czy mimo to chcesz przesłać zdjęcia jego części dla dokumentacji?`,
       reply_markup: {
         inline_keyboard: [
@@ -2563,7 +2586,10 @@ export async function curateSubmissions(env) {
  * Inicjuje proces datasheetu - prosi o model urządzenia przed analizą.
  */
 export async function initDatasheetWorkflow(env, message, intent) {
-    const query = message.text || message.caption || "Analiza dokumentu PDF";
+    let query = message.file_name || message.text || message.caption || "Analiza dokumentu PDF";
+    if (query.toLowerCase().endsWith(".pdf")) {
+        query = query.slice(0, -4);
+    }
     const fileId = message.file_id || "NO_FILE";
     
     const sessionData = `${fileId}|${query}`;
@@ -2788,16 +2814,23 @@ export async function handleResistorAnalysis(env, message, preFetchedBase64 = nu
     const payloadOptions = { maxTokens: 500 };
     if (mediaPayload) payloadOptions.media = mediaPayload;
 
-    const visionResp = await callProviderWithFallback(
-        env,
-        buildPromptPayload(systemPrompt, userPrompt, env, payloadOptions)
-    );
+    try {
+        const visionResp = await callProviderWithFallback(
+            env,
+            buildPromptPayload(systemPrompt, userPrompt, env, payloadOptions)
+        );
 
-    return { 
-        reply_text: `🎨 *Wynik odczytu rezystora:*\n\n${visionResp.text}`,
-        provider_name: visionResp.provider_name,
-        model_name: visionResp.model_name
-    };
+        return { 
+            reply_text: `🎨 *Wynik odczytu rezystora:*\n\n${visionResp.text}`,
+            provider_name: visionResp.provider_name,
+            model_name: visionResp.model_name
+        };
+    } catch (e) {
+        console.error("Błąd handleResistorAnalysis:", e);
+        return {
+            reply_text: `❌ *Błąd odczytu rezystora:* ${e instanceof Error ? e.message : "Nieznany błąd AI"}. Spróbuj ponownie za chwilę lub wpisz kolory ręcznie.`
+        };
+    }
 }
 
 /**
@@ -2838,6 +2871,55 @@ async function findDatasheetPdfLink(part) {
                 return url;
             }
         } catch (_) { /* spróbuj następny */ }
+    }
+
+    // 2. Fallback: Google Search scrape
+    const googlePdf = await searchGoogleForPdf(part);
+    if (googlePdf) return googlePdf;
+
+    return null;
+}
+
+/**
+ * Szuka linków PDF bezpośrednio w wynikach wyszukiwania Google.
+ */
+async function searchGoogleForPdf(part) {
+    try {
+        const query = `${part} datasheet filetype:pdf`;
+        const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&num=10`;
+        
+        const resp = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9,pl;q=0.8',
+            }
+        });
+        
+        if (!resp.ok) return null;
+        const html = await resp.text();
+        
+        // Wyciągamy linki kończące się na .pdf, pomijając te z Google Cache itp.
+        // Google często zwraca linki w formacie /url?q=https://...
+        const pdfMatches = html.match(/https?:\/\/[^"&<>]+\.pdf/gi) || [];
+        
+        for (let pdfUrl of pdfMatches) {
+            // Czyścimy linki (czasami Google dodaje śmieci na końcu)
+            if (pdfUrl.includes('google.com')) continue;
+            if (pdfUrl.includes('webcache')) continue;
+            
+            // Weryfikujemy czy link działa i jest PDFem
+            try {
+                const check = await fetch(pdfUrl, { 
+                    method: 'HEAD', 
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' }
+                });
+                const ct = (check.headers.get('content-type') || '').toLowerCase();
+                if (check.ok && ct.includes('pdf')) return pdfUrl;
+            } catch(e) {}
+        }
+    } catch(e) {
+        console.error("Błąd searchGoogleForPdf:", e);
     }
     return null;
 }

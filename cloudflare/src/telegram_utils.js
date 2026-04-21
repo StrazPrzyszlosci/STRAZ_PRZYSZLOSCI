@@ -43,24 +43,37 @@ export async function sendTelegramReply(env, message, text, replyMarkup = null) 
     return false;
   }
 
-  const response = await fetch(
+  const payload = {
+    chat_id: message.chat_id,
+    text: sanitizeTelegramReply(text, env),
+    reply_to_message_id: message.message_id || undefined,
+    allow_sending_without_reply: true,
+    disable_web_page_preview: true,
+    reply_markup: replyMarkup || undefined,
+    parse_mode: "Markdown",
+  };
+
+  let response = await fetch(
     `https://api.telegram.org/bot${botToken}/sendMessage`,
     {
       method: "POST",
-      headers: {
-        "content-type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify({
-        chat_id: message.chat_id,
-        text: sanitizeTelegramReply(text, env),
-        reply_to_message_id: message.message_id || undefined,
-        allow_sending_without_reply: true,
-        disable_web_page_preview: true,
-        reply_markup: replyMarkup || undefined,
-        parse_mode: "Markdown",
-      }),
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify(payload),
     }
   );
+
+  if (!response.ok) {
+    // Próba wysłania bez Markdown (na wypadek błędów parsowania AI)
+    delete payload.parse_mode;
+    response = await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json; charset=utf-8" },
+        body: JSON.stringify(payload),
+      }
+    );
+  }
 
   return response.ok;
 }
