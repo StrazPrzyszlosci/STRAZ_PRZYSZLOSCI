@@ -7,6 +7,8 @@ def split_sql(input_file, public_output, private_output):
     PUBLIC_TABLES = {
         'recycled_devices',
         'recycled_parts',
+        'recycled_part_master',
+        'recycled_device_parts',
         'recycled_part_aliases',
         'recycled_device_submissions',
         'schema_migrations',
