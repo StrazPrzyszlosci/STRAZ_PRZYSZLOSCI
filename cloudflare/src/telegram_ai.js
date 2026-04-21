@@ -2781,6 +2781,47 @@ function buildPartLookupReply(queryText, matches) {
   return { text: lines.join("\n"), reply_markup: replyMarkup };
 }
 
+function buildDeterministicDatasheetFallbackAnswer(options = {}) {
+  const partRecord = options.partRecord || null;
+  const partQuery = options.partQuery || "Nieznana część";
+  const deviceModel = options.deviceModel || "Nieznany model elektrośmiecia";
+  const donorMatches = Array.isArray(options.donorMatches) ? options.donorMatches : [];
+  const pdfAttemptFailed = Boolean(options.pdfAttemptFailed);
+  const parameterPairs = Object.entries(normalizeParametersObject(partRecord?.parameters || {}))
+    .slice(0, 8)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(", ");
+
+  const lines = [
+    pdfAttemptFailed
+      ? "Nie udało mi się chwilowo przeanalizować PDF przez AI, więc odpowiadam na podstawie lokalnej bazy i znanych donorów."
+      : "Odpowiadam na podstawie lokalnej bazy i znanych donorów.",
+    "",
+    `Część: ${partRecord?.part_name || partQuery}`,
+    `Oznaczenie części: ${partRecord?.part_number || partQuery}`,
+    `Model elektrośmiecia: ${deviceModel}`,
+    partRecord?.category ? `Kategoria: ${partRecord.category}` : "",
+    partRecord?.description ? `Opis: ${partRecord.description}` : "",
+    parameterPairs ? `Parametry: ${parameterPairs}` : "",
+    partRecord?.datasheet_url ? `Datasheet URL: ${partRecord.datasheet_url}` : "",
+  ].filter(Boolean);
+
+  if (donorMatches.length) {
+    lines.push("");
+    lines.push("Znani donorzy:");
+    for (const donor of donorMatches.slice(0, 8)) {
+      lines.push(`- ${donor.part_name} -> ${formatDeviceName(donor.device)}`);
+    }
+  } else {
+    lines.push("");
+    lines.push("Znani donorzy: brak danych w lokalnej bazie.");
+  }
+
+  lines.push("");
+  lines.push("Jeśli chcesz, spróbuj ponownie za chwilę albo zadaj bardziej konkretne pytanie o pinout, napięcia, obudowę lub donorów.");
+  return lines.join("\n");
+}
+
 function buildPartSummaryLines(partLike) {
   const parameters = Object.entries(normalizeParametersObject(partLike?.parameters || {}))
     .slice(0, 5)
@@ -4394,6 +4435,7 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
 
   try {
     let aiContext = "";
+    let pdfAttemptFailed = false;
     const localContextLines = [
       `Część: ${partRecord?.part_name || partQuery}`,
       `Oznaczenie części: ${partRecord?.part_number || partQuery}`,
@@ -4409,62 +4451,83 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
     if (payload.pdf_file_id) {
       const base64 = await fetchTelegramFileAsBase64(env, payload.pdf_file_id);
       if (base64) {
-        const pdfResp = await callProviderWithFallback(
-          env,
-          buildPromptPayload(
-            ragSystem,
-            `${localContextLines.join("\n")}\n\nPytanie użytkownika: ${userQuestion}`,
+        try {
+          const pdfResp = await callProviderWithFallback(
             env,
-            {
-              media: [{ data: base64, mime_type: "application/pdf" }],
-              maxTokens: 1500,
-              temperature: 0.1,
-            }
-          )
-        );
-        aiContext = pdfResp.text;
+            buildPromptPayload(
+              ragSystem,
+              `${localContextLines.join("\n")}\n\nPytanie użytkownika: ${userQuestion}`,
+              env,
+              {
+                media: [{ data: base64, mime_type: "application/pdf" }],
+                maxTokens: 1500,
+                temperature: 0.1,
+              }
+            )
+          );
+          aiContext = pdfResp.text;
+        } catch (error) {
+          pdfAttemptFailed = true;
+          console.error("[handleFinalDatasheetRagFinal] PDF provider error:", error instanceof Error ? error.message : String(error));
+        }
       }
     } else if (payload.pdf_url) {
       const fetchedBase64 = await fetchExternalPdfAsBase64(payload.pdf_url);
       if (fetchedBase64) {
-        const pdfResp = await callProviderWithFallback(
-          env,
-          buildPromptPayload(
-            ragSystem,
-            `${localContextLines.join("\n")}\n\nPytanie użytkownika: ${userQuestion}`,
+        try {
+          const pdfResp = await callProviderWithFallback(
             env,
-            {
-              media: [{ data: fetchedBase64, mime_type: "application/pdf" }],
-              maxTokens: 1500,
-              temperature: 0.1,
-            }
-          )
-        );
-        aiContext = pdfResp.text;
+            buildPromptPayload(
+              ragSystem,
+              `${localContextLines.join("\n")}\n\nPytanie użytkownika: ${userQuestion}`,
+              env,
+              {
+                media: [{ data: fetchedBase64, mime_type: "application/pdf" }],
+                maxTokens: 1500,
+                temperature: 0.1,
+              }
+            )
+          );
+          aiContext = pdfResp.text;
+        } catch (error) {
+          pdfAttemptFailed = true;
+          console.error("[handleFinalDatasheetRagFinal] Remote PDF provider error:", error instanceof Error ? error.message : String(error));
+        }
       }
     }
 
+    const donorMatches = await searchPartDonors(env, partQuery);
     if (!aiContext) {
-      const donorMatches = await searchPartDonors(env, partQuery);
       const donorLines = donorMatches
         .slice(0, 8)
         .map((item) => `- ${item.part_name} -> ${formatDeviceName(item.device)}`)
         .join("\n");
-      const fallbackResp = await callProviderWithFallback(
-        env,
-        buildPromptPayload(
-          ragSystem,
-          [
-            localContextLines.join("\n"),
-            donorLines ? `Znani donorzy:\n${donorLines}` : "",
-            "",
-            `Pytanie użytkownika: ${userQuestion}`,
-          ].filter(Boolean).join("\n\n"),
+      try {
+        const fallbackResp = await callProviderWithFallback(
           env,
-          { maxTokens: 1200, temperature: 0.2 }
-        )
-      );
-      aiContext = fallbackResp.text;
+          buildPromptPayload(
+            ragSystem,
+            [
+              localContextLines.join("\n"),
+              donorLines ? `Znani donorzy:\n${donorLines}` : "",
+              "",
+              `Pytanie użytkownika: ${userQuestion}`,
+            ].filter(Boolean).join("\n\n"),
+            env,
+            { maxTokens: 1200, temperature: 0.2 }
+          )
+        );
+        aiContext = fallbackResp.text;
+      } catch (error) {
+        console.error("[handleFinalDatasheetRagFinal] Text fallback provider error:", error instanceof Error ? error.message : String(error));
+        aiContext = buildDeterministicDatasheetFallbackAnswer({
+          partRecord,
+          partQuery,
+          deviceModel,
+          donorMatches,
+          pdfAttemptFailed,
+        });
+      }
     }
 
     await recordRecycledSubmission(env, {

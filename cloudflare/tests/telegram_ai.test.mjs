@@ -6,6 +6,7 @@ import {
   buildIssueTitle,
   callProviderWithFallback,
   extractJsonObject,
+  handleFinalDatasheetRagFinal,
   handleRecycledKnowledgeLookup,
   moderateIssueCandidate,
   recognizeDeviceAndListParts,
@@ -1708,6 +1709,83 @@ test("batch flow can preview model from photo before activation", async () => {
       harness.sentMessages.at(-1).reply_markup.inline_keyboard[0][0].callback_data,
       "scan_batch_model_use"
     );
+  });
+});
+
+test("handleFinalDatasheetRagFinal falls back when PDF multimodal provider returns internal error", async () => {
+  const db = createScanFlowDbMock();
+  const env = {
+    DB: db,
+    TELEGRAM_BOT_TOKEN: "telegram-token",
+    TELEGRAM_AI_PRIMARY_PROVIDER: "google",
+    TELEGRAM_AI_FALLBACK_PROVIDER: "nvidia",
+    TELEGRAM_AI_GOOGLE_MODEL: "gemini-3.1-flash-lite-preview",
+    TELEGRAM_AI_NVIDIA_MODEL: "google/gemma-4-31b-it",
+    TELEGRAM_AI_TIMEOUT_MS: "20000",
+    GEMINI_API_KEY: "google-key",
+  };
+
+  await withMockedFetch(async (url, init = {}) => {
+    const urlString = String(url);
+    if (urlString.includes("api.telegram.org/bottelegram-token/sendMessage")) {
+      return jsonResponse({ ok: true });
+    }
+    if (urlString.includes("api.telegram.org/bottelegram-token/getFile")) {
+      return jsonResponse({ ok: true, result: { file_path: "datasheet.pdf" } });
+    }
+    if (urlString.includes("api.telegram.org/file/bottelegram-token/datasheet.pdf")) {
+      return new Response(Uint8Array.from([37, 80, 68, 70, 45, 49, 46, 55]), { status: 200 });
+    }
+    if (urlString.includes("generativelanguage.googleapis.com")) {
+      const body = JSON.parse(init.body);
+      const hasPdfMedia = JSON.stringify(body).includes("\"application/pdf\"");
+      if (hasPdfMedia) {
+        return jsonResponse({ error: { message: "Internal error encountered." } }, 500);
+      }
+      return jsonResponse({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: "TDA7294 to wzmacniacz audio mocy. Odpowiadam z lokalnej bazy i fallbacku tekstowego, bo analiza PDF chwilowo nie zadziałała.",
+                },
+              ],
+            },
+          },
+        ],
+      });
+    }
+    throw new Error(`Unexpected URL: ${urlString}`);
+  }, async () => {
+    const session = {
+      chat_id: "4",
+      user_id: "3",
+      active_device_name: JSON.stringify({
+        version: 2,
+        part_number: "TDA7294",
+        master_part_id: 1,
+        donor_device_model: "Wzmacniacz testowy",
+        donor_device_id: null,
+        pdf_url: "",
+        pdf_file_id: "telegram-pdf-1",
+        db_hit: true,
+        source: "uploaded_pdf",
+        file_name: "tda7294.pdf",
+        scan_summary: "",
+      }),
+    };
+
+    const reply = await handleFinalDatasheetRagFinal(
+      env,
+      { chat_id: "4", user_id: "3", message_id: "99" },
+      session,
+      "Jakie to ma zastosowanie?"
+    );
+
+    assert.match(reply.reply_text, /Analiza zakończona/);
+    assert.doesNotMatch(reply.reply_text, /DS-AI-CHAIN-UNAVAILABLE/);
+    assert.match(reply.reply_text, /wzmacniacz audio mocy/i);
   });
 });
 
