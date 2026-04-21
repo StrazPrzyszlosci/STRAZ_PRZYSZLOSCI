@@ -4044,8 +4044,7 @@ export function runResistorVerification(aiValue,aiTolerance,aiFormat,editData,us
 
 function _tryParseBands(text){
   if(!text||typeof text!=="string")return null;
-  const t=text.replace(/[.,;|\/\n]+/g,",").trim();
-  const parts=t.split(",").map(s=>s.trim()).filter(Boolean);
+  const parts=text.trim().split(/[\s,.;|/\n-]+/).filter(Boolean);
   if(parts.length<3||parts.length>6)return null;
   const valid=new Set(Object.keys(_R_COLOR_MAP));
   for(const p of parts){
