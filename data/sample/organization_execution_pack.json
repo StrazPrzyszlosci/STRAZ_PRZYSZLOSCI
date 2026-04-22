@@ -9,7 +9,7 @@
   "execution_mode": "kaggle_notebook",
   "scope": "discovery -> verification -> enrichment -> review-ready artifacts dla notebooka youtube-databaseparts.ipynb",
   "objective": "Uruchomic autonomiczny notebook Kaggle, ktory zbierze kandydatow czesci z materialow YouTube i zapisze wynik do forka wolontariusza w formacie gotowym do review.",
-  "instructions_summary": "Wolontariusz pobiera notebook, ustawia sekrety na swoim koncie Kaggle, uruchamia przebieg, commit'uje wynik do forka i otwiera pull request zgodnie z szablonem packa.",
+  "instructions_summary": "Wolontariusz pobiera notebook, ustawia sekrety na swoim koncie Kaggle, uruchamia przebieg, a finalizer zapisuje raport runu, Run record i branch do forka przed otwarciem pull requesta zgodnie z szablonem packa.",
   "human_actions": [
     "Skonfigurowac Kaggle Secrets zgodnie z runbookiem.",
     "Uruchomic notebook na swoim koncie.",
@@ -51,16 +51,23 @@
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/test_db.jsonl",
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/inventree_import.jsonl",
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/ecoEDA_inventory.csv",
-    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md"
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md",
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/rebuild_autonomous_outputs_report.md",
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/rebuild_autonomous_outputs_skipped.jsonl"
   ],
   "expected_artifacts": [
     "data snapshot z kandydatami czesci",
+    "raport rebuild outputow review-ready",
+    "log rekordow odrzuconych przy rebuildzie",
+    "kanoniczny rekord Run",
     "krotki raport przebiegu",
     "pull request do upstream"
   ],
   "acceptance_criteria": [
     "Wynik posiada jawne provenance i odniesienie do notebooka lub runu.",
     "Format outputu zgadza sie z uzgodnionym kontraktem packa.",
+    "Rebuild report i skipped log wyjasniaja accepted/skipped records dla outputow review-ready.",
+    "Finalize step zapisuje kanoniczny Run record dla przebiegu.",
     "Artefakt nadaje sie do review bez recznego przepisywania danych."
   ],
   "safety_notes": [
@@ -76,5 +83,5 @@
   "target_output_kind": "pull_request",
   "status": "ready",
   "created_at": "2026-04-22T10:20:00Z",
-  "updated_at": "2026-04-22T10:20:00Z"
+  "updated_at": "2026-04-22T21:30:00Z"
 }

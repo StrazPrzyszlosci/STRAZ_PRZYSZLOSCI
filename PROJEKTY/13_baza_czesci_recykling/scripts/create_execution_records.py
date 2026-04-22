@@ -88,14 +88,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pack-id", default=DEFAULT_PACK_ID)
     parser.add_argument("--task-id", default=DEFAULT_TASK_ID)
     parser.add_argument("--fork-owner", required=True)
-    parser.add_argument("--run-ref", required=True, help="Identyfikator albo URL runu Kaggle.")
-    parser.add_argument("--summary-ref", required=True, help="Sciezka albo URL do raportu runu.")
+    parser.add_argument("--existing-run-id", help="Jesli podane, skrypt nie tworzy nowego Run i dopina tylko Artifact do istniejacego run_id.")
+    parser.add_argument("--run-ref", help="Identyfikator albo URL runu Kaggle.")
+    parser.add_argument("--summary-ref", help="Sciezka albo URL do raportu runu.")
     parser.add_argument("--output-ref", help="Dodatkowy output, np. branch lub katalog artefaktow.")
     parser.add_argument("--operator-kind", default="hybrid_team")
     parser.add_argument("--environment-kind", default="kaggle")
     parser.add_argument("--run-status", default="needs_review")
     parser.add_argument("--started-at")
     parser.add_argument("--ended-at")
+    parser.add_argument("--timestamp-slug", help="Wymusza wspolny znacznik czasu dla nazw rekordow, np. 20260422T185605Z.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--artifact-storage-ref", help="URL do PR albo innego artefaktu.")
     parser.add_argument("--artifact-kind", default="pull_request")
@@ -113,16 +115,23 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    timestamp_slug = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
-    run_id, run_payload = build_run_record(args, timestamp_slug)
-    run_path = args.output_dir / f"{run_id}.json"
-    write_json(run_path, run_payload)
+    timestamp_slug = args.timestamp_slug or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
     result = {
         "status": "ok",
-        "run_record": str(run_path),
     }
+    run_id = args.existing_run_id
+
+    if not run_id:
+        if not args.run_ref or not args.summary_ref:
+            raise SystemExit("--run-ref i --summary-ref sa wymagane, jesli nie podano --existing-run-id.")
+
+        run_id, run_payload = build_run_record(args, timestamp_slug)
+        run_path = args.output_dir / f"{run_id}.json"
+        write_json(run_path, run_payload)
+        result["run_record"] = str(run_path)
+    elif not args.artifact_storage_ref:
+        raise SystemExit("--artifact-storage-ref jest wymagane, jesli uzywasz --existing-run-id bez tworzenia nowego Run.")
 
     if args.artifact_storage_ref:
         artifact_id, artifact_payload = build_artifact_record(args, run_id, timestamp_slug)

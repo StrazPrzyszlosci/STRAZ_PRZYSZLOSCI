@@ -9,11 +9,11 @@
   "execution_mode": "kaggle_notebook",
   "scope": "discovery -> verification -> enrichment -> review-ready artifacts dla notebooka youtube-databaseparts.ipynb",
   "objective": "Uruchomic notebook Kaggle dla Project 13 tak, aby wolontariusz mogl na swoim koncie wygenerowac review-ready artefakty, zapisac je na branchu we wlasnym forku i otworzyc PR do upstream.",
-  "instructions_summary": "Wolontariusz przygotowuje fork, ustawia sekrety Kaggle, importuje notebook, uruchamia go, generuje raport runu i pushuje branch do forka. Ostateczny wynik wraca do upstream przez PR zgodny z szablonem packa.",
+  "instructions_summary": "Wolontariusz przygotowuje fork, ustawia sekrety Kaggle, importuje notebook, uruchamia go, a notebook finalizuje pack przez rebuild outputow review-ready, raport runu, kanoniczny Run record i push brancha do forka. Ostateczny wynik wraca do upstream przez PR zgodny z szablonem packa.",
   "human_actions": [
     "Utworzyc albo zaktualizowac swoj fork repozytorium STRAZ_PRZYSZLOSCI.",
     "Ustawic wymagane Kaggle Secrets i parametry forka w notebooku.",
-    "Uruchomic notebook, przejrzec wygenerowane artefakty i otworzyc PR do upstream."
+    "Uruchomic notebook, przejrzec wygenerowane artefakty, zapisany Run record i otworzyc PR do upstream."
   ],
   "required_resources": [
     {
@@ -53,18 +53,25 @@
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/test_db.jsonl",
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/inventree_import.jsonl",
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/ecoEDA_inventory.csv",
-    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md"
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md",
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/rebuild_autonomous_outputs_report.md",
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/rebuild_autonomous_outputs_skipped.jsonl"
   ],
   "expected_artifacts": [
     "snapshot kandydatow czesci do review",
+    "raport rebuild outputow review-ready z accepted/skipped counts",
+    "log rekordow odrzuconych przy rebuildzie outputow review-ready",
     "raport runu z counts, provenance i known issues",
+    "kanoniczny rekord Run zapisany w execution_packs/.../records/",
     "branch na forku wolontariusza gotowy do PR",
     "pull request do upstream z opisem przebiegu"
   ],
   "acceptance_criteria": [
     "Wynik trafia na branch we forku wolontariusza, a nie bezposrednio do upstream.",
     "Artefakty obejmuja processed_videos.json, test_db.jsonl, inventree_import.jsonl i ecoEDA_inventory.csv albo jawny opis brakow.",
+    "Rebuild report i skipped log jawnie opisuja, ile rekordow weszlo do outputow review-ready i co zostalo odrzucone.",
     "Run summary zawiera provenance do packa, notebooka i brancha.",
+    "Finalize step zapisuje kanoniczny Run record w execution_packs/pack-project13-kaggle-enrichment-01/records/.",
     "PR opisuje ograniczenia, zuzyte sekrety w sensie funkcji, a nie same wartosci, oraz jawny zakres review."
   ],
   "safety_notes": [
@@ -80,5 +87,5 @@
   "target_output_kind": "pull_request",
   "status": "active",
   "created_at": "2026-04-22T20:00:00Z",
-  "updated_at": "2026-04-22T20:00:00Z"
+  "updated_at": "2026-04-22T21:30:00Z"
 }

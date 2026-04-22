@@ -26,6 +26,7 @@ run -> wygenerowanie artefaktow -> push brancha do forka -> PR do upstream
 - `PR_TEMPLATE.md`: szablon opisu pull requesta
 - `REVIEW_CHECKLIST.md`: checklista review artefaktow
 - `scripts/create_execution_records.py`: generator kanonicznych rekordow `Run` i `Artifact` po faktycznym uruchomieniu packa
+- `scripts/finalize_execution_pack_run.py`: orkiestrator konca runu packa, ktory robi rebuild, summary, `Run` record i git push do forka
 - `scripts/dry_run_execution_pack.py`: lokalny dry-run packa bez prawdziwego Kaggle runu
 
 ## Najwazniejsze zasady
@@ -33,7 +34,7 @@ run -> wygenerowanie artefaktow -> push brancha do forka -> PR do upstream
 - pack zaklada, ze wolontariusz ma wlasny fork repozytorium i pushuje tylko do niego
 - sekrety sa ustawiane tylko na koncie `Kaggle` wolontariusza
 - wynik nie trafia bezposrednio do upstream bez review
-- kazdy run ma zostawic jawny slad provenance: `pack_id`, branch, notebook, timestamp i raport przebiegu
+- kazdy run ma zostawic jawny slad provenance: `pack_id`, branch, notebook, timestamp, raport przebiegu i kanoniczny `Run` record
 
 ## Oczekiwane artefakty
 
@@ -42,6 +43,8 @@ run -> wygenerowanie artefaktow -> push brancha do forka -> PR do upstream
 - `PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/inventree_import.jsonl`
 - `PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/ecoEDA_inventory.csv`
 - `PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md`
+- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/rebuild_autonomous_outputs_report.md`
+- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/rebuild_autonomous_outputs_skipped.jsonl`
 
 ## Wejscie dla kolejnego agenta
 

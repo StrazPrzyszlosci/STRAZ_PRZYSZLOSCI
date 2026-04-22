@@ -1,0 +1,16 @@
+{
+  "schema_version": "v1",
+  "run_id": "run-project13-kaggle-enrichment-local-finalizer-smoke-20260422T190657Z",
+  "task_id": "task-project13-kaggle-enrichment-01",
+  "pack_id": "pack-project13-kaggle-enrichment-01",
+  "operator_kind": "hybrid_team",
+  "environment_kind": "kaggle",
+  "status": "needs_review",
+  "logs_ref": "kaggle://project13/20260422T190657Z",
+  "output_refs": [
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md",
+    "branch://local-finalizer-smoke/pack-project13-kaggle-enrichment-20260422-190657"
+  ],
+  "started_at": "2026-04-22T19:06:57+00:00",
+  "ended_at": "2026-04-22T19:06:57+00:00"
+}

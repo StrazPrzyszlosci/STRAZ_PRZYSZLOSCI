@@ -1,0 +1,22 @@
+{
+  "schema_version": "v1",
+  "artifact_id": "artifact-project13-kaggle-enrichment-dry-run-local-20260422T185307Z",
+  "run_id": "run-project13-kaggle-enrichment-dry-run-local-20260422T185307Z",
+  "artifact_kind": "report",
+  "title": "Dry-run report dla execution packa Project 13",
+  "summary": "Lokalny dry-run packa pack-project13-kaggle-enrichment-01 zakonczyl sie statusem succeeded.",
+  "storage_ref": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/dry_runs/dry_run_report_20260422T185307Z.md",
+  "review_status": "draft",
+  "provenance": [
+    {
+      "entity_kind": "execution_pack",
+      "entity_id": "pack-project13-kaggle-enrichment-01"
+    },
+    {
+      "entity_kind": "run",
+      "entity_id": "run-project13-kaggle-enrichment-dry-run-local-20260422T185307Z"
+    }
+  ],
+  "created_at": "2026-04-22T18:53:07+00:00",
+  "updated_at": "2026-04-22T18:53:07+00:00"
+}

@@ -77,6 +77,12 @@ Notebook powinien uzyc tylko tych sekretow i tylko do deklarowanego celu packa.
    - `results/inventree_import.jsonl`
    - `results/ecoEDA_inventory.csv`
    - `reports/last_run_summary.md`
+   - `reports/rebuild_autonomous_outputs_report.md`
+   - `reports/rebuild_autonomous_outputs_skipped.jsonl`
+4. Na koncu notebook powinien wypisac:
+   - `run_id`
+   - `run_ref`
+   - `run_record_ref`
 
 Jesli ktorys plik nie powstal, zatrzymaj sie i opisz to w raporcie runu oraz PR.
 
@@ -87,12 +93,16 @@ Przed pushem sprawdz:
 - czy branch jest nowy i nalezy do Twojego forka
 - czy commit author wskazuje Ciebie albo adres `noreply`
 - czy raport runu opisuje zakres danych i known issues
+- czy raport rebuild wyjasnia, jakie rekordy weszly do `inventree_import.jsonl` i `ecoEDA_inventory.csv`
+- czy log skipped records jest spojny z raportem rebuild i nie ukrywa masowego odrzucania danych
 - czy w artefaktach nie ma sekretow, plikow tymczasowych ani pobranych filmow
 
 ## Krok 6. Push do forka
 
 Notebook powinien:
 
+- wywolac `scripts/finalize_execution_pack_run.py`,
+- zapisac kanoniczny rekord `Run` w `execution_packs/.../records/`,
 - utworzyc branch o nazwie podobnej do `pack-project13-kaggle-enrichment-<timestamp>`
 - dodac tylko artefakty review-ready
 - wypchnac branch do `origin`, czyli do Twojego forka
@@ -103,23 +113,23 @@ Upstream nie powinien byc celem pushu z poziomu notebooka.
 
 1. Na GitHubie otworz PR z brancha forka do `StrazPrzyszlosci/STRAZ_PRZYSZLOSCI`.
 2. Skopiuj tresc z `PR_TEMPLATE.md`.
-3. Wklej link do notebooka Kaggle lub opisz identyfikator runu.
+3. Wklej `run_id`, `run_ref` i link do notebooka Kaggle lub identyfikator runu.
 4. Dolacz ograniczenia i znane problemy.
 
-## Krok 8. Zapisz kanoniczny rekord `Run` i opcjonalnie `Artifact`
+## Krok 8. Dopnij `Artifact` record po otwarciu PR
 
-Po wykonaniu notebooka i przed albo po otwarciu PR uruchom lokalnie:
+Notebook powinien juz automatycznie zapisac `Run record`.
+
+Po otwarciu PR dopnij odpowiadajacy mu `Artifact`:
 
 ```bash
 python3 PROJEKTY/13_baza_czesci_recykling/scripts/create_execution_records.py \
   --fork-owner <twoj-login-github> \
-  --run-ref kaggle://project13/<twoj-run-id> \
-  --summary-ref PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md \
-  --output-ref branch://<twoj-login-github>/pack-project13-kaggle-enrichment-<timestamp> \
+  --existing-run-id <run-id-z-logu-notebooka> \
   --artifact-storage-ref https://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI/pull/<numer>
 ```
 
-Skrypt zapisze rekord `Run` i, jesli podasz `--artifact-storage-ref`, rowniez rekord `Artifact` w katalogu:
+Skrypt zapisze rekord `Artifact` w katalogu:
 
 - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/records/`
 

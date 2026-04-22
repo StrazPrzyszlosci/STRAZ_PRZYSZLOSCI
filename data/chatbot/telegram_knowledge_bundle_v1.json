@@ -1,6 +1,6 @@
 {
   "schema_version": "v1",
-  "generated_at": "2026-04-22T18:33:44.027189+00:00",
+  "generated_at": "2026-04-22T19:10:24.531296+00:00",
   "allowlist": [
     "README.md",
     "MARKETING.md",
@@ -1778,7 +1778,7 @@
       "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
       "title": "Komendy",
       "category": "document",
-      "content": "Walidacja katalogu:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py validate\n```\n\nPrzebudowa wszystkich artefaktow:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-all\n```\n\nTylko eksport `ecoEDA`:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-ecoeda\n```\n\nRaport markdown po runie Kaggle:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/summarize_kaggle_run.py\n```\n\nGenerator kanonicznych rekordow `Run` i `Artifact` po wykonaniu packa:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/create_execution_records.py --help\n```\n\nLokalny dry-run execution packa bez odpalania prawdziwego Kaggle runu:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/dry_run_execution_pack.py\n```\n\nTylko seed do D1:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-d1-sql\n```\n\nSynchronizacja kolejki `queued` z Telegram/D1 do katalogu GitHub-first (dry-run):\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --limit 25\n```\n\nZapis zmian + przebudowa artefaktow + aktualizacja statusow D1:\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --apply --sync-d1-status\n```\n\nAutomatyczny branch + commit + push + PR:\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --apply --git-mode pr --push --create-pr --sync-d1-status\n```"
+      "content": "Walidacja katalogu:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py validate\n```\n\nPrzebudowa wszystkich artefaktow:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-all\n```\n\nTylko eksport `ecoEDA`:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-ecoeda\n```\n\nRaport markdown po runie Kaggle:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/summarize_kaggle_run.py\n```\n\nGenerator kanonicznych rekordow `Run` i `Artifact` po wykonaniu packa:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/create_execution_records.py --help\n```\n\nOrkiestrator finalizacji realnego runu packa `Kaggle`:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/finalize_execution_pack_run.py --fork-owner <twoj-login-github> --git-mode push\n```\n\nSkrypt wykonuje `rebuild`, generuje `last_run_summary.md`, zapisuje kanoniczny rekord `Run` i przygotowuje follow-up do dopiecia `Artifact` po otwarciu PR.\n\nDeterministyczna odbudowa `inventree_import.jsonl` i `ecoEDA_inventory.csv` z `autonomous_test/results/test_db.jsonl`:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/rebuild_autonomous_outputs.py\n```\n\nSkrypt zapisuje tez audit trail odrzuconych rekordow do `autonomous_test/reports/rebuild_autonomous_outputs_skipped.jsonl`.\n\nLokalny dry-run execution packa bez odpalania prawdziwego Kaggle runu:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/dry_run_execution_pack.py\n```\n\nTylko seed do D1:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-d1-sql\n```\n\nSynchronizacja kolejki `queued` z Telegram/D1 do katalogu GitHub-first (dry-run):\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --limit 25\n```\n\nZapis zmian + przebudowa artefaktow + aktualizacja statusow D1:\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --apply --sync-d1-status\n```\n\nAutomatyczny branch + commit + push + PR:\n\n```bash\npython3 pipelines/sync_recycled_queue.py --remote --apply --git-mode pr --push --create-pr --sync-d1-status\n```"
     },
     {
       "id": "projekty-13-baza-czesci-recykling-readme-md-7-model-wolontariackich-notatnikow-kaggle",
@@ -1792,7 +1792,7 @@
       "source_path": "PROJEKTY/13_baza_czesci_recykling/README.md",
       "title": "Pierwszy realny execution pack",
       "category": "document",
-      "content": "Pierwszy realny `KaggleNotebookPack` dla `Project 13` jest utrzymywany tutaj:\n\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/manifest.json`\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md`\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/PR_TEMPLATE.md`\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/REVIEW_CHECKLIST.md`\n\nTen pack spina:\n\n- realny notebook `youtube-databaseparts.ipynb`,\n- wymagane sekrety i zasady bezpieczenstwa,\n- branch na forku wolontariusza zamiast pushu do upstream,\n- raport runu `autonomous_test/reports/last_run_summary.md`,\n- review-ready PR do glownego repozytorium."
+      "content": "Pierwszy realny `KaggleNotebookPack` dla `Project 13` jest utrzymywany tutaj:\n\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/manifest.json`\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md`\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/PR_TEMPLATE.md`\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/REVIEW_CHECKLIST.md`\n\nTen pack spina:\n\n- realny notebook `youtube-databaseparts.ipynb`,\n- wymagane sekrety i zasady bezpieczenstwa,\n- branch na forku wolontariusza zamiast pushu do upstream,\n- raport runu `autonomous_test/reports/last_run_summary.md`,\n- raport rebuild i log odrzuconych rekordow dla outputow review-ready,\n- automatyczne zapisanie kanonicznego `Run` record przy finalizacji notebooka,\n- review-ready PR do glownego repozytorium."
     },
     {
       "id": "projekty-13-baza-czesci-recykling-readme-md-9-zasady-bezpieczenstwa-dla-notatnikow-kaggle",
@@ -1911,21 +1911,21 @@
       "source_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/README.md",
       "title": "Co jest w srodku",
       "category": "document",
-      "content": "- `manifest.json`: kanoniczny rekord `ExecutionPack`\n- `task.json`: gotowy rekord `Task` dla pierwszego uruchomienia\n- `integrity_risk_assessment.json`: ocena ryzyk dla interesu wspolnego\n- `readiness_gate.json`: bramka `pack_ready`\n- `RUNBOOK.md`: instrukcja dla wolontariusza i lokalnego agenta\n- `PR_TEMPLATE.md`: szablon opisu pull requesta\n- `REVIEW_CHECKLIST.md`: checklista review artefaktow\n- `scripts/create_execution_records.py`: generator kanonicznych rekordow `Run` i `Artifact` po faktycznym uruchomieniu packa\n- `scripts/dry_run_execution_pack.py`: lokalny dry-run packa bez prawdziwego Kaggle runu"
+      "content": "- `manifest.json`: kanoniczny rekord `ExecutionPack`\n- `task.json`: gotowy rekord `Task` dla pierwszego uruchomienia\n- `integrity_risk_assessment.json`: ocena ryzyk dla interesu wspolnego\n- `readiness_gate.json`: bramka `pack_ready`\n- `RUNBOOK.md`: instrukcja dla wolontariusza i lokalnego agenta\n- `PR_TEMPLATE.md`: szablon opisu pull requesta\n- `REVIEW_CHECKLIST.md`: checklista review artefaktow\n- `scripts/create_execution_records.py`: generator kanonicznych rekordow `Run` i `Artifact` po faktycznym uruchomieniu packa\n- `scripts/finalize_execution_pack_run.py`: orkiestrator konca runu packa, ktory robi rebuild, summary, `Run` record i git push do forka\n- `scripts/dry_run_execution_pack.py`: lokalny dry-run packa bez prawdziwego Kaggle runu"
     },
     {
       "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-readme-md-3-najwazniejsze-zasady",
       "source_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/README.md",
       "title": "Najwazniejsze zasady",
       "category": "document",
-      "content": "- pack zaklada, ze wolontariusz ma wlasny fork repozytorium i pushuje tylko do niego\n- sekrety sa ustawiane tylko na koncie `Kaggle` wolontariusza\n- wynik nie trafia bezposrednio do upstream bez review\n- kazdy run ma zostawic jawny slad provenance: `pack_id`, branch, notebook, timestamp i raport przebiegu"
+      "content": "- pack zaklada, ze wolontariusz ma wlasny fork repozytorium i pushuje tylko do niego\n- sekrety sa ustawiane tylko na koncie `Kaggle` wolontariusza\n- wynik nie trafia bezposrednio do upstream bez review\n- kazdy run ma zostawic jawny slad provenance: `pack_id`, branch, notebook, timestamp, raport przebiegu i kanoniczny `Run` record"
     },
     {
       "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-readme-md-4-oczekiwane-artefakty",
       "source_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/README.md",
       "title": "Oczekiwane artefakty",
       "category": "document",
-      "content": "- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/processed_videos.json`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/test_db.jsonl`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/inventree_import.jsonl`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/ecoEDA_inventory.csv`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md`"
+      "content": "- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/processed_videos.json`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/test_db.jsonl`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/inventree_import.jsonl`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/ecoEDA_inventory.csv`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/rebuild_autonomous_outputs_report.md`\n- `PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/rebuild_autonomous_outputs_skipped.jsonl`"
     },
     {
       "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-readme-md-5-wejscie-dla-kolejnego-agenta",
@@ -1995,35 +1995,35 @@
       "source_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md",
       "title": "Krok 4. Uruchom notebook",
       "category": "document",
-      "content": "1. Uruchom komorki po kolei.\n2. Poczekaj na wygenerowanie plikow w `autonomous_test/`.\n3. Sprawdz, czy notebook wygenerowal:\n   - `processed_videos.json`\n   - `results/test_db.jsonl`\n   - `results/inventree_import.jsonl`\n   - `results/ecoEDA_inventory.csv`\n   - `reports/last_run_summary.md`\n\nJesli ktorys plik nie powstal, zatrzymaj sie i opisz to w raporcie runu oraz PR."
+      "content": "1. Uruchom komorki po kolei.\n2. Poczekaj na wygenerowanie plikow w `autonomous_test/`.\n3. Sprawdz, czy notebook wygenerowal:\n   - `processed_videos.json`\n   - `results/test_db.jsonl`\n   - `results/inventree_import.jsonl`\n   - `results/ecoEDA_inventory.csv`\n   - `reports/last_run_summary.md`\n   - `reports/rebuild_autonomous_outputs_report.md`\n   - `reports/rebuild_autonomous_outputs_skipped.jsonl`\n4. Na koncu notebook powinien wypisac:\n   - `run_id`\n   - `run_ref`\n   - `run_record_ref`\n\nJesli ktorys plik nie powstal, zatrzymaj sie i opisz to w raporcie runu oraz PR."
     },
     {
       "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-runbook-md-9-krok-5-zweryfikuj-wynik-przed-pushem",
       "source_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md",
       "title": "Krok 5. Zweryfikuj wynik przed pushem",
       "category": "document",
-      "content": "Przed pushem sprawdz:\n\n- czy branch jest nowy i nalezy do Twojego forka\n- czy commit author wskazuje Ciebie albo adres `noreply`\n- czy raport runu opisuje zakres danych i known issues\n- czy w artefaktach nie ma sekretow, plikow tymczasowych ani pobranych filmow"
+      "content": "Przed pushem sprawdz:\n\n- czy branch jest nowy i nalezy do Twojego forka\n- czy commit author wskazuje Ciebie albo adres `noreply`\n- czy raport runu opisuje zakres danych i known issues\n- czy raport rebuild wyjasnia, jakie rekordy weszly do `inventree_import.jsonl` i `ecoEDA_inventory.csv`\n- czy log skipped records jest spojny z raportem rebuild i nie ukrywa masowego odrzucania danych\n- czy w artefaktach nie ma sekretow, plikow tymczasowych ani pobranych filmow"
     },
     {
       "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-runbook-md-10-krok-6-push-do-forka",
       "source_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md",
       "title": "Krok 6. Push do forka",
       "category": "document",
-      "content": "Notebook powinien:\n\n- utworzyc branch o nazwie podobnej do `pack-project13-kaggle-enrichment-<timestamp>`\n- dodac tylko artefakty review-ready\n- wypchnac branch do `origin`, czyli do Twojego forka\n\nUpstream nie powinien byc celem pushu z poziomu notebooka."
+      "content": "Notebook powinien:\n\n- wywolac `scripts/finalize_execution_pack_run.py`,\n- zapisac kanoniczny rekord `Run` w `execution_packs/.../records/`,\n- utworzyc branch o nazwie podobnej do `pack-project13-kaggle-enrichment-<timestamp>`\n- dodac tylko artefakty review-ready\n- wypchnac branch do `origin`, czyli do Twojego forka\n\nUpstream nie powinien byc celem pushu z poziomu notebooka."
     },
     {
       "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-runbook-md-11-krok-7-otworz-pr",
       "source_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md",
       "title": "Krok 7. Otworz PR",
       "category": "document",
-      "content": "1. Na GitHubie otworz PR z brancha forka do `StrazPrzyszlosci/STRAZ_PRZYSZLOSCI`.\n2. Skopiuj tresc z `PR_TEMPLATE.md`.\n3. Wklej link do notebooka Kaggle lub opisz identyfikator runu.\n4. Dolacz ograniczenia i znane problemy."
+      "content": "1. Na GitHubie otworz PR z brancha forka do `StrazPrzyszlosci/STRAZ_PRZYSZLOSCI`.\n2. Skopiuj tresc z `PR_TEMPLATE.md`.\n3. Wklej `run_id`, `run_ref` i link do notebooka Kaggle lub identyfikator runu.\n4. Dolacz ograniczenia i znane problemy."
     },
     {
-      "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-runbook-md-12-krok-8-zapisz-kanoniczny-rekord-run-i-opcjonalnie-artifact",
+      "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-runbook-md-12-krok-8-dopnij-artifact-record-po-otwarciu-pr",
       "source_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md",
-      "title": "Krok 8. Zapisz kanoniczny rekord `Run` i opcjonalnie `Artifact`",
+      "title": "Krok 8. Dopnij `Artifact` record po otwarciu PR",
       "category": "document",
-      "content": "Po wykonaniu notebooka i przed albo po otwarciu PR uruchom lokalnie:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/create_execution_records.py \\\n  --fork-owner <twoj-login-github> \\\n  --run-ref kaggle://project13/<twoj-run-id> \\\n  --summary-ref PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/last_run_summary.md \\\n  --output-ref branch://<twoj-login-github>/pack-project13-kaggle-enrichment-<timestamp> \\\n  --artifact-storage-ref https://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI/pull/<numer>\n```\n\nSkrypt zapisze rekord `Run` i, jesli podasz `--artifact-storage-ref`, rowniez rekord `Artifact` w katalogu:\n\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/records/`"
+      "content": "Notebook powinien juz automatycznie zapisac `Run record`.\n\nPo otwarciu PR dopnij odpowiadajacy mu `Artifact`:\n\n```bash\npython3 PROJEKTY/13_baza_czesci_recykling/scripts/create_execution_records.py \\\n  --fork-owner <twoj-login-github> \\\n  --existing-run-id <run-id-z-logu-notebooka> \\\n  --artifact-storage-ref https://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI/pull/<numer>\n```\n\nSkrypt zapisze rekord `Artifact` w katalogu:\n\n- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/records/`"
     },
     {
       "id": "projekty-13-baza-czesci-recykling-execution-packs-pack-project13-kaggle-enrichment-01-runbook-md-13-krok-9-czego-nie-robic",

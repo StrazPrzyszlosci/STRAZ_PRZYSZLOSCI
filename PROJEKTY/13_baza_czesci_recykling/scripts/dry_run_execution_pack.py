@@ -16,6 +16,7 @@ PACK_DIR = PROJECT_DIR / "execution_packs" / PACK_ID
 DRY_RUN_DIR = PACK_DIR / "dry_runs"
 SUMMARY_SCRIPT = PROJECT_DIR / "scripts" / "summarize_kaggle_run.py"
 RECORDS_SCRIPT = PROJECT_DIR / "scripts" / "create_execution_records.py"
+REBUILD_SCRIPT = PROJECT_DIR / "scripts" / "rebuild_autonomous_outputs.py"
 BASE_DIR = PROJECT_DIR / "autonomous_test"
 NOTEBOOK_PATH = PROJECT_DIR / "youtube-databaseparts.ipynb"
 MANIFEST_PATH = PACK_DIR / "manifest.json"
@@ -49,6 +50,7 @@ def add_check(checks: list[dict], name: str, status: str, details: str) -> None:
 def build_pr_preview(template_text: str, run_stamp: str, summary_path: Path) -> str:
     preview = template_text
     replacements = {
+        "run_id": f"run-project13-kaggle-enrichment-dry-run-local-{run_stamp}",
         "fork_owner": "dry-run-local",
         "branch_name": f"dry-run-pack-project13-{run_stamp}",
         "kaggle_run_timestamp_utc": utc_now().replace(microsecond=0).isoformat(),
@@ -109,6 +111,7 @@ def render_report(
             "",
             "## Interpretation",
             "",
+            "- Status `pass` oznacza, ze lokalny kontrakt packa jest spiety i snapshot ma komplet wymaganych artefaktow review-ready.",
             "- Dry-run weryfikuje lokalnie kontrakt packa, provenance, artefakty i gotowosc dokumentacyjna bez uruchamiania prawdziwego Kaggle runu ani prawdziwego PR.",
             "- Status `conditional` oznacza, ze pack jest logicznie spiety, ale nadal sa luki przed publicznym przebiegiem.",
             "- Status `needs_changes` oznacza, ze przed publicznym dry-runem wolontariusza trzeba poprawic przynajmniej jeden blokujacy element.",
@@ -135,6 +138,12 @@ def main() -> int:
     summary_path = DRY_RUN_DIR / f"summary_{run_stamp}.md"
     pr_preview_path = DRY_RUN_DIR / f"pr_preview_{run_stamp}.md"
     report_path = DRY_RUN_DIR / f"dry_run_report_{run_stamp}.md"
+
+    subprocess.run(
+        ["python3", str(REBUILD_SCRIPT)],
+        check=True,
+        cwd=REPO_ROOT,
+    )
 
     subprocess.run(
         [
@@ -182,8 +191,9 @@ def main() -> int:
     notebook_markers = {
         "fork_owner_placeholder": "FORK_OWNER = \\\"TWOJ_LOGIN_GITHUB\\\"" in notebook_text,
         "noreply_identity": "@users.noreply.github.com" in notebook_text,
-        "origin_push_branch": "push\\\", \\\"--set-upstream\\\", \\\"origin\\\", branch_name" in notebook_text,
-        "summary_provenance_call": "--pack-id" in notebook_text and "--run-ref" in notebook_text,
+        "finalizer_script": "finalize_execution_pack_run.py" in notebook_text,
+        "finalizer_push_mode": "--git-mode" in notebook_text and "\\\"push\\\"" in notebook_text,
+        "finalizer_run_metadata": "run_record_ref" in notebook_text and "run_id" in notebook_text,
         "inventree_bootstrap": "INVENTREE_FILE.touch(exist_ok=True)" in notebook_text,
     }
     for marker_name, marker_ok in notebook_markers.items():
@@ -210,7 +220,12 @@ def main() -> int:
         if not exists and output_path.name == "inventree_import.jsonl" and notebook_markers["inventree_bootstrap"]:
             status = "warn"
             details += " | brak w obecnym snapshotcie, ale notebook bootstrapuje pusty plik przy nowym runie"
-        elif exists and count == 0 and output_path.suffix in {".jsonl", ".csv"}:
+        elif (
+            exists
+            and count == 0
+            and output_path.suffix in {".jsonl", ".csv"}
+            and output_path.name != "rebuild_autonomous_outputs_skipped.jsonl"
+        ):
             status = "warn"
             details += " | plik istnieje, ale jest pusty po obecnym snapshotcie"
 
@@ -278,6 +293,8 @@ def main() -> int:
         "local",
         "--run-status",
         run_status,
+        "--timestamp-slug",
+        run_stamp,
         "--artifact-storage-ref",
         str(report_path.relative_to(REPO_ROOT)),
         "--artifact-kind",

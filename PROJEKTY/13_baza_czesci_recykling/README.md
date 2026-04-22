@@ -115,6 +115,22 @@ Generator kanonicznych rekordow `Run` i `Artifact` po wykonaniu packa:
 python3 PROJEKTY/13_baza_czesci_recykling/scripts/create_execution_records.py --help
 ```
 
+Orkiestrator finalizacji realnego runu packa `Kaggle`:
+
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/finalize_execution_pack_run.py --fork-owner <twoj-login-github> --git-mode push
+```
+
+Skrypt wykonuje `rebuild`, generuje `last_run_summary.md`, zapisuje kanoniczny rekord `Run` i przygotowuje follow-up do dopiecia `Artifact` po otwarciu PR.
+
+Deterministyczna odbudowa `inventree_import.jsonl` i `ecoEDA_inventory.csv` z `autonomous_test/results/test_db.jsonl`:
+
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/rebuild_autonomous_outputs.py
+```
+
+Skrypt zapisuje tez audit trail odrzuconych rekordow do `autonomous_test/reports/rebuild_autonomous_outputs_skipped.jsonl`.
+
 Lokalny dry-run execution packa bez odpalania prawdziwego Kaggle runu:
 
 ```bash
@@ -207,6 +223,8 @@ Ten pack spina:
 - wymagane sekrety i zasady bezpieczenstwa,
 - branch na forku wolontariusza zamiast pushu do upstream,
 - raport runu `autonomous_test/reports/last_run_summary.md`,
+- raport rebuild i log odrzuconych rekordow dla outputow review-ready,
+- automatyczne zapisanie kanonicznego `Run` record przy finalizacji notebooka,
 - review-ready PR do glownego repozytorium.
 
 ## Zasady bezpieczenstwa dla notatnikow Kaggle
