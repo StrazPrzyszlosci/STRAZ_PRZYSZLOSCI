@@ -81,6 +81,8 @@ System będzie dążył do autonomicznego odkrywania najwydajniejszych ścieżek
 ### Inspiracje Strategiczne i Źródła Kontekstu
 Dla projektowania suwerennej i odpornej na brak łączności automatyzacji, jako kluczowe źródło kontekstu wykorzystujemy:
 *   **[Project N.O.M.A.D.](https://github.com/Crosstalk-Solutions/project-nomad):** Samowystarczalny, offline-first system wiedzy i narzędzi AI. Służy jako wzorzec dla budowy lokalnych "Centrów Dowodzenia" Straży Przyszłości, integrujących bazy wiedzy (Wikipedia, Kiwix), narzędzia analityczne (CyberChef) oraz lokalne modele LLM bez polegania na zewnętrznych chmurach. Zobacz: [Prezentacja Video](https://www.youtube.com/watch?v=P_wt-2P-WBk).
+*   **[Blueprint.am](https://www.blueprint.am/):** Narzędzie AI do automatycznego projektowania hardware (schematy, BOM, instrukcje montażu). Stanowi kluczową inspirację dla modułu "Inżyniera AI", który docelowo ma projektować profesjonalne urządzenia bezpośrednio z zasobów zidentyfikowanych w elektrośmieciach.
+*   **[ESP-Claw](https://github.com/espressif/esp-claw):** Framework agentowy dla urządzeń IoT (ESP32) umożliwiający "Chat Coding" i dynamiczne programowanie w Lua. Służy jako wzorzec dla warstwy wykonawczej (runtime) suwerennych urządzeń Straży Przyszłości, pozwalając na ich autonomiczną rekonfigurację przez AI.
 
 # Strategia Marketingowa i Budowa Społeczności
 
