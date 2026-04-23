@@ -84,6 +84,8 @@ Dla projektowania suwerennej i odpornej na brak łączności automatyzacji, jako
 *   **[Blueprint.am](https://www.blueprint.am/):** Narzędzie AI do automatycznego projektowania hardware (schematy, BOM, instrukcje montażu). Stanowi kluczową inspirację dla modułu "Inżyniera AI", który docelowo ma projektować profesjonalne urządzenia bezpośrednio z zasobów zidentyfikowanych w elektrośmieciach.
 *   **[ESP-Claw](https://github.com/espressif/esp-claw):** Framework agentowy dla urządzeń IoT (ESP32) umożliwiający "Chat Coding" i dynamiczne programowanie w Lua. Służy jako wzorzec dla warstwy wykonawczej (runtime) suwerennych urządzeń Straży Przyszłości, pozwalając na ich autonomiczną rekonfigurację przez AI.
 
+Minimalny plan przełożenia tych dwóch inspiracji na kolejne execution packi znajduje się w `PROJEKTY/13_baza_czesci_recykling/docs/PLAN_PACKOW_BLUEPRINT_ESP_CLAW.md`.
+
 # Strategia Marketingowa i Budowa Społeczności
 
 
@@ -152,9 +154,16 @@ W projekcie rozdzielamy dwa osobne onboardingi:
 
 Jeśli chcesz już teraz otrzymać zadanie dopasowane do Twoich pasji, wypełnij naszą **[Ankietę Kompetencyjną (REKRUTACJA_ANKIETA.md)](REKRUTACJA_ANKIETA.md)**. Przygotowaliśmy również **[Zasady współpracy i instrukcję obsługi Git (CONTRIBUTING.md)](CONTRIBUTING.md)**, w której znajdziesz przystępny poradnik m.in. jak zgłaszać swoje pomysły.
 
+Jesli wchodzisz jako wolontariusz z lokalnym agentem i chcesz od razu dostac gotowy przydzial, zacznij od:
+
+* **[Wolontariusze: gotowe przydzialy](docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md)**
+
+To jest osobna sciezka od `docs/AGENTY_PODWYKONAWCZE/`, ktore sluzy do wewnetrznych zlecen dla agentow operatora repo, a nie do publicznego onboardingu wolontariuszy.
+
 Jeżeli wchodzisz do inicjatywy po raz pierwszy jako Strażnik Przyszłości, zacznij od:
 
 * **[Architektura Onboardingu](docs/ARCHITEKTURA_ONBOARDINGU.md)**
+* **[Wolontariusze: gotowe przydzialy](docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md)**
 * **[Architektura Organizacji Agentowej](docs/ARCHITEKTURA_ORGANIZACJI_AGENTOWEJ.md)**
 * **[Plan Rozwoju Organizacji Agentowej](docs/PLAN_ROZWOJU_ORGANIZACJI_AGENTOWEJ.md)**
 * **[Encje i Workflowy Organizacji Agentowej](docs/ENCJE_I_WORKFLOWY_ORGANIZACJI_AGENTOWEJ.md)**

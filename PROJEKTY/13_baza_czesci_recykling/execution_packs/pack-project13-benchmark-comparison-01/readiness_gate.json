@@ -6,7 +6,7 @@
     "entity_id": "pack-project13-benchmark-comparison-01"
   },
   "gate_kind": "pack_ready",
-  "status": "conditional",
-  "notes": "Pack ma juz kontrakt dokumentacyjny, metryki i kryteria review, ale nadal wymaga wydzielenia stabilnej probki testowej z ground-truth labelami oraz realnego execution surface benchmarku.",
-  "checked_at": "2026-04-23T00:00:00Z"
+  "status": "pass",
+  "notes": "Pack ma execution surface (run_benchmark.py), zweryfikowana probke testowa z 82 rekordami (28 valid, 54 invalid, 0 pending review), 3 warianty, schematy JSON, jasne kryteria ground-truth, i mock benchmark report. Ground-truth labele sa w pelni zweryfikowane. Pierwszy prawdziwy run wymaga API key (GEMINI_API_KEY).",
+  "checked_at": "2026-04-23T16:35:00Z"
 }

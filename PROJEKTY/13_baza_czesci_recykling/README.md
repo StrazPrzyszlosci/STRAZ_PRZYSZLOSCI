@@ -183,6 +183,7 @@ Ten projekt nadaje sie bardzo dobrze do modelu rozproszonego uruchamiania notatn
 Szczegolowy opis tego modelu znajduje sie tutaj:
 
 - [Model Wolontariackich Notebookow Kaggle](docs/MODEL_WOLONTARIACKICH_NOTEBOOKOW_KAGGLE.md)
+- [Wolontariusze: gotowe przydzialy](../../docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md)
 
 Docelowy przebieg powinien wygladac tak:
 
@@ -265,6 +266,17 @@ Ich role sa rozdzielone celowo:
 Mapa zaleznosci miedzy packami znajduje sie tutaj:
 
 - `PROJEKTY/13_baza_czesci_recykling/execution_packs/CHAIN_MAP.md`
+
+## Planowane rozszerzenie po katalogu reuse
+
+Po ustabilizowaniu obecnego lancucha planowane sa dwa kolejne packi:
+
+- `pack-project13-blueprint-design-01` jako warstwa `Inzyniera AI`, ktora zamienia brief funkcjonalny i katalog reuse parts w review-ready BOM, schemat logiczny i instrukcje montazu,
+- `pack-project13-esp-runtime-01` jako warstwa runtime odzyskanego hardware'u `ESP32`, ktora zamienia zatwierdzony projekt w pin map, runtime profile, skrypty i bench-ready bundle.
+
+Minimalny plan ich operacjonalizacji znajduje sie tutaj:
+
+- `PROJEKTY/13_baza_czesci_recykling/docs/PLAN_PACKOW_BLUEPRINT_ESP_CLAW.md`
 
 ## Zasady bezpieczenstwa dla notatnikow Kaggle
 

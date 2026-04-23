@@ -1,0 +1,12 @@
+{
+  "variant_id": "prompt-v3-gemini-flash-strict",
+  "description": "Stricter extraction prompt with Gemini 2.0 Flash — higher confidence threshold, rejects designators and value-only extractions",
+  "model": "gemini-2.0-flash",
+  "prompt_template": "v3-strict",
+  "parameters": {
+    "temperature": 0.05,
+    "top_p": 0.85
+  },
+  "cost_per_1k_tokens_input": 7.5e-05,
+  "cost_per_1k_tokens_output": 0.0003
+}

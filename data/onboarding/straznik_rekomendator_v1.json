@@ -24,23 +24,23 @@
     {
       "route_id": "ai_native_volunteer_execution",
       "label": "Wolontariusz z agentami AI",
-      "summary": "Dla osob, ktore chca rozwijac inicjatywe przez lokalnych agentow AI, forki, pull requesty, notebooki, runbooki i kuracje wiedzy. Ta sciezka traktuje repozytorium jako centrum koordynacji zadan dla ludzi nadzorujacych swoich agentow.",
+      "summary": "Dla osob, ktore chca rozwijac inicjatywe przez lokalnych agentow AI, forki, pull requesty, notebooki, runbooki i kuracje wiedzy. Ta sciezka powinna dawac gotowy przydzial wolontariacki od razu, bez zmuszania czlowieka do pisania briefu od zera.",
       "signals": {
         "passions": ["codex", "agenci ai", "automatyzacja", "rag", "notebooki", "forki", "pull requesty"],
         "skills": ["czytanie repozytoriow", "synteza", "python", "pisanie promptow", "uruchamianie skryptow", "review"],
         "resources": ["laptop", "lokalny agent ai", "konto github", "czas na eksperymenty", "darmowe zasoby obliczeniowe", "konto kaggle", "colab"]
       },
       "recommended_repo_sections": [
-        "docs/ARCHITEKTURA_ORGANIZACJI_AGENTOWEJ.md",
-        "docs/PRZYKLADY_GOTOWEGO_KODU.md",
+        "docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md",
         "PROJEKTY/13_baza_czesci_recykling/README.md",
+        "docs/ARCHITEKTURA_ORGANIZACJI_AGENTOWEJ.md",
         "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/README.md",
         "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md",
         "docs/ARCHITEKTURA_EDGE_SMARTFONY_CLOUD.md",
         "data/onboarding/straznik_rekomendator_v1.json"
       ],
-      "first_tasks": ["issue:aq-12", "issue:aq-14", "issue:aq-29", "issue:aq-31"],
-      "next_step": "Najkrotsza sciezka startu to pack `pack-project13-kaggle-enrichment-01` w Project 13. Jezeli masz konto Kaggle, otworz runbook, uruchom notebook na swoim forku i oddaj wynik przez PR."
+      "first_tasks": ["volunteer:VOL-P13-01", "volunteer:VOL-P13-02", "volunteer:VOL-P13-03"],
+      "next_step": "Najpierw otworz `docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md` i wybierz pierwszy przydzial zgodny z zasobami wolontariusza. Najkrotsza sciezka techniczna nadal prowadzi przez pack `pack-project13-kaggle-enrichment-01` w `Project 13`."
     },
     {
       "route_id": "aquaculture_water_monitoring",

@@ -10,21 +10,26 @@
     "private_capture",
     "opaque_approval_path",
     "provenance_tampering",
-    "volunteer_work_appropriation"
+    "volunteer_work_appropriation",
+    "scope_creep_into_verification_or_export"
   ],
   "risk_level": "medium",
   "findings": [
-    "Curation jest krytycznym punktem decyzyjnym: falszywa akceptacja moze promowac slabe dane do kanonicznego katalogu.",
-    "Brak jawnych decyzji kuracyjnych utrudnia audit i sprzyja cichej akceptacji bez review.",
-    "Curation formalizuje granice miedzy verification a exportem, co chroni przed automatyczna promocja niesprawdzonych danych."
+    "Curation jest krytycznym punktem decyzyjnym: falszywa akceptacja moze promowac slabe dane do kanonicznego katalogu, z ktorego nastepnie generowane sa wszystkie downstream artefakty.",
+    "Brak jawnych decyzji kuracyjnych z rationale utrudnia audit i sprzyja cichej akceptacji bez review.",
+    "Curation formalizuje granice miedzy verification a exportem, co chroni przed automatyczna promocja niesprawdzonych danych.",
+    "Ryzyko scope creep: curation moze nieświadomie zaczac robic verification (re-OCR, re-check) albo export (generowac downstream artefakty), co zaciera granice odpowiedzialnosci.",
+    "Kandydaci sporni (disputed) z verification sa najbardziej podatni na niejawna akceptacje bez adequate rationale."
   ],
   "mitigations_required": [
-    "Utrzymywac curation_decisions.jsonl jako obowiazkowy artefakt z rationale.",
-    "Nie automatyzowac akceptacji bez jawnego review spornych przypadkow.",
+    "Utrzymywac curation_decisions.jsonl jako obowiazkowy artefakt z rationale dla kazdego kandydata.",
+    "Nie automatyzowac akceptacji bez jawnego review spornych przypadkow — kazdy disputed accept musi miec rationale.",
     "Curation PR przechodzi przez review przed merge do kanonicznego katalogu.",
-    "Nie mieszac curation z exportem downstream."
+    "Nie mieszac curation z exportem downstream — export jest odpowiedzialnoscia pack-project13-catalog-export-01.",
+    "Nie mieszac curation z verification — nie robic OCR, frame check ani disagreement scoring w tym packu.",
+    "Utrzymywac REVIEW_CHECKLIST.md z jawnymi kryteriami 'gotowosci do katalogu'."
   ],
   "reviewer_role": "public_interest_reviewer",
   "status": "pass",
-  "assessed_at": "2026-04-23T00:00:00Z"
+  "assessed_at": "2026-04-23T01:00:00Z"
 }

@@ -51,7 +51,7 @@
     "Mieszanie exportu z discovery ukrywa, skad naprawde wziely sie zmiany w downstream."
   ],
   "target_output_kind": "pull_request",
-  "status": "ready",
+  "status": "smoke_tested",
   "created_at": "2026-04-22T23:40:00Z",
-  "updated_at": "2026-04-22T23:40:00Z"
+  "updated_at": "2026-04-23T11:16:00Z"
 }

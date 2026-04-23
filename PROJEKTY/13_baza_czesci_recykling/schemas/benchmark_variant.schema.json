@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Benchmark Variant Configuration",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "variant_id",
+    "description",
+    "model",
+    "prompt_template"
+  ],
+  "properties": {
+    "variant_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the variant, e.g. 'prompt-v1-gemini-flash'"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable description of what this variant tests"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier, e.g. 'gemini-2.0-flash'"
+    },
+    "prompt_template": {
+      "type": "string",
+      "description": "Prompt template version or path, e.g. 'v1'"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Model parameters (temperature, top_p, etc.)"
+    },
+    "cost_per_1k_tokens_input": {
+      "type": "number",
+      "minimum": 0,
+      "description": "USD cost per 1000 input tokens"
+    },
+    "cost_per_1k_tokens_output": {
+      "type": "number",
+      "minimum": 0,
+      "description": "USD cost per 1000 output tokens"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Benchmark Sample Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sample_id",
+    "source_record",
+    "ground_truth"
+  ],
+  "properties": {
+    "sample_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the sample record, e.g. 'bench-v1-0001'"
+    },
+    "source_record": {
+      "type": "object",
+      "description": "Original record from test_db.jsonl"
+    },
+    "ground_truth": {
+      "type": "object",
+      "required": [
+        "is_valid_part",
+        "label_pending_review"
+      ],
+      "properties": {
+        "is_valid_part": {
+          "type": "boolean",
+          "description": "True if the extraction identifies a real, specific electronic component with a valid or plausible MPN. False for board models, designator lists, OCR artifacts, date codes, generic labels."
+        },
+        "label_pending_review": {
+          "type": "boolean",
+          "description": "True if the label has not been reviewed by a human yet. Must be false for all records before benchmark runs."
+        },
+        "reviewer_notes": {
+          "type": "string",
+          "description": "Optional notes from the human reviewer explaining the label decision."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

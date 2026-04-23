@@ -8,7 +8,7 @@ Jego celem jest mechaniczna, review-ready przebudowa downstream artefaktow z kan
 ## Zakres
 
 - execution mode: `local_agent`
-- status: `ready`
+- status: `smoke_tested`
 - docelowy output: `pull_request`
 
 ## Rola w lancuchu
@@ -23,6 +23,12 @@ Pack buduje:
 - `recycled_parts_seed.sql` dla `Cloudflare D1`
 - `mcp_reuse_catalog.json`
 - `inventree_import.jsonl`
+
+Lokalny smoke-run przeszedl:
+
+- `validate` i `export-all` dzialaja bez bledow,
+- pipeline jest deterministyczny i idempotentny,
+- status packa zostal podniesiony do `smoke_tested`, ale realny diff downstream nadal zalezy od kolejnego merge po curation.
 
 ## Najwazniejsza roznica wzgledem packa enrichment
 

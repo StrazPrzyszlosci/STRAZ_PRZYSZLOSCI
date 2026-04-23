@@ -13,6 +13,7 @@ Ten dokument zamienia plan rozwoju organizacji agentowej na **kanoniczny model e
 Robocza mapa tych encji do realnych tabel znajduje sie tutaj:
 
 - [docs/MAPOWANIE_ENCJI_ORGANIZACJI_DO_D1_I_SQLITE.md](MAPOWANIE_ENCJI_ORGANIZACJI_DO_D1_I_SQLITE.md)
+- [docs/REVIEW_ROTATION_GOVERNANCE.md](REVIEW_ROTATION_GOVERNANCE.md)
 
 Kanoniczny schemat tych bytow znajduje sie tutaj:
 
@@ -131,6 +132,8 @@ Ta encja moze dotyczyc:
 ### `Approval`
 
 To jawna decyzja review. `Approval` nie powinien byc wydawany dla istotnych zmian bez odniesienia do `IntegrityRiskAssessment`.
+
+`Approval` powinno tez byc osadzone w jawnej polityce reviewer roles i rotacji review, a nie tylko w nieformalnym zwyczaju maintainera.
 
 ### `ReadinessGate`
 
@@ -258,6 +261,8 @@ Mozliwe zakresy approval:
 
 - `knowledge_base_promotion`,
 - `workflow_promotion`,
+- `pilot_run`,
+- `hardware_runtime`,
 - `deployment`,
 - `field_action`,
 - `hardware_build`,

@@ -28,6 +28,12 @@ Jego rola:
 - skierować tę osobę do właściwej sekcji tego repozytorium,
 - zaproponować pierwsze dokumenty, pierwsze projekty i pierwsze Issues.
 
+Dla ścieżki wolontariusza z agentem to nadal za mało. Taki onboarding powinien kończyć się nie tylko listą dokumentów, ale też **gotowym przydziałem wolontariackim**, który lokalny agent może od razu przejąć i poprowadzić bez wymuszania, by człowiek pisał od zera własny brief.
+
+Kanoniczny plik dla tej warstwy jest utrzymywany tutaj:
+
+- [Wolontariusze: gotowe przydziały](WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md)
+
 Minimalne dane wejściowe dla rekomendatora:
 
 - pasje i obszary zainteresowań,
@@ -48,6 +54,7 @@ Minimalne dane wyjściowe rekomendatora:
 - lista dokumentów startowych,
 - lista projektów do przeczytania,
 - lista pierwszych zadań lub Issues,
+- gotowy przydział wolontariacki dobrany do dostępnych zasobów, jeżeli dana osoba wchodzi z lokalnym agentem,
 - wskazanie, czy dana osoba nadaje się do uruchamiania autonomicznych notebooków badawczych na własnych zasobach,
 - wskazanie, czy dana osoba nadaje się do zadań `resource scoutingu`, czyli rozpoznawania nowych klas zasobów możliwych do uruchomienia przez inicjatywę,
 - wskazanie, czy dana osoba powinna przejść dalej do onboardingu providera.
@@ -61,6 +68,11 @@ Ważny wariant tej ścieżki to **wolontariusz z agentami AI i kontem Kaggle/Col
 - działać jako rozproszony węzeł wykonawczy dla zadań discovery, enrichment i research.
 
 To powinno być komunikowane wprost jako pełnoprawna ścieżka wejścia do inicjatywy.
+
+Ważne rozróżnienie organizacyjne:
+
+- wolontariusz z agentem powinien być kierowany do `docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md`,
+- `docs/AGENTY_PODWYKONAWCZE/` nie jest onboardingiem wolontariackim, tylko wewnętrznym katalogiem zleceń dla agentów operatora repo przy obecnym braku wolontariuszy.
 
 Równolegle warto przewidzieć wariant **wolontariusza-resource scouta**. Taka osoba może wnosić wkład przez:
 
@@ -106,6 +118,7 @@ Dlatego rekomendator powinien:
 
 - korzystać z katalogu rekomendacji utrzymywanego w tym repozytorium,
 - przekierowywać użytkownika do właściwych dokumentów, projektów i szablonów Issue,
+- umieć wskazać kanoniczny plik gotowych przydziałów wolontariackich dla ścieżki AI-native,
 - rozróżniać ścieżkę ogólnego zaangażowania od ścieżki providera danych.
 
 Kanoniczny katalog dla tej warstwy jest utrzymywany tutaj:
@@ -117,6 +130,7 @@ Kanoniczny katalog dla tej warstwy jest utrzymywany tutaj:
 Aktualna warstwa onboardingowa w repozytorium obejmuje:
 
 - [Architektura Onboardingu](ARCHITEKTURA_ONBOARDINGU.md)
+- [Wolontariusze: gotowe przydziały](WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md)
 - [Jak Zostać Dostawcą Danych](JAK_ZOSTAC_DOSTAWCA_DANYCH.md)
 - [Nowy Strażnik / pierwsze zaangażowanie](../.github/ISSUE_TEMPLATE/nowy_straznik.md)
 - [Pomysł / propozycja rozwiązania](../.github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md)

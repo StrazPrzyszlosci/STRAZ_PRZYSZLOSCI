@@ -1,0 +1,12 @@
+{
+  "variant_id": "prompt-v2-gemini-pro",
+  "description": "Improved extraction prompt with Gemini 2.5 Pro",
+  "model": "gemini-2.5-pro-preview-05-06",
+  "prompt_template": "v2",
+  "parameters": {
+    "temperature": 0.05,
+    "top_p": 0.9
+  },
+  "cost_per_1k_tokens_input": 0.00125,
+  "cost_per_1k_tokens_output": 0.005
+}

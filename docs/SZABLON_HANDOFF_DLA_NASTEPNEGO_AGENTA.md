@@ -1,5 +1,9 @@
 # Szablon Handoff Dla Nastepnego Agenta
 
+Kazda sesja konczy sie nowym datowanym handoffem w `docs/`.
+Jesli w sesji powstaly nowe zadania dla podwykonawcow, handoff musi jawnie powiedziec, ze nastepna sesja ma najpierw sprawdzic ich wyniki.
+Jesli w sesji ruszano onboarding wolontariuszy, handoff ma jawnie wskazac kanoniczny plik gotowych przydzialow wolontariackich i potwierdzic, ze nie pomylono go z `docs/AGENTY_PODWYKONAWCZE/`.
+
 ## 1. Stan misji
 
 - Glowny cel obecnej iteracji:
@@ -10,6 +14,7 @@
 ## 2. Zmiany wykonane
 
 - Dokumenty dodane lub zaktualizowane:
+- Kanoniczny plik gotowych przydzialow wolontariackich:
 - Schematy dodane lub zaktualizowane:
 - Sample records dodane lub zaktualizowane:
 - Kod lub workflowy zmienione:
@@ -87,3 +92,5 @@
 - Co okazalo sie szczegolnie wartosciowe:
 - Co bylo falszywym tropem:
 - Kiedy trzeba przerwac tunelowanie jednego projektu i przelaczyc sie na lepszy ruch portfelowy:
+- Jakie wyniki podwykonawcow trzeba sprawdzic na poczatku nastepnej sesji:
+- Z ktorego pliku ma startowac nowy wolontariusz z lokalnym agentem:

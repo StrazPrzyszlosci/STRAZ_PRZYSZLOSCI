@@ -1,6 +1,7 @@
 ## Pack 2:
 - `pack_id`: `pack-project13-benchmark-comparison-01`
-- `test_sample_ref`:
+- `test_sample_ref`: `bench-sample-v1` (82 records from `autonomous_test/results/test_db.jsonl`)
+- `sample_ground_truth_status`:
 
 ## Run Provenance
 
@@ -8,7 +9,7 @@
 - `fork_owner`:
 - `branch_name`:
 - `benchmark_run_timestamp_utc`:
-- `execution_surface`:
+- `execution_surface`: `python3 PROJEKTY/13_baza_czesci_recykling/scripts/run_benchmark.py`
 
 ## Outputs
 
@@ -34,15 +35,16 @@
 
 ## Conclusions
 
--
+- _do_uzupelnienia_
 
 ## Known Issues
 
--
+- _do_uzupelnienia_
 
 ## Integrity Notes
 
 - [ ] wynik pochodzi z forka wolontariusza albo jawnego brancha review
 - [ ] nie ma sekretow w diffie
 - [ ] probka testowa jest stala i odtwarzalna
+- [ ] wszystkie ground-truth labele sa zweryfikowane (`label_pending_review=false` dla wszystkich rekordow)
 - [ ] pack nie modyfikuje kanonicznego katalogu ani downstream artefaktow

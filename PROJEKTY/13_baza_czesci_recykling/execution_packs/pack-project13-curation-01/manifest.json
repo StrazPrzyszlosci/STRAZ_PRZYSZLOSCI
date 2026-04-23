@@ -1,26 +1,28 @@
 {
   "schema_version": "v1",
   "pack_id": "pack-project13-curation-01",
-  "title": "Project 13 curation pack dla formalizacji review i kuracji kandydatow",
+  "title": "Project 13 curation chain pack — review i kuracja kandydatow do kanonicznego katalogu",
   "linked_subject": {
     "entity_kind": "capability_gap",
     "entity_id": "gap-project13-review-ready-artifacts-01"
   },
   "execution_mode": "local_agent",
-  "scope": "verified candidates -> canonical schema alignment -> curation decisions -> catalog-ready records -> PR to canonical catalog",
-  "objective": "Zformalizowac etap review i kuracji miedzy verification a downstream exportem, zeby decyzja o przyjeciu kandydata do kanonicznego katalogu byla jawna, auditowalna i oddzielona od discovery oraz exportu.",
-  "instructions_summary": "Lokalny agent albo maintainer uruchamia curation na zweryfikowanym snapshotcie kandydatow. Wynikiem jest porzadek kandydatow do kanonicznych schematow katalogu, jawne decyzje accept/reject/defer, audit trail i PR do kanonicznego katalogu.",
+  "scope": "verified candidates -> canonical schema alignment -> curation decisions (accept/defer/reject) -> catalog-ready records -> PR to canonical catalog",
+  "objective": "Zformalizowac etap review i kuracji miedzy verification a downstream exportem, zeby decyzja o przyjeciu kandydata do kanonicznego katalogu byla jawna, auditowalna i oddzielona od discovery, verification oraz exportu.",
+  "instructions_summary": "Lokalny agent albo maintainer uruchamia curation na zweryfikowanym snapshotcie kandydatow z packa verification. Wynikiem jest porzadek kandydatow do kanonicznych schematow katalogu (devices.jsonl, parts_master.jsonl, device_parts.jsonl), jawne decyzje accept/defer/reject z rationale, audit trail w curation_decisions.jsonl, raport kuracyjny i PR do kanonicznego katalogu.",
   "human_actions": [
-    "Przejrzec verification report i disagreement log z packa verification.",
-    "Podjac decyzje kuracyjne dla kandydatow spornych i odrzuconych.",
-    "Otworzyc PR z kandydatami gotowymi do kanonicznego katalogu."
+    "Przejrzec verification report i disagreement log z packa verification (upstream).",
+    "Podjac decyzje kuracyjne dla kandydatow spornych: accept, defer albo reject z rationale.",
+    "Zweryfikowac, ze zaakceptowani kandydaci spelniaja kryteria 'gotowosci do katalogu' z REVIEW_CHECKLIST.md.",
+    "Otworzyc PR z kandydatami gotowymi do kanonicznego katalogu i czekac na review przed uruchomieniem packa export downstream."
   ],
   "required_resources": [],
   "rag_sources": [
     "PROJEKTY/13_baza_czesci_recykling/README.md",
     "PROJEKTY/13_baza_czesci_recykling/docs/MODEL_WOLONTARIACKICH_NOTEBOOKOW_KAGGLE.md",
     "PROJEKTY/13_baza_czesci_recykling/execution_packs/CHAIN_MAP.md",
-    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-verification-01/manifest.json"
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-verification-01/manifest.json",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-catalog-export-01/manifest.json"
   ],
   "upstream_pack_ids": [
     "pack-project13-kaggle-verification-01"
@@ -28,8 +30,13 @@
   "downstream_pack_ids": [
     "pack-project13-catalog-export-01"
   ],
+  "input_paths": [
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/test_db_verified.jsonl",
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/verification_report.md",
+    "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/verification_disagreements.jsonl"
+  ],
   "runbook_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-curation-01/RUNBOOK.md",
-  "resource_cost_hint": "Pack lokalny, nie wymaga runtime Kaggle. Koszt to glownie czas agenta albo maintainera na review decyzji kuracyjnych i ukladanie rekordow do schematu.",
+  "resource_cost_hint": "Pack lokalny, nie wymaga runtime Kaggle. Koszt to glownie czas agenta albo maintainera na review decyzji kuracyjnych i ukladanie rekordow do schematu. Typowo 10-30 minut na batch kandydatow.",
   "pr_template_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-curation-01/PR_TEMPLATE.md",
   "output_paths": [
     "PROJEKTY/13_baza_czesci_recykling/data/devices.jsonl",
@@ -39,30 +46,34 @@
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/curation_report.md"
   ],
   "expected_artifacts": [
-    "kandydaci ukladajacy sie do kanonicznych schematow katalogu",
-    "curation_report z counts: accepted / deferred / rejected",
-    "curation_decisions.jsonl z jawna provenance decyzji kuracyjnych",
-    "pull request do kanonicznego katalogu z opisem decyzji"
+    "zaktualizowane pliki kanonicznego katalogu: devices.jsonl, parts_master.jsonl, device_parts.jsonl",
+    "curation_decisions.jsonl z jednym wpisem per kandydat: candidate_id, decision, rationale, provenance",
+    "curation_report.md z counts (accepted/deferred/rejected), najwazniejszymi przypadkami i provenance do verification",
+    "pull request do kanonicznego katalogu z czytelnym opisem decyzji kuracyjnych i handoff point do packa export"
   ],
   "acceptance_criteria": [
-    "Pack nie powiela scope verification ani exportu.",
-    "Kandydaci sa porzadkowani do kanonicznych schematow: devices.jsonl, parts_master.jsonl, device_parts.jsonl.",
-    "Decyzje accept/defer/reject sa jawne i auditowalne w curation_decisions.jsonl.",
-    "PR daje reviewerowi mozliwosc oceny, czy dany kandydat nadaje sie do katalogu bez recznego odtwarzania kontekstu.",
-    "Curation report zawiera provenance do verification reportu i wejsciowego snapshotu."
+    "Pack nie powiela scope verification (nie robi OCR, frame check, disagreement scoring) ani exportu (nie generuje inventory.csv, seed.sql, mcp_reuse_catalog.json).",
+    "Kandydaci sa porzadkowani do kanonicznych schematow: devices.jsonl, parts_master.jsonl, device_parts.jsonl z zachowaniem spojnosci relacji cross-file.",
+    "Decyzje accept/defer/reject sa jawne i auditowalne w curation_decisions.jsonl z rationale i provenance do verification reportu.",
+    "PR daje reviewerowi mozliwosc oceny, czy dany kandydat nadaje sie do katalogu bez recznego odtwarzania kontekstu verification.",
+    "Curation report zawiera provenance do verification reportu i wejsciowego snapshotu (test_db_verified.jsonl).",
+    "Handoff point do exportu jest czytelny: PR opisuje, ze po merge mozna uruchomic pack-project13-catalog-export-01."
   ],
   "safety_notes": [
     "Curation nie powinna automatycznie promowac niesprawdzonych kandydatow do katalogu.",
     "Decyzje kuracyjne powinny byc jawne, a nie ukryte w czarnej skrzynce agenta.",
-    "PR do katalogu przechodzi przez review, a nie przez bezposredni push do upstream."
+    "PR do katalogu przechodzi przez review, a nie przez bezposredni push do upstream.",
+    "Pack nie uruchamia downstream exportu — to jest odpowiedzialnosc pack-project13-catalog-export-01 po merge PR curation."
   ],
   "misuse_risks": [
     "Automatyczna akceptacja wszystkich kandydatow bez review moze promowac slabe dane do kanonicznego katalogu.",
     "Brak audit trail decyzji kuracyjnych utrudnia pozniejsze sledzenie, dlaczego dany rekord trafil do katalogu.",
-    "Mieszanie curation z exportem downstream zaciera granice miedzy decyzja o przyjeciu a mechaniczna przebudowa artefaktow."
+    "Mieszanie curation z exportem downstream zaciera granice miedzy decyzja o przyjeciu a mechaniczna przebudowa artefaktow.",
+    "Pominiety disagreement log z verification moze doprowadzic do niejawnej akceptacji falszywych trafien."
   ],
   "target_output_kind": "pull_request",
-  "status": "draft",
+  "execution_surface": "scripts/curate_candidates.py",
+  "status": "smoke_tested",
   "created_at": "2026-04-22T23:40:00Z",
-  "updated_at": "2026-04-23T00:00:00Z"
+  "updated_at": "2026-04-23T14:00:00Z"
 }

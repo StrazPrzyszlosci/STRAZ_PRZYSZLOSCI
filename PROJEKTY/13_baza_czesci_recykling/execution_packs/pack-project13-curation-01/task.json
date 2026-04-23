@@ -4,7 +4,26 @@
   "pack_id": "pack-project13-curation-01",
   "assignee_mode": "volunteer_plus_agent",
   "requested_by": "maintainer",
-  "status": "queued",
+  "status": "smoke_tested",
+  "dependencies": {
+    "upstream_pack_ids": [
+      "pack-project13-kaggle-verification-01"
+    ],
+    "downstream_pack_ids": [
+      "pack-project13-catalog-export-01"
+    ],
+"blocking_issues": [
+    "pack-project13-kaggle-verification-01 jest jeszcze draft — brak realnego verification reportu i disagreement logu"
+  ]
+  },
+  "acceptance_criteria": [
+    "Pack nie powiela scope verification ani exportu",
+    "Kandydaci sa porzadkowani do kanonicznych schematow z zachowaniem spojnosci relacji cross-file",
+    "Decyzje accept/defer/reject sa jawne i auditowalne w curation_decisions.jsonl",
+    "PR daje reviewerowi mozliwosc oceny bez recznego odtwarzania kontekstu",
+    "Curation report zawiera provenance do verification reportu",
+    "Handoff point do exportu jest czytelny w PR"
+  ],
   "created_at": "2026-04-23T00:00:00Z",
-  "updated_at": "2026-04-23T00:00:00Z"
+  "updated_at": "2026-04-23T14:00:00Z"
 }

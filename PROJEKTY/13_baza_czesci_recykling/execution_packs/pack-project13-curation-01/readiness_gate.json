@@ -7,6 +7,42 @@
   },
   "gate_kind": "pack_ready",
   "status": "conditional",
-  "notes": "Pack ma juz kontrakt dokumentacyjny, kryteria review i jawny audit trail decyzji kuracyjnych, ale nadal wymaga wydzielenia realnego execution surface curation oraz dostepu do wynikow packa verification.",
-  "checked_at": "2026-04-23T00:00:00Z"
+  "checks": [
+    {
+      "check": "manifest.json jest parsowalny i spojny z CHAIN_MAP.md",
+      "status": "pass"
+    },
+    {
+      "check": "scope packa jest jasno oddzielony od verification i exportu",
+      "status": "pass"
+    },
+    {
+      "check": "acceptance_criteria nie dubluja verification ani exportu",
+      "status": "pass"
+    },
+    {
+      "check": "handoff point do exportu jest czytelny w PR_TEMPLATE.md i RUNBOOK.md",
+      "status": "pass"
+    },
+    {
+      "check": "review checklist definiuje, co znaczy 'gotowe do katalogu'",
+      "status": "pass"
+    },
+    {
+      "check": "curation_decisions.jsonl ma zdefiniowany schemat z rationale i provenance",
+      "status": "pass"
+    },
+{
+  "check": "realny execution surface (skrypt do ukladania kandydatow do schematow katalogu)",
+      "status": "pass",
+      "note": "Skrypt curate_candidates.py z 7 komendami (review, align, decide, apply, validate, report, dry-run). Smoke-test dry-run z test_db.jsonl: 82 kandydatow, 33 accepted, 49 rejected, 0 errors walidacyjnych."
+    },
+    {
+      "check": "stabilny input z verification (verified snapshot + report + disagreement log)",
+      "status": "fail",
+      "note": "Pack-project13-kaggle-verification-01 jest jeszcze draft — brak realnego verification reportu, disagreement logu i verified snapshotu."
+    }
+  ],
+  "notes": "Pack ma kompletne execution surface (curate_candidates.py), kontrakt dokumentacyjny, kryteria review, jawny audit trail decyzji kuracyjnych, czytelny handoff do exportu i scope oddzielony od verification oraz exportu. Nadal wymaga: dostepu do wynikow packa verification po jego pierwszym realnym runie (brak verified snapshotu, verification reportu i disagreement logu).",
+  "checked_at": "2026-04-23T14:00:00Z"
 }

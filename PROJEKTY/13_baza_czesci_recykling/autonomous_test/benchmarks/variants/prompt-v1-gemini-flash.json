@@ -1,0 +1,12 @@
+{
+  "variant_id": "prompt-v1-gemini-flash",
+  "description": "Original extraction prompt with Gemini 2.0 Flash",
+  "model": "gemini-2.0-flash",
+  "prompt_template": "v1",
+  "parameters": {
+    "temperature": 0.1,
+    "top_p": 0.95
+  },
+  "cost_per_1k_tokens_input": 7.5e-05,
+  "cost_per_1k_tokens_output": 0.0003
+}

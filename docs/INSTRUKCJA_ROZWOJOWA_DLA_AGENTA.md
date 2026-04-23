@@ -116,6 +116,16 @@ Preferuj rozwiazania, ktore:
 - moga dzialac przez `fork -> commit -> PR`,
 - wykorzystuja darmowe zasoby obliczeniowe spolecznosci.
 
+### 4a. Nie mieszaj toru wolontariuszy z torem podwykonawcow
+
+W repo sa dwa rozne tory wykonawcze:
+
+- tor wolontariusza z lokalnym agentem, ktory ma dostac gotowy przydzial startowy z `docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md`,
+- tor agentow-podwykonawcow w `docs/AGENTY_PODWYKONAWCZE/`, ktory sluzy do wewnetrznej delegacji zadan przez operatora repo.
+
+Nie kieruj nowego wolontariusza do katalogu `docs/AGENTY_PODWYKONAWCZE/`.
+Jesli poprawiasz onboarding wolontariuszy, preferuj taka forme, w ktorej agent potrafi od razu przypisac pierwszy sensowny task bez proszenia czlowieka o pisanie briefu od zera.
+
 ### 5. Chroń interes wspolny
 
 Kazda istotna zmiana ma byc analizowana nie tylko technicznie, ale tez pod katem zjawisk szkodliwych dla ogolu.
@@ -266,13 +276,25 @@ Sprawdz zwlaszcza:
 
 Na koniec iteracji musisz:
 
-- zaktualizowac lub utworzyc handoff,
+- zaktualizowac lub utworzyc nowy datowany handoff w `docs/` typu `HANDOFF_DLA_NASTEPNEGO_AGENTA_YYYY-MM-DD.md`,
 - zapisac, co zostalo zrobione,
 - zapisac, co zostalo otwarte,
 - wskazac najlepszy kolejny krok,
 - zapisac, czemu aktualny projekt sluzyl wyzszemu celowi organizacji,
 - zapisac, jaki ma byc kolejny ruch portfelowy, jesli obecny tor pozostanie zablokowany,
 - wskazac ryzyka i decyzje, ktorych nie wolno zgubic.
+
+Jesli w tej sesji zostaly przygotowane lub rozdysponowane zadania dla agentow-podwykonawcow, w handoffie musisz dodatkowo:
+
+- wpisac, ktore zadania maja zostac sprawdzone w nastepnej sesji,
+- zapisac, ze kolejny agent ma zaczac od odbioru tych wynikow,
+- wskazac, gdzie lezy aktualny portfel zadan i pliki zlecen.
+
+Jesli w tej sesji ruszano onboarding wolontariuszy, w handoffie musisz dodatkowo:
+
+- wskazac kanoniczny plik gotowych przydzialow wolontariackich,
+- zapisac, czy wolontariusz startuje od realnego przydzialu, czy nadal od zbyt ogolnej dokumentacji,
+- odnotowac, czy onboarding i katalog `docs/AGENTY_PODWYKONAWCZE/` pozostaly rozdzielone.
 
 ## Jak analizowac kod pod katem zjawisk szkodliwych dla ogolu
 
@@ -334,7 +356,8 @@ Handoff powinien zawierac co najmniej:
 - otwarte luki i ryzyka,
 - ocene integrity/public-interest,
 - najlepszy kolejny krok,
-- zalecana kolejnosc czytania dla nastepnego agenta.
+- zalecana kolejnosc czytania dla nastepnego agenta,
+- jawny zapis, co trzeba odebrac po podwykonawcach przed rozpoczeciem nowego duzego watku.
 
 ## Definicja sukcesu
 

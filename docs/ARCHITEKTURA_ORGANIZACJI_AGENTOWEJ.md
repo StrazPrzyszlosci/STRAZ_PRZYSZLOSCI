@@ -9,6 +9,7 @@ Uzupełnieniem tego dokumentu jest:
 - [Plan Rozwoju Organizacji Agentowej](PLAN_ROZWOJU_ORGANIZACJI_AGENTOWEJ.md)
 - [Encje i Workflowy Organizacji Agentowej](ENCJE_I_WORKFLOWY_ORGANIZACJI_AGENTOWEJ.md)
 - [Instrukcja Rozwojowa Dla Agenta](INSTRUKCJA_ROZWOJOWA_DLA_AGENTA.md)
+- [Review Rotation Governance](REVIEW_ROTATION_GOVERNANCE.md)
 
 To nie jest wizja jednego bota ani jednego pipeline'u. Chodzi o budowę zorganizowanego ekosystemu:
 

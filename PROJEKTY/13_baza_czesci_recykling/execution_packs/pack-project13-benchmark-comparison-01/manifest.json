@@ -73,7 +73,17 @@
     "Zbyt agresywna optymalizacja na metrykach benchmarku kosztem jakosci danych moze dac falszywy obraz skutecznosci."
   ],
   "target_output_kind": "report",
-  "status": "draft",
+  "status": "benchmarked",
+  "test_sample_contract": {
+    "sample_id": "bench-sample-v1",
+    "source": "autonomous_test/results/test_db.jsonl",
+    "record_count": 82,
+    "ground_truth_pending_review": 0,
+    "ground_truth_valid": 28,
+    "ground_truth_invalid": 54,
+    "ground_truth_criteria": "is_valid_part=true if extraction identifies a real, specific electronic component with valid or plausible MPN. is_valid_part=false for board models, designator lists, OCR artifacts, date codes, generic labels, programmer/tools, enclosures, null/None, custom transformers without standard MPN, or text not identifying a specific reusable component.",
+    "review_notes": "26 label corrections applied from heuristic defaults. 9 mislabel corrections where valid MPNs were marked invalid due to OCR failures. 17 corrections where heuristic=true but actual=invalid (designators, value codes, board models, date codes). All 82 records now have label_pending_review=false."
+  },
   "created_at": "2026-04-23T00:00:00Z",
-  "updated_at": "2026-04-23T00:00:00Z"
+  "updated_at": "2026-04-23T16:35:00Z"
 }

@@ -21,9 +21,11 @@ ALLOWLIST = [
     "docs/ENCJE_I_WORKFLOWY_ORGANIZACJI_AGENTOWEJ.md",
     "docs/INSTRUKCJA_ROZWOJOWA_DLA_AGENTA.md",
     "docs/MAPOWANIE_ENCJI_ORGANIZACJI_DO_D1_I_SQLITE.md",
+    "docs/REVIEW_ROTATION_GOVERNANCE.md",
     "docs/STRATEGIA_INTEGRACJI.md",
     "docs/PRZYKLADY_GOTOWEGO_KODU.md",
     "docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md",
+    "docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md",
     "docs/ARCHITEKTURA_MOSTU_TELEGRAM_GITHUB_ISSUES.md",
     "PROJEKTY/01_inteligentna_akwakultura.md",
     "PROJEKTY/02_wirtualne_ogrodzenia.md",
@@ -40,8 +42,21 @@ ALLOWLIST = [
     "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
     "PROJEKTY/13_baza_czesci_recykling/README.md",
     "PROJEKTY/13_baza_czesci_recykling/docs/MODEL_WOLONTARIACKICH_NOTEBOOKOW_KAGGLE.md",
+    "PROJEKTY/13_baza_czesci_recykling/docs/INTEGRACJA_ECOEDA_KINTREE_MCP.md",
+    "PROJEKTY/13_baza_czesci_recykling/docs/PUBLIC_VOLUNTEER_RUN_READINESS.md",
+    "PROJEKTY/13_baza_czesci_recykling/docs/PLAN_PACKOW_BLUEPRINT_ESP_CLAW.md",
+    "PROJEKTY/13_baza_czesci_recykling/docs/SCRAPING_PIPELINE.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/CHAIN_MAP.md",
     "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/README.md",
     "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-verification-01/README.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-verification-01/RUNBOOK.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-curation-01/README.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-curation-01/RUNBOOK.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-catalog-export-01/README.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-catalog-export-01/RUNBOOK.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-benchmark-comparison-01/README.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-benchmark-comparison-01/RUNBOOK.md",
     "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
     ".github/ISSUE_TEMPLATE/nowy_straznik.md",
     ".github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md",
@@ -123,7 +138,11 @@ def build_source_documents() -> list[SourceDocument]:
         if path.endswith(".json"):
             continue
         text = read_text(path)
-        category = "issue_template" if path.startswith(".github/ISSUE_TEMPLATE/") else "document"
+        category = (
+            "issue_template"
+            if path.startswith(".github/ISSUE_TEMPLATE/")
+            else "document"
+        )
         documents.append(
             SourceDocument(
                 path=path,
@@ -157,7 +176,11 @@ def build_quick_facts(sections: list[dict[str, Any]]) -> list[str]:
     facts: list[str] = []
     for section in sections:
         source_path = section["source_path"]
-        if source_path not in {"README.md", "docs/ARCHITEKTURA_ONBOARDINGU.md", "docs/STRATEGIA_INTEGRACJI.md"}:
+        if source_path not in {
+            "README.md",
+            "docs/ARCHITEKTURA_ONBOARDINGU.md",
+            "docs/STRATEGIA_INTEGRACJI.md",
+        }:
             continue
         content = section["content"]
         for line in content.splitlines():
@@ -214,9 +237,7 @@ def write_outputs(bundle: dict[str, Any]) -> None:
     serialized = json.dumps(bundle, ensure_ascii=False, indent=2)
     OUTPUT_JSON.write_text(serialized + "\n", encoding="utf-8")
     OUTPUT_JS.write_text(
-        "export const knowledgeBundle = "
-        + serialized
-        + ";\n",
+        "export const knowledgeBundle = " + serialized + ";\n",
         encoding="utf-8",
     )
 
@@ -224,7 +245,16 @@ def write_outputs(bundle: dict[str, Any]) -> None:
 def main() -> int:
     bundle = build_bundle()
     write_outputs(bundle)
-    print(json.dumps({"status": "ok", "output_json": str(OUTPUT_JSON), "output_js": str(OUTPUT_JS)}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "status": "ok",
+                "output_json": str(OUTPUT_JSON),
+                "output_js": str(OUTPUT_JS),
+            },
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
