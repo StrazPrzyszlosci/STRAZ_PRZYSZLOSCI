@@ -540,12 +540,23 @@ def cmd_align(args):
     return counts
 
 
+def load_verified_snapshot_with_triage(snapshot_path):
+    triage_map = {}
+    if snapshot_path.exists():
+        for idx, rec in enumerate(read_jsonl(snapshot_path)):
+            cid = rec.get("candidate_id", f"candidate-{idx:04d}")
+            triage = rec.get("triage", None)
+            if triage:
+                triage_map[cid] = triage
+    return triage_map
+
+
 def cmd_decide(args):
     print("=== Curation Decide: Applying curation decisions ===\n")
 
     aligned_path = REPORTS_DIR / "curation_aligned.jsonl"
     if not aligned_path.exists():
-        print("  No aligned candidates found. Run 'align' first.")
+        print(" No aligned candidates found. Run 'align' first.")
         return
 
     aligned = read_jsonl(aligned_path)
@@ -558,6 +569,12 @@ def cmd_decide(args):
     disagreement_path = (
         Path(args.disagreements) if args.disagreements else DISAGREEMENT_LOG_PATH
     )
+
+    triage_map = load_verified_snapshot_with_triage(snapshot_path)
+    if triage_map:
+        print(f" Loaded triage data for {len(triage_map)} disputed candidates from verified snapshot")
+
+    triage_counts = {"likely_confirmed_promoted": 0, "threshold_tuning_rejected": 0, "ocr_needed_deferred": 0, "manual_review_deferred": 0, "disputed_no_triage_deferred": 0}
 
     for entry in aligned:
         candidate_id = entry["candidate_id"]
@@ -579,8 +596,29 @@ def cmd_decide(args):
             rationale = "Confirmed in verification with valid MPN. Meets catalog-readiness criteria."
 
         elif vs == "disputed":
-            decision = "defer"
-            rationale = "Disputed in verification. Requires manual review before acceptance or rejection. Auto-deferred."
+            triage = triage_map.get(candidate_id, None)
+            triage_category = triage.get("triage_category", "unknown") if triage else "unknown"
+
+            if triage_category == "likely_confirmed":
+                decision = "accept"
+                rationale = f"Disputed in verification but triage=likely_confirmed ({', '.join(triage.get('triage_indicators', []))}). Auto-promoted to accept per triage recommendation."
+                triage_counts["likely_confirmed_promoted"] += 1
+            elif triage_category == "threshold_tuning":
+                decision = "reject"
+                rationale = f"Disputed in verification, triage=threshold_tuning ({', '.join(triage.get('triage_indicators', []))}). Rejected: part_number should be recategorized by improved MPN heuristics."
+                triage_counts["threshold_tuning_rejected"] += 1
+            elif triage_category == "ocr_needed":
+                decision = "defer"
+                rationale = f"Disputed in verification, triage=ocr_needed ({', '.join(triage.get('triage_indicators', []))}). Deferred: requires OCR frame check (GEMINI_API_KEY) to resolve."
+                triage_counts["ocr_needed_deferred"] += 1
+            elif triage_category == "manual_review":
+                decision = "defer"
+                rationale = f"Disputed in verification, triage=manual_review ({', '.join(triage.get('triage_indicators', []))}). Deferred: human reviewer needed to assess part number validity."
+                triage_counts["manual_review_deferred"] += 1
+            else:
+                decision = "defer"
+                rationale = f"Disputed in verification (no triage data). Deferred for manual review."
+                triage_counts["disputed_no_triage_deferred"] += 1
 
         else:
             decision = "defer"
@@ -594,6 +632,7 @@ def cmd_decide(args):
                 "decision": decision,
                 "rationale": rationale,
                 "verification_status": vs,
+                "triage_category": triage_map.get(candidate_id, {}).get("triage_category", "") if candidate_id in triage_map else "",
                 "provenance": {
                     "verification_report": str(report_path),
                     "disagreement_ref": "",
@@ -609,13 +648,21 @@ def cmd_decide(args):
         "reject": sum(1 for d in decisions if d["decision"] == "reject"),
     }
 
-    print(f"  Total decisions: {len(decisions)}")
-    print(f"  Accept: {counts['accept']}")
-    print(f"  Defer: {counts['defer']}")
-    print(f"  Reject: {counts['reject']}")
+    print(f" Total decisions: {len(decisions)}")
+    print(f" Accept: {counts['accept']}")
+    print(f" Defer: {counts['defer']}")
+    print(f" Reject: {counts['reject']}")
+
+    if triage_map:
+        print(f"\n Triage-informed disputed breakdown:")
+        print(f"   likely_confirmed -> accept: {triage_counts['likely_confirmed_promoted']}")
+        print(f"   threshold_tuning -> reject: {triage_counts['threshold_tuning_rejected']}")
+        print(f"   ocr_needed -> defer: {triage_counts['ocr_needed_deferred']}")
+        print(f"   manual_review -> defer: {triage_counts['manual_review_deferred']}")
+        print(f"   no_triage -> defer: {triage_counts['disputed_no_triage_deferred']}")
 
     write_jsonl(CURATION_DECISIONS_PATH, decisions)
-    print(f"\n  Decisions saved to: {CURATION_DECISIONS_PATH}")
+    print(f"\n Decisions saved to: {CURATION_DECISIONS_PATH}")
 
     return counts
 
@@ -840,13 +887,21 @@ def cmd_report(args):
     deferred_disputed = [d for d in deferred if d["verification_status"] == "disputed"]
     rejected_rejected = [d for d in rejected if d["verification_status"] == "rejected"]
 
+    triage_breakdown = {}
+    for d in decisions:
+        tc = d.get("triage_category", "") or "no_triage"
+        key = f"{d['decision']}|{tc}"
+        triage_breakdown[key] = triage_breakdown.get(key, 0) + 1
+
     key_cases = []
     for d in accepted_disputed:
+        tc = d.get("triage_category", "unknown")
         key_cases.append(
-            f"- **ACCEPTED (disputed)**: {d['candidate_id']} — {d['rationale']}"
+            f"- **ACCEPTED (disputed, triage={tc})**: {d['candidate_id']} — {d['rationale']}"
         )
     for d in deferred[:10]:
-        key_cases.append(f"- **DEFERRED**: {d['candidate_id']} — {d['rationale']}")
+        tc = d.get("triage_category", "unknown")
+        key_cases.append(f"- **DEFERRED (triage={tc})**: {d['candidate_id']} — {d['rationale']}")
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -887,6 +942,73 @@ def cmd_report(args):
     report_lines.extend(
         [
             "",
+            "## Triage-informed curation breakdown",
+            "",
+            "Disputed candidates were resolved using triage categories from verification:",
+            "",
+            "| Triage Category | Curation Decision | Count |",
+            "|----------------|-------------------|-------|",
+        ]
+    )
+
+    triage_category_order = [
+        "likely_confirmed",
+        "threshold_tuning",
+        "ocr_needed",
+        "manual_review",
+        "no_triage",
+    ]
+    for tc in triage_category_order:
+        for dec in ["accept", "defer", "reject"]:
+            key = f"{dec}|{tc}"
+            count = triage_breakdown.get(key, 0)
+            if count > 0:
+                report_lines.append(f"| {tc} | {dec} | {count} |")
+
+    report_lines.extend(
+        [
+            "",
+            "## Verified snapshot stability assessment",
+            "",
+        ]
+    )
+
+    snapshot_exists = snapshot_path.exists()
+    report_exists = report_path.exists()
+    disagreement_exists = disagreement_path.exists()
+
+    if snapshot_exists and report_exists and disagreement_exists:
+        report_lines.append("Verified snapshot is **structurally complete**: all three verification artifacts (snapshot, report, disagreement log) are present.")
+        report_lines.append("")
+        if len(deferred) > 0:
+            report_lines.append(f"However, **{len(deferred)} candidates remain deferred** and block full pipeline completion:")
+            ocr_deferred = sum(1 for d in deferred if d.get("triage_category") == "ocr_needed")
+            manual_deferred = sum(1 for d in deferred if d.get("triage_category") == "manual_review")
+            no_triage_deferred = sum(1 for d in deferred if not d.get("triage_category"))
+            if ocr_deferred:
+                report_lines.append(f"- {ocr_deferred} deferred due to missing OCR (requires GEMINI_API_KEY)")
+            if manual_deferred:
+                report_lines.append(f"- {manual_deferred} deferred requiring manual human review")
+            if no_triage_deferred:
+                report_lines.append(f"- {no_triage_deferred} deferred without triage data")
+        report_lines.append("")
+        if len(accepted_disputed) > 0:
+            report_lines.append(f"**{len(accepted_disputed)} disputed candidates were auto-promoted to accept** based on triage=likely_confirmed. These should be reviewed by a human before export.")
+            report_lines.append("")
+    else:
+        missing = []
+        if not snapshot_exists:
+            missing.append(f"verified snapshot ({snapshot_path})")
+        if not report_exists:
+            missing.append(f"verification report ({report_path})")
+        if not disagreement_exists:
+            missing.append(f"disagreement log ({disagreement_path})")
+        report_lines.append(f"Verified snapshot is **incomplete**. Missing: {', '.join(missing)}.")
+        report_lines.append("Curation proceeded with available data, but results may not reflect the full verification state.")
+        report_lines.append("")
+
+    report_lines.extend(
+        [
             "## Provenance",
             "",
             f"- Verification report: `{report_path}`",
@@ -923,6 +1045,31 @@ def cmd_report(args):
         )
         for lim in limitations:
             report_lines.append(f"- {lim}")
+        report_lines.append("")
+
+    blockers = []
+    ocr_deferred_count = sum(1 for d in deferred if d.get("triage_category") == "ocr_needed")
+    manual_deferred_count = sum(1 for d in deferred if d.get("triage_category") == "manual_review")
+    no_triage_deferred_count = sum(1 for d in deferred if not d.get("triage_category"))
+
+    if ocr_deferred_count > 0:
+        blockers.append(f"{ocr_deferred_count} candidates deferred pending OCR (GEMINI_API_KEY not available)")
+    if manual_deferred_count > 0:
+        blockers.append(f"{manual_deferred_count} candidates deferred pending manual human review")
+    if no_triage_deferred_count > 0:
+        blockers.append(f"{no_triage_deferred_count} candidates deferred without triage classification")
+    if len(accepted_disputed) > 0:
+        blockers.append(f"{len(accepted_disputed)} disputed candidates auto-promoted to accept (need human confirmation before export)")
+
+    if blockers:
+        report_lines.extend(
+            [
+                "## What blocks export without additional review",
+                "",
+            ]
+        )
+        for b in blockers:
+            report_lines.append(f"- {b}")
         report_lines.append("")
 
     report_content = "\n".join(report_lines)

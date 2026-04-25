@@ -34,6 +34,12 @@ pack-project13-kaggle-verification-01    pack-project13-benchmark-comparison-01
 pack-project13-curation-01
                       |
 pack-project13-catalog-export-01
+|
++-------------------+-------------------+
+|                                       |
+pack-project13-blueprint-design-01      |
+|                                       |
+pack-project13-esp-runtime-01           |
 ```
 
 ## Zaleznosci miedzy packami
@@ -41,9 +47,11 @@ pack-project13-catalog-export-01
 | Pack | Upstream | Downstream | Status |
 |------|----------|------------|--------|
 | `enrichment-01` | brak | `verification-01`, `benchmark-comparison-01` | `active` |
-| `verification-01` | `enrichment-01` | `curation-01` | `draft` |
-| `curation-01` | `verification-01` | `catalog-export-01` | `smoke_tested` |
-| `catalog-export-01` | `curation-01` | brak | `smoke_tested` |
+| `verification-01` | `enrichment-01` | `curation-01` | `smoke_tested` |
+| `curation-01` | `verification-01` | `catalog-export-01` | `real_verified_tested` |
+| `catalog-export-01` | `curation-01` | `blueprint-design-01` | `smoke_tested` |
+| `blueprint-design-01` | `catalog-export-01` + design brief | `esp-runtime-01` | `draft` |
+| `esp-runtime-01` | `blueprint-design-01` + recovered ESP32 board profile | brak | `draft` |
 | `benchmark-comparison-01` | `enrichment-01` | brak | `benchmarked` |
 
 Zaleznosci oznaczaja: output upstream packa jest wejsciem downstream packa.
@@ -61,20 +69,23 @@ Pack `benchmark-comparison-01` jest rownolegly i diagnostyczny - nie jest czesci
 
 ### `pack-project13-kaggle-verification-01`
 
-- status: `draft`
-- execution mode: `kaggle_notebook`
-- rola: twardsza weryfikacja kandydatow przez frame check, OCR i scoring rozbieznosci
+- status: `smoke_tested`
+- execution mode: `local_agent`
+- rola: twardsza weryfikacja kandydatow przez rule-based MPN validation, OCR i scoring rozbieznosci
 - glowny output: `verified_candidates`, `verification_report`, `disagreement log`
+- execution surface: `scripts/verify_candidates.py` (load, validate, ocr-check, score, snapshot, report, run, dry-run)
+- smoke-test: dry-run na 82 kandydatach z test_db.jsonl — 9 confirmed, 30 disputed, 43 rejected
 - handoff point: wynik trafia do curation, a nie bezposrednio do downstream exportow
 
 ### `pack-project13-curation-01`
 
-- status: `smoke_tested`
+- status: `real_verified_tested`
 - execution mode: `local_agent`
 - rola: formalizacja review i kuracji kandydatow z verification do kanonicznego katalogu
 - glowny output: `curation_decisions.jsonl`, `curation_report.md`, zaktualizowane `devices.jsonl`, `parts_master.jsonl`, `device_parts.jsonl`
 - execution surface: `scripts/curate_candidates.py` (review, align, decide, apply, validate, report, dry-run)
-- smoke-test: dry-run na 82 kandydatach z test_db.jsonl — 33 accepted, 49 rejected, 0 errors walidacyjnych
+- real verified run: dry-run na 82 kandydatach z `test_db_verified.jsonl` — 23 accepted (9 confirmed + 14 likely_confirmed), 9 deferred (7 ocr_needed + 2 manual_review), 50 rejected (43 rejected + 7 threshold_tuning)
+- triage-informed: disputed candidates are now resolved using triage categories from verification (likely_confirmed->accept, threshold_tuning->reject, ocr_needed/manual_review->defer)
 - handoff point: wynik trafia do exportu dopiero po przyjeciu kandydatow do katalogu i merge PR; scope jest jasno oddzielony od verification i exportu
 
 ### `pack-project13-catalog-export-01`
@@ -98,6 +109,28 @@ Pack `benchmark-comparison-01` jest rownolegly i diagnostyczny - nie jest czesci
 - mock benchmark: przebieg mock na 3 wariantach — wszystkie pokazuja perfekcyjne wyniki (scaffold validation), prawdziwy run wymaga API key
 - handoff point: wynik jest diagnostyczny, nie modyfikuje kanonicznego katalogu ani downstream artefaktow
 
+### `pack-project13-blueprint-design-01`
+
+- status: `draft`
+- execution mode: `local_agent`
+- rola: warstwa `Inzyniera AI` — zamiana briefu funkcjonalnego i katalogu reuse parts w review-ready projekt urzadzenia
+- glowny output: `design_dossier.md`, `bill_of_materials.json`, `assembly_instructions.md`, `design_risks.json`, `missing_parts_or_assumptions.json`
+- execution surface: PLACEHOLDER — skrypt `generate_blueprint.py` nie istnieje jeszcze
+- input contract: design brief (`docs/DESIGN_BRIEF_TEMPLATE.md`) + kanoniczny katalog (`data/parts_master.jsonl`)
+- governance: Wariant A (lekka rotacja operacyjna)
+- handoff point: wynik trafia do `esp-runtime-01` po Approval
+
+### `pack-project13-esp-runtime-01`
+
+- status: `draft`
+- execution mode: `local_agent`
+- rola: warstwa runtime odzyskanego hardware'u — zamiana zatwierdzonego projektu i profilu plytki w runtime bundle z bench testem
+- glowny output: `runtime_profile.json`, `pin_map.md`, `lua_runtime_bundle/`, `flash_and_recovery_runbook.md`, `bench_test_report.md`
+- execution surface: PLACEHOLDER — skrypty `generate_esp_runtime.py` i `bench_test_esp_runtime.py` nie istnieja jeszcze
+- input contract: zatwierdzony output z `blueprint-design-01` + recovered ESP32 board profile (`docs/ESP32_RECOVERED_BOARD_PROFILE_TEMPLATE.md`)
+- governance: Wariant B (ostrzejsza rotacja dla packow krytycznych — rozdzielony reviewer merytoryczny i integrity reviewer, brak merge bez integrity_ready, brak self-approval)
+- handoff point: wynik jest runtime bundle gotowy do flashowania po bench tescie i Approval
+
 ## Dlaczego tak dzielimy lancuch
 
 - `enrichment` sluzy do pozyskania i uporzadkowania kandydatow
@@ -114,8 +147,8 @@ Ten podzial chroni projekt przed trzema zlymi wzorcami:
 
 ## Co nadal jest brakujace
 
-- rozdzielenie wykonawcze `verification` od obecnego notebooka `youtube-databaseparts.ipynb`
-- stabilny input z verification dla curation (verified snapshot + verification report + disagreement log)
+- ~~rozdzielenie wykonawcze `verification` od obecnego notebooka `youtube-databaseparts.ipynb`~~ (DONE: scripts/verify_candidates.py)
+- ~~stabilny input z verification dla curation (verified snapshot + verification report + disagreement log)~~ (DONE: output contract w manifest.json, curation tested on real verified input)
 - pierwszy prawdziwy benchmark run z API key (GEMINI_API_KEY) — mock run przeszedl, ale prawdziwy run pokaze roznice miedzy wariantami
 - pierwszy realny run nowych packow poza samym szkieletem dokumentacyjnym
 - osobny pack `discovery chain`, jesli hunting filmow ma byc wydzielony z `enrichment`
@@ -128,9 +161,11 @@ Po ustabilizowaniu katalogu reuse parts obecny lancuch ma naturalne dwa kolejne 
 catalog-export-01 -> blueprint-design-01 -> esp-runtime-01
 ```
 
-| Planowany pack | Upstream | Rola | Status |
-|----------------|----------|------|--------|
-| `blueprint-design-01` | `catalog-export-01` + design brief | warstwa `Inzyniera AI`: BOM, schemat logiczny, instrukcje montazu | `planned` |
-| `esp-runtime-01` | `blueprint-design-01` + recovered ESP32 board profile | runtime odzyskanego hardware'u: pin map, runtime profile, Lua bundle, bench test | `planned` |
+| Pack | Upstream | Rola | Status |
+|------|----------|------|--------|
+| `blueprint-design-01` | `catalog-export-01` + design brief | warstwa `Inzyniera AI`: BOM, schemat logiczny, instrukcje montazu | `draft` |
+| `esp-runtime-01` | `blueprint-design-01` + recovered ESP32 board profile | runtime odzyskanego hardware'u: pin map, runtime profile, Lua bundle, bench test | `draft` |
+
+Szkielety obu packow istnieja w katalogach execution_packs. Ich manifesty, runbooki, PR template, review checklist, integrity risk assessment, readiness gate i task sa utworzone.
 
 Minimalny plan tych packow jest opisany w `PROJEKTY/13_baza_czesci_recykling/docs/PLAN_PACKOW_BLUEPRINT_ESP_CLAW.md`.

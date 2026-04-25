@@ -4,7 +4,7 @@
   "pack_id": "pack-project13-kaggle-verification-01",
   "assignee_mode": "volunteer_plus_agent",
   "requested_by": "maintainer",
-  "status": "queued",
+  "status": "smoke_tested",
   "created_at": "2026-04-22T23:40:00Z",
-  "updated_at": "2026-04-22T23:40:00Z"
+  "updated_at": "2026-04-24T00:20:00Z"
 }

@@ -1,0 +1,36 @@
+{
+  "schema_version": "v1",
+  "assessment_id": "integrity-pack-project13-esp-runtime-01",
+  "subject": {
+    "entity_kind": "execution_pack",
+    "entity_id": "pack-project13-esp-runtime-01"
+  },
+  "assessment_scope": "workflow_design",
+  "risk_signals": [
+    "private_capture",
+    "opaque_approval_path",
+    "privileged_access_without_audit",
+    "vendor_lock_in",
+    "provenance_tampering"
+  ],
+  "risk_level": "high",
+  "findings": [
+    "Pack steruje swiatem fizycznym (GPIO, peryferia, siec) — wymaga ostrzejszego modelu governance (Wariant B).",
+    "Runtime targetuje odzyskany hardware — uszkodzone piny moga prowadzic do niestabilnosci albo uszkodzen.",
+    "Sekrety (Wi-Fi credentials, API keys) moga trafic do firmware albo diffu jesli nie ma jawnego checku.",
+    "Brak bench testu na realnym hardware przed merge oznacza, ze runtime jest niezweryfikowany.",
+    "Vendor lock-in na konkretne oprogramowanie firmware bez jawnej alternatywy ogranicza reuse."
+  ],
+  "mitigations_required": [
+    "Wariant B governance: rozdzielony reviewer merytoryczny i integrity reviewer, approver nie jest jednoczesnie glownym reviewerem.",
+    "Brak merge bez domknietego ReadinessGate(integrity_ready).",
+    "Brak self-approval dla zmian sredniego i wysokiego ryzyka.",
+    "Brak sterowania fizycznym bez bench testu na realnym hardware.",
+    "Sekrety nie moga trafic do firmware ani diffu — jawny check w REVIEW_CHECKLIST.md.",
+    "Recovery path musi byc opisany i przetestowany przed pierwszym flash.",
+    "Board profile musi miec co najmniej pola POMIERZONE w sekcjach krytycznych."
+  ],
+  "reviewer_role": "integrity_reviewer",
+  "status": "pending",
+  "assessed_at": "2026-04-24T00:00:00Z"
+}

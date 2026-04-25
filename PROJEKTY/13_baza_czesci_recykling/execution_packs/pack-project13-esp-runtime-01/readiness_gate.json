@@ -1,0 +1,44 @@
+{
+  "schema_version": "v1",
+  "gate_id": "gate-pack-ready-project13-esp-runtime-01",
+  "subject": {
+    "entity_kind": "execution_pack",
+    "entity_id": "pack-project13-esp-runtime-01"
+  },
+  "gate_kind": "pack_ready",
+  "status": "pending",
+  "sub_gates": [
+    {
+      "gate": "review_ready",
+      "status": "pending",
+      "description": "Runtime bundle jest czytelny, ma provenance i acceptance criteria. Pre-check symulowany przeszedl.",
+      "required": true
+    },
+    {
+      "gate": "bench_test_contract_defined",
+      "status": "pass",
+      "description": "Bench test contract istnieje i definiuje liste testow z kategoriami real_hardware/simulated/either. Patrz: docs/BENCH_TEST_CONTRACT_ESP_RUNTIME_01.md",
+      "required": true
+    },
+    {
+      "gate": "simulation_policy_defined",
+      "status": "pass",
+      "description": "Polityka simulated vs real hardware istnieje i jasno rozdziela, co wolno w symulacji, a co wymaga plytki. Patrz: docs/SIMULATION_VS_REAL_HARDWARE_POLICY_ESP_RUNTIME_01.md",
+      "required": true
+    },
+    {
+      "gate": "bench_test_real_hardware_pass",
+      "status": "pending",
+      "description": "Bench test na realnym hardware wykonany i wszystkie testy real_hardware = PASS albo NOT_APPLICABLE. Brak testow PENDING albo FAIL na real_hardware.",
+      "required": true
+    },
+    {
+      "gate": "integrity_ready",
+      "status": "pending",
+      "description": "IntegrityRiskAssessment domkniety. Wariant B governance: rozdzielony reviewer merytoryczny i integrity reviewer. Approver nie jest jednoczesnie glownym reviewerem.",
+      "required": true
+    }
+  ],
+  "notes": "Bench test contract i simulation policy sa zdefiniowane (pass). Brakuje execution surface, realnego bench testu i integrity review. Gate bedzie pass po implementacji skryptu generujacego runtime profile, po udanym bench test na real_hardware i po domknieciu integrity_ready.",
+  "checked_at": "2026-04-25T00:00:00Z"
+}

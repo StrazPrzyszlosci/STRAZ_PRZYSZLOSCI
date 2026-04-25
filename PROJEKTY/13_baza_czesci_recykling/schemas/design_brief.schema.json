@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Design Brief",
+  "description": "Schema baseline dla design brief packa pack-project13-blueprint-design-01. Wymagane pola odpowiadaja polom [WYMAGANE] w DESIGN_BRIEF_TEMPLATE.md. Ten schema sluzy jako kontrakt wejsciowy — nie wymusza sztucznej standaryzacji pol opcjonalnych.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "brief_id",
+    "device_name",
+    "device_purpose",
+    "primary_function",
+    "inputs",
+    "outputs",
+    "communication_interfaces",
+    "power_source",
+    "voltage_levels",
+    "max_current_draw",
+    "operating_environment",
+    "temperature_range",
+    "max_bom_cost",
+    "reuse_priority",
+    "assumptions",
+    "constraints"
+  ],
+  "properties": {
+    "brief_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unikalny identyfikator briefu, np. brief-<temat>-01"
+    },
+    "device_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Nazwa urzadzenia"
+    },
+    "device_purpose": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Co urzadzenie ma robic (1-3 zdania)"
+    },
+    "target_user": {
+      "type": "string",
+      "description": "[OPCJONALNE] Kto bedzie uzywal urzadzenia"
+    },
+    "project_context": {
+      "type": "string",
+      "description": "[OPCJONALNE] Odniesienie do PotentialDossier albo Experiment"
+    },
+    "primary_function": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Glowna funkcja urzadzenia"
+    },
+    "secondary_functions": {
+      "type": "string",
+      "description": "[OPCJONALNE] Funkcje dodatkowe"
+    },
+    "inputs": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Lista sygnalow wejsciowych"
+    },
+    "outputs": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Lista sygnalow wyjsciowych"
+    },
+    "communication_interfaces": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Interfejsy komunikacyjne"
+    },
+    "data_flow": {
+      "type": "string",
+      "description": "[OPCJONALNE] Krotki opis przeplywu danych"
+    },
+    "power_source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Rodzaj zasilania"
+    },
+    "voltage_levels": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Wymagane poziomy napiecia"
+    },
+    "max_current_draw": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Szacowany maksymalny pobor pradu"
+    },
+    "power_constraints": {
+      "type": "string",
+      "description": "[OPCJONALNE] Ograniczenia energetyczne"
+    },
+    "operating_environment": {
+      "type": "string",
+      "enum": [
+        "indoor",
+        "outdoor_sheltered",
+        "outdoor_exposed",
+        "industrial",
+        "wet_area"
+      ],
+      "description": "Gdzie urzadzenie bedzie pracowac"
+    },
+    "temperature_range": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Zakres temperatur roboczych"
+    },
+    "humidity_range": {
+      "type": "string",
+      "description": "[OPCJONALNE] Zakres wilgotnosci"
+    },
+    "mechanical_constraints": {
+      "type": "string",
+      "description": "[OPCJONALNE] Ograniczenia mechaniczne"
+    },
+    "emc_requirements": {
+      "type": "string",
+      "description": "[OPCJONALNE] Wymagania EMC"
+    },
+    "max_bom_cost": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Maksymalny koszt czesci niebedacych w katalogu reuse"
+    },
+    "reuse_priority": {
+      "type": "string",
+      "enum": [
+        "reuse_first",
+        "cost_first"
+      ],
+      "description": "Priorytet reuse"
+    },
+    "budget_notes": {
+      "type": "string",
+      "description": "[OPCJONALNE] Dodatkowe uwagi o budzecie"
+    },
+    "assumptions": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Lista zalozen, na ktorych opiera sie brief"
+    },
+    "constraints": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Lista twardych ograniczen"
+    },
+    "known_risks": {
+      "type": "string",
+      "description": "[OPCJONALNE] Znane ryzyka projektowe"
+    },
+    "compliance": {
+      "type": "string",
+      "description": "[OPCJONALNE] Wymagania zgodnosci"
+    },
+    "target_board": {
+      "type": "string",
+      "description": "[OPCJONALNE] Jawnie nazwana plytka ESP32"
+    },
+    "board_capabilities": {
+      "type": "string",
+      "description": "[OPCJONALNE] Odniesienie do ESP32 Recovered Board Profile Template"
+    },
+    "flash_method": {
+      "type": "string",
+      "description": "[OPCJONALNE] Sposob flashowania"
+    }
+  }
+}

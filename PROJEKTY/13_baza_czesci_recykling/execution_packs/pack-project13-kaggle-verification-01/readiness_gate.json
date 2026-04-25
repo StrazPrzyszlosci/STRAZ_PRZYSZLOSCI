@@ -6,7 +6,7 @@
     "entity_id": "pack-project13-kaggle-verification-01"
   },
   "gate_kind": "pack_ready",
-  "status": "conditional",
-  "notes": "Pack ma juz kontrakt dokumentacyjny i kryteria review, ale nadal wymaga wydzielenia realnego execution surface verification.",
-  "checked_at": "2026-04-22T23:40:00Z"
+  "status": "passed",
+  "notes": "Pack ma realny execution surface (scripts/verify_candidates.py), jawny input/output contract, dry-run przeszedl na 82 kandydatach (9 confirmed, 30 disputed, 43 rejected). OCR verification jest opcjonalny fallbackiem.",
+  "checked_at": "2026-04-24T00:20:00Z"
 }

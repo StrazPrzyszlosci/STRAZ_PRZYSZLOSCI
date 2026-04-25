@@ -14,7 +14,7 @@ Nowy wolontariusz i jego lokalny agent powinni startowac od:
 
 1. Kazdy agent podwykonawczy najpierw czyta:
    - `docs/AGENTY_PODWYKONAWCZE/INSTRUKCJA_DLA_AGENTA_PODWYKONAWCZEGO.md`
-   - aktualny przydzielony portfel, na przyklad `docs/AGENTY_PODWYKONAWCZE/PORTFEL_10_ZLECEN_DLA_PODWYKONAWCOW.md` albo `docs/AGENTY_PODWYKONAWCZE/PORTFEL_06_ZLECEN_DLA_PODWYKONAWCOW_2026-04-23.md`
+   - aktualny przydzielony portfel, na przyklad `docs/AGENTY_PODWYKONAWCZE/PORTFEL_10_ZLECEN_DLA_PODWYKONAWCOW.md`, `docs/AGENTY_PODWYKONAWCZE/PORTFEL_06_ZLECEN_DLA_PODWYKONAWCOW_2026-04-23.md` albo `docs/AGENTY_PODWYKONAWCZE/PORTFEL_07_ZLECEN_DLA_PODWYKONAWCOW_2026-04-24.md`
    - przydzielony plik `ZLECENIE_GLOWNE_*.md`
 2. Agent pracuje tylko w zakresie plikow wskazanych w swoim zadaniu.
 3. Agent ma rozumiec, czemu jego zadanie sluzy wyzszemu celowi inicjatywy, ale nie ma samodzielnie przestawiac priorytetow calego repo.
@@ -42,6 +42,14 @@ Nowy wolontariusz i jego lokalny agent powinni startowac od:
 - `ZLECENIE_GLOWNE_14_BLUEPRINT_DESIGN_BRIEF_TEMPLATE.md`
 - `ZLECENIE_GLOWNE_15_ESP32_RECOVERED_BOARD_PROFILE_TEMPLATE.md`
 - `ZLECENIE_GLOWNE_16_BLUEPRINT_AND_ESP_RUNTIME_PACK_SKELETONS.md`
+- `ODBIOR_PORTFELA_06_ZADAN_11_16_2026-04-24.md`: odbior zadan `11-16` wraz z werdyktem i lukami po przyjeciu
+- `PORTFEL_07_ZLECEN_DLA_PODWYKONAWCOW_2026-04-24.md`: kolejny portfel zadan `17-22`
+- `ZLECENIE_GLOWNE_17_PROJECT13_VERIFICATION_DISPUTE_TRIAGE_AND_OCR_PACKET.md`
+- `ZLECENIE_GLOWNE_18_PROJECT13_CURATION_REAL_VERIFIED_SNAPSHOT_RUN.md`
+- `ZLECENIE_GLOWNE_19_PROJECT13_VOLUNTEER_SECRETS_SETUP_GUIDE_AND_ENV_EXAMPLE.md`
+- `ZLECENIE_GLOWNE_20_PROJECT13_PR_SECRET_SCAN_AND_BRANCH_PROTECTION_PACKET.md`
+- `ZLECENIE_GLOWNE_21_PROJECT13_BLUEPRINT_BRIEF_VALIDATOR_AND_SCHEMA_BASELINE.md`
+- `ZLECENIE_GLOWNE_22_PROJECT13_ESP_RUNTIME_BENCH_TEST_CONTRACT_AND_SIMULATION_POLICY.md`
 - `CHECKLISTA_ODBIORU_ZLECENIA_GLOWNEGO_01_SYNC_ENCJI_ORGANIZACJI_DO_D1_SQLITE.md`: checklista dla glownego agenta sprawdzajacego wynik pracy podwykonawcy
 - `ZADANIE_01_SYNC_ENCJI_ORGANIZACJI_DO_D1_SQLITE.md`: task dla warstwy wspolnej pamieci
 - `ZADANIE_02_PROJECT13_RUN_CONTEXT_I_ARTIFACT_FLOW.md`: task dla dopiecia `Run -> Artifact`
@@ -50,7 +58,7 @@ Nowy wolontariusz i jego lokalny agent powinni startowac od:
 - `ZADANIE_08_REVIEW_ROTATION_GOVERNANCE.md`: task i wynik dla governance review/approval
 - `ZADANIE_09_D1_SQLITE_QUERY_COOKBOOK.md`: task dla query cookbook i lookup helpera
 - `ZADANIE_10_PUBLIC_VOLUNTEER_RUN_READINESS.md`: task dla checklisty pierwszego publicznego runu
-- `MINI_HANDOFF_ZADANIE_06.md`, `MINI_HANDOFF_ZADANIE_07.md`, `MINI_HANDOFF_ZADANIE_09.md`, `MINI_HANDOFF_ZADANIE_10.md`: wyniki przyjetych prac podwykonawczych
+- `MINI_HANDOFF_ZADANIE_06.md`, `MINI_HANDOFF_ZADANIE_07.md`, `MINI_HANDOFF_ZADANIE_09.md`, `MINI_HANDOFF_ZADANIE_10.md`, `MINI_HANDOFF_ZADANIE_11.md`, `MINI_HANDOFF_ZADANIE_12.md`, `MINI_HANDOFF_ZADANIE_13.md`, `MINI_HANDOFF_ZADANIE_14.md`, `MINI_HANDOFF_ZADANIE_15.md`, `MINI_HANDOFF_ZADANIE_16.md`: wyniki przyjetych prac podwykonawczych
 - `SMOKE_RUN_REPORT_PROJECT13_EXPORT_PACK_01.md`: raport lokalnego smoke runu export packa
 
 ## Zasada nadrzedna

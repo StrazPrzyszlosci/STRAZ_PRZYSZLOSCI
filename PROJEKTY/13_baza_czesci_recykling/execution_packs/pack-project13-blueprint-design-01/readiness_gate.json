@@ -1,0 +1,12 @@
+{
+  "schema_version": "v1",
+  "gate_id": "gate-pack-ready-project13-blueprint-design-01",
+  "subject": {
+    "entity_kind": "execution_pack",
+    "entity_id": "pack-project13-blueprint-design-01"
+  },
+  "gate_kind": "pack_ready",
+  "status": "pending",
+  "notes": "Pack jest w statusie draft — brak execution surface. Gate bedzie pass po implementacji skryptu generujacego design dossier i BOM.",
+  "checked_at": "2026-04-24T00:00:00Z"
+}

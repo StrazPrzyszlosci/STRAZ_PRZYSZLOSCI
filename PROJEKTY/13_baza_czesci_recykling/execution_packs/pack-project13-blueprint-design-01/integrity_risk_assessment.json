@@ -1,0 +1,28 @@
+{
+  "schema_version": "v1",
+  "assessment_id": "integrity-pack-project13-blueprint-design-01",
+  "subject": {
+    "entity_kind": "execution_pack",
+    "entity_id": "pack-project13-blueprint-design-01"
+  },
+  "assessment_scope": "workflow_design",
+  "risk_signals": [
+    "private_capture",
+    "volunteer_work_appropriation",
+    "opaque_approval_path"
+  ],
+  "risk_level": "low",
+  "findings": [
+    "Pack generuje projekt dokumentacyjny na bazie kanonicznego katalogu — nie modyfikuje katalogu ani runtime.",
+    "BOM musi odnosic sie do kanonicznych part_slug albo jawnie oznaczac missing parts — chroni przed zawlaszczeniem katalogu.",
+    "Projekt jest reviewowalny jako jeden PR — brak ukrytych krokow wykonawczych."
+  ],
+  "mitigations_required": [
+    "Nie promowac projektu do runtime bez IntegrityRiskAssessment.",
+    "Nie ukrywac missing parts w BOM — jawne oznaczenie.",
+    "Governance Wariant A wymagany: rozdzielony reviewer i approver."
+  ],
+  "reviewer_role": "public_interest_reviewer",
+  "status": "pass",
+  "assessed_at": "2026-04-24T00:00:00Z"
+}

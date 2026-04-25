@@ -278,6 +278,64 @@ Minimalny plan ich operacjonalizacji znajduje sie tutaj:
 
 - `PROJEKTY/13_baza_czesci_recykling/docs/PLAN_PACKOW_BLUEPRINT_ESP_CLAW.md`
 
+## Jak ustawic sekrety (klucze API i tokeny)
+
+Ten projekt wymaga trzech sekretow. Wolontariusz nie musi szukac instrukcji po internecie — ponizej znajdziesz wszystko w jednym miejscu.
+
+Plik `.env.example` w katalogu tego projektu zawiera gotowy szablon z opisem kazdego klucza. Skopiuj go i uzupelnij:
+
+```bash
+cp PROJEKTY/13_baza_czesci_recykling/.env.example PROJEKTY/13_baza_czesci_recykling/.env
+```
+
+### 1. `GITHUB_PAT` — token pushu do forka
+
+1. Wejdz na https://github.com/settings/tokens?type=beta (Fine-grained tokens).
+2. Kliknij **Generate new token**.
+3. Nadaj nazwe, np. `kaggle-pack-push`.
+4. W **Repository access** wybierz **Only select repositories** i wskaz swoj fork.
+5. W **Permissions > Repository permissions** ustaw **Contents: Read and write**.
+6. Wygeneruj token i wklej do `.env` oraz do `Kaggle Secrets`.
+
+Alternatywa (legacy): https://github.com/settings/tokens ze scope `repo`.
+
+### 2. `YOUTUBE_API_KEY` — klucz do YouTube Data API v3
+
+1. Wejdz na https://console.cloud.google.com/.
+2. Utworz projekt (lub wybierz istniejacy).
+3. Przejdz do **APIs & Services > Library** i wlacz **YouTube Data API v3**.
+4. Przejdz do **APIs & Services > Credentials** i kliknij **Create Credentials > API key**.
+5. Skopiuj klucz. Opcjonalnie ogranicz go do samego YouTube Data API v3 (**Restrict key**).
+
+Uwaga: darmowa quota wynosi ok. 10 000 jednostek/dobe; jeden search kosztuje 100 jednostek.
+
+### 3. `GEMINI_API_KEY` — klucz do Gemini API (analiza multimodalna, OCR)
+
+1. Wejdz na https://aistudio.google.com/apikey.
+2. Zaloguj sie kontem Google.
+3. Kliknij **Create API key** albo **Get API key**.
+4. Wybierz projekt Google Cloud (lub utworz nowy).
+5. Skopiuj klucz.
+
+Uwaga: darmowy tier ma limity requests/min i tokens/min — patrz https://ai.google.dev/pricing.
+
+### Przeniesienie sekretow do Kaggle Secrets
+
+Te same wartosci z `.env` musisz dodac rowniez w UI Kaggle:
+
+1. Otworz swoj notebook na Kaggle.
+2. W pasku bocznym kliknij ikone klucza (**Add-ons > Secrets**).
+3. Dodaj trzy sekrety o nazwach dokladnie `GITHUB_PAT`, `YOUTUBE_API_KEY`, `GEMINI_API_KEY`.
+4. Wartosci musza byc identyczne jak w Twoim lokalnym pliku `.env`.
+5. Notebook odczyta je automatycznie przez `kaggle_secrets.UserSecretClient()`.
+
+Szczegoly krok po kroku znajdziesz w `RUNBOOK.md` krok 3.
+
+### Decyzje wymagajace potwierdzenia operatora
+
+- **Brak kodu weryfikacyjnego dla `GITHUB_PAT`** — notebook nie sprawdza, czy token ma scope `repo`/`contents:write`. Wolontariusz moze ustawic token bez wystarczajacych uprawnien i push nie zadziala bez jasnego komunikatu. Do potwierdzenia: czy dodac weryfikacje scope w notebooku.
+- **Limity quota YouTube i Gemini** — notebook nie sprawdza wyczerpania quota przed startem. Wolontariusz moze rozpoczac run i utknac w polowie. Do potwierdzenia: czy dodac pre-flight check quota.
+
 ## Zasady bezpieczenstwa dla notatnikow Kaggle
 
 Ten model musi pozostac jawnie dobrowolny i bezpieczny:

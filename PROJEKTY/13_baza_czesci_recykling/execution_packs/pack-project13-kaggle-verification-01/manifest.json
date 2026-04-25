@@ -6,9 +6,20 @@
     "entity_kind": "experiment",
     "entity_id": "experiment-kaggle-review-ready-pack-01"
   },
-  "execution_mode": "kaggle_notebook",
+  "execution_mode": "local_agent",
   "scope": "verification -> OCR -> frame check -> disagreement scoring -> reviewer-ready candidates",
   "objective": "Zweryfikowac niepewne kandydaty czesci z discovery i enrichment przez jawny frame check, OCR oraz raport rozbieznosci, bez bezposredniej promocji do downstream exportow.",
+  "execution_surface": "scripts/verify_candidates.py",
+  "execution_commands": {
+    "dry-run": "python3 scripts/verify_candidates.py dry-run",
+    "full_run": "python3 scripts/verify_candidates.py run",
+    "load": "python3 scripts/verify_candidates.py load",
+    "validate": "python3 scripts/verify_candidates.py validate",
+    "score": "python3 scripts/verify_candidates.py score",
+    "ocr_check": "python3 scripts/verify_candidates.py ocr-check --api-key $GEMINI_API_KEY",
+    "snapshot": "python3 scripts/verify_candidates.py snapshot",
+    "report": "python3 scripts/verify_candidates.py report"
+  },
   "instructions_summary": "Wolontariusz albo lokalny agent uruchamia pack verification na kandydackim snapshotcie z poprzedniego etapu. Wynik ma pokazac, ktore rekordy sa potwierdzone, ktore sa sporne i co wymaga dalszej kuracji.",
   "human_actions": [
     "Wybrac kandydacki snapshot po etapie enrichment.",
@@ -32,7 +43,9 @@
   "required_secrets": [
     {
       "name": "GEMINI_API_KEY",
-      "purpose": "OCR i analiza multimodalna stopklatek dla kandydatow z etapu verification."
+      "purpose": "OCR i analiza multimodalna stopklatek dla kandydatow z etapu verification.",
+      "required": false,
+      "fallback": "Rule-based verification runs without API key. OCR check is skipped for disputed records when key is absent."
     }
   ],
   "resource_cost_hint": "Pack verification powinien byc lzejszy niz discovery, ale nadal moze zuzyc runtime Kaggle i tokeny OCR dla trudniejszych przypadkow.",
@@ -43,6 +56,25 @@
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/verification_report.md",
     "PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/verification_disagreements.jsonl"
   ],
+  "input_contract": {
+    "source_pack": "pack-project13-kaggle-enrichment-01",
+    "required_artifact": "autonomous_test/results/test_db.jsonl",
+    "format": "JSONL with fields: device, part_name, part_number, confidence, yt_link, verification.verified, verification.observed_text, source_video"
+  },
+  "output_contract": {
+    "verified_snapshot": {
+      "path": "autonomous_test/results/test_db_verified.jsonl",
+      "format": "JSONL with added fields: verification_status (confirmed|disputed|rejected), disagreement_score (0.0-1.0), _mpn_result, _cross_check"
+    },
+    "verification_report": {
+      "path": "autonomous_test/reports/verification_report.md",
+      "format": "Markdown with counts, method description, key disputed cases, limitations, handoff to curation"
+    },
+    "disagreement_log": {
+      "path": "autonomous_test/reports/verification_disagreements.jsonl",
+      "format": "JSONL subset of verified snapshot containing only disputed records"
+    }
+  },
   "expected_artifacts": [
     "snapshot verified candidates",
     "jawny verification report z counts i provenance",
@@ -66,7 +98,7 @@
     "Niejawne nadpisanie wyniku enrichment bez sladu provenance moze zacierac odpowiedzialnosc za decyzje."
   ],
   "target_output_kind": "report",
-  "status": "draft",
+  "status": "smoke_tested",
   "created_at": "2026-04-22T23:40:00Z",
-  "updated_at": "2026-04-22T23:40:00Z"
+  "updated_at": "2026-04-24T00:20:00Z"
 }

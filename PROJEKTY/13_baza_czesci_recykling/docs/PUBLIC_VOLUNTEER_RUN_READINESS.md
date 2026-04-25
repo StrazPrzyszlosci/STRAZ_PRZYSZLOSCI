@@ -25,11 +25,11 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 
 | Sekret | Potrzebny? | Kto ustawia? | Uwagi |
 |--------|-----------|-------------|-------|
-| `GITHUB_PAT` | TAK | Wolontariusz | Push do forka; nie wolno zapisac w repo |
-| `YOUTUBE_API_KEY` | TAK | Wolontariusz | Wyszukiwanie kandydatow filmow |
-| `GEMINI_API_KEY` | TAK | Wolontariusz | Analiza multimodalna, OCR klatek |
+| `GITHUB_PAT` | TAK | Wolontariusz | Push do forka; nie wolno zapisac w repo; instrukcja: `README.md` sekcja "Jak ustawic sekrety" |
+| `YOUTUBE_API_KEY` | TAK | Wolontariusz | Wyszukiwanie kandydatow filmow; instrukcja: `README.md` sekcja "Jak ustawic sekrety" |
+| `GEMINI_API_KEY` | TAK | Wolontariusz | Analiza multimodalna, OCR klatek; instrukcja: `README.md` sekcja "Jak ustawic sekrety" |
 
-**Status: DO POTWIERDZENIA** — nie ma jeszcze publicznej instrukcji dla wolontariusza, jak ustawic sekrety krok po kroku w UI Kaggle. Runbook opisuje to ogolnikowo.
+**Status: GOTOWE** — publiczna instrukcja setupu sekretow znajduje sie w `PROJEKTY/13_baza_czesci_recykling/README.md` sekcja "Jak ustawic sekrety". Plik `.env.example` zawiera szablon z krok po kroku opisem pozyskania kazdego klucza i przeniesienia do Kaggle Secrets. RUNBOOK.md krok 3 odsyla do tej instrukcji. Otwarte pozostaja: weryfikacja scope `GITHUB_PAT` w notebooku oraz pre-flight check quota YouTube/Gemini (do decyzji operatora).
 
 ### 1.3 Zaleznosci runtime
 
@@ -60,7 +60,7 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 | PR_TEMPLATE.md istnieje | GOTOWE | `execution_packs/pack-project13-kaggle-enrichment-01/PR_TEMPLATE.md` |
 | PR wymaga pack_id, run_id, branch, notebook | GOTOWE | Wymagane w szablonie i review checklist |
 | PR opisuje ograniczenia i known issues | DO POTWIERDZENIA | Szablon ma pole, ale tresc zalezy od wolontariusza — trzeba sprawdzac recznie |
-| PR nie zawiera sekretow | DO POTWIERDZENIA | Review checklist ma to pytanie, ale nie ma automatycznego skanera |
+| PR nie zawiera sekretow | GOTOWE | Automatyczny scan: workflow `pr_secret_scan.yml` (GitHub Actions) + lokalny skrypt `scripts/scan_pr_secrets.py`; review checklist zaktualizowany |
 
 ---
 
@@ -94,18 +94,18 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 |---------|--------|-------|
 | Runbook prowadzi wolontariusza krok po kroku | GOTOWE | `RUNBOOK.md` — 9 krokow |
 | Wolontariusz rozumie, co robi i po co | DO POTWIERDZENIA | Brak testu uzytecznosci runbooka z osoba spoza projektu |
-| Wolontariusz wie, ze cos moze pojsc nie tak | CZESCIOWO | Runbook ma krok 9 "czego nie robic", ale brak jasnej sekcji "co zrobic, gdy notebook zawiesi sie" |
-| Wolontariusz wie, jak zglosic problem | NIE GOTOWE | Brak kanalu komunikacji (issue template, Discord, Telegram) przeznaczonego dla wolontariuszy |
-| Wolontariusz wie, ze nie musi wykonywac calosci | DO POTWIERDZENIA | Model jest opt-in, ale nie ma jawnego komunikatu "mozesz przerwac w dowolnym momencie" |
+| Wolontariusz wie, ze cos moze pojsc nie tak | GOTOWE | `VOLUNTEER_FALLBACK_GUIDE.md` opisuje 4 sytuacje awaryjne + instrukcje przerwania |
+| Wolontariusz wie, jak zglosic problem | GOTOWE | Issue template `volunteer_problem_report.md` + labelka `volunteer-support`; rekomendowany czas odpowiedzi: 48h |
+| Wolontariusz wie, ze nie musi wykonywac calosci | GOTOWE | Jawny komunikat w `VOLUNTEER_FALLBACK_GUIDE.md` sekcja "Mozesz przerwac w dowolnym momencie" + `VOLUNTEER_TERMS_OF_PARTICIPATION.md` punkt 1 |
 
 ### 4.2 Onboarding wolontariusza
 
 | Element | Status | Uwagi |
 |---------|--------|-------|
-| Warunki uczestnictwa sa opisane | CZESCIOWO | MODEL_WOLONTARIACKICH_NOTEBOOKOW_KAGGLE.md opisuje model, ale nie ma "terms of participation" |
-| Wolontariusz wie, ze jego praca bedzie publiczna | DO POTWIERDZENIA | Fork i PR sa publiczne, ale brak jawnego komunikatu o tym w runbooku |
-| Wolontariusz wie, ze jego wynik moze zostac odrzucony | NIE GOTOWE | Brak jasnej informacji, ze review moze odrzucic PR i ze to jest normalne |
-| Wolontariusz ma kontakt z maintainerem | DO POTWIERDZENIA | Brak jasnego kanalu; PR jest formom kontaktu, ale to nie wystarczy do rozwiązywania problemow na zywo |
+| Warunki uczestnictwa sa opisane | GOTOWE | `VOLUNTEER_TERMS_OF_PARTICIPATION.md` — 10 punktow, w tym dobrowolnosc, publicznosc, odrzucenie wyniku, sekrety, brak zawlaszczenia |
+| Wolontariusz wie, ze jego praca bedzie publiczna | GOTOWE | Jawny komunikat w `VOLUNTEER_TERMS_OF_PARTICIPATION.md` punkt 2; rekomendacja konta anonimowego |
+| Wolontariusz wie, ze jego wynik moze zostac odrzucony | GOTOWE | Jawny komunikat w `VOLUNTEER_TERMS_OF_PARTICIPATION.md` punkt 3; odrzucenie PR nie jest ocena wolontariusza |
+| Wolontariusz ma kontakt z maintainerem | CZESCIOWO | GitHub Issue z labelka `volunteer-support`; cel 48h odpowiedzi; brak jeszcze kanalu na zywo (Discord/Telegram: do_potwierdzenia) |
 
 ---
 
@@ -125,12 +125,12 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 
 | Ryzyko | Poziom | Mitygacja | Status mitygacji |
 |--------|--------|-----------|-----------------|
-| Notebook zawiesza sie na Kaggle | sredni | dry-run lokalny, komunikat o problemie | CZESCIOWO — brak instrukcji fallbackowej dla wolontariusza |
+| Notebook zawiesza sie na Kaggle | sredni | dry-run lokalny, komunikat o problemie | GOTOWE — `VOLUNTEER_FALLBACK_GUIDE.md` Sytuacja 1 |
 | Wolontariusz nie rozumie runbooka | sredni | test uzytecznosci z osoba spoza projektu | NIE GOTOWE |
 | Wynik jest pusty albo bledny | niski | rebuild report i skipped log | GOTOWE |
-| Wolontariusz zglasza problem i nie ma odpowiedzi | wysoki | kanal komunikacji | NIE GOTOWE |
+| Wolontariusz zglasza problem i nie ma odpowiedzi | wysoki | kanal komunikacji | CZESCIOWO — Issue template istnieje, ale brak kanalu na zywo; cel 48h odpowiedzi |
 | Recenzent nie jest dostepny | sredni | zasada rotacji review + wyznaczenie backup reviewera przed pilotem | CZESCIOWO — governance jest opisana, ale brak jeszcze nazwanych osob do pierwszego pilota |
-| PR omija review | niski | branch protection | DO POTWIERDZENIA — nie sprawdzono, czy na upstream sa wlaczone branch protections |
+| PR omija review | niski | branch protection | CZESCIOWO — operator packet istnieje (`BRANCH_PROTECTION_OPERATOR_PACKET.md`), ale maintainer musi jeszcze wykonac weryfikacje i potwierdzic recznie |
 | Zawlaszczenie pracy wolontariusza | niski | fork flow + jawny PR + provenance | GOTOWE |
 
 ---
@@ -153,18 +153,27 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 
 - Notebook dziala na prawdziwym runtime Kaggle bez bledow wersji pakietow
 - Wolontariusz potrafi przejsc przez runbook bez pomocy maintainera
-- Sekrety sa prawidlowo ustawione w Kaggle Secrets
-- Branch protection na upstream jest wlaczona
+- Sekrety sa prawidlowo ustawione w Kaggle Secrets (instrukcja dostepna w README.md i .env.example; pozostaje do potwierdzenia realne wykonanie przez wolontariusza)
+- Branch protection na upstream jest wlaczona (operator packet: `BRANCH_PROTECTION_OPERATOR_PACKET.md`; maintainer musi wykonac weryfikacje)
 - Recenzent pierwszego PR jest wyznaczony i dostepny
 
 ### NIE GOTOWE (wymaga pracy przed publicznym runem)
 
-- **Kanal komunikacji dla wolontariuszy** — brak miejsca, gdzie wolontariusz moze zapytac o pomoc
-- **Instrukcja fallbackowa** — co zrobic, gdy notebook zawiesi sie albo zwroci blad
-- **Jasne komunikaty dla wolontariusza** — ze moze przerwac, ze wynik moze zostac odrzucony, ze jego fork jest publiczny
-- **Operacyjne obsadzenie rotacji review** — zasady governance juz istnieja, ale nadal trzeba przypisac konkretne osoby do pierwszego pilota
-- **Terms of participation** — brak jasnego dokumentu okreslajacego warunki udzialu wolontariusza
-- **Automatyczne skanowanie PR na obecnosc sekretow** — review checklist ma punkt, ale nie ma narzedzia
+- **Test uzytecznosci runbooka** — brak testu z osoba spoza projektu; wolontariusz moze nie zrozumiec instrukcji bez pomocy
+- **Automatyczne skanowanie PR na obecnosc sekretow** — ~~brak narzedzia~~ GOTOWE: workflow `pr_secret_scan.yml` + lokalny skrypt `scripts/scan_pr_secrets.py`
+- **Kanal komunikacji na zywo** — Issue template jest gotowy, ale brak Discord/Telegram/do_potwierdzenia; GitHub Issues sa rekomendowane jako baseline
+- **Branch protection na upstream** — ~~nie sprawdzono~~ CZESCIOWO: operator packet `BRANCH_PROTECTION_OPERATOR_PACKET.md` istnieje; maintainer musi wykonac weryfikacje
+
+### DOMKNIETE W TEJ ITERACJI (byly NIE GOTOWE)
+
+- ~~**Kanal komunikacji dla wolontariuszy**~~ — GOTOWE: Issue template `volunteer_problem_report.md` + labelka `volunteer-support`
+- ~~**Instrukcja fallbackowa**~~ — GOTOWE: `VOLUNTEER_FALLBACK_GUIDE.md` opisuje 4 sytuacje awaryjne
+- ~~**Jasne komunikaty dla wolontariusza**~~ — GOTOWE: fallback guide + terms of participation
+- ~~**Terms of participation**~~ — GOTOWE: `VOLUNTEER_TERMS_OF_PARTICIPATION.md` — 10 punktow
+- ~~**Operacyjne obsadzenie rotacji review**~~ — CZESCIOWO→CZESCIOWO: governance opisana, ale nadal brak nazwanych osob (nie zmienilo sie)
+- ~~**Instrukcja setupu sekretow dla wolontariusza**~~ — GOTOWE: `README.md` sekcja "Jak ustawic sekrety" + `.env.example` + RUNBOOK.md krok 3 z detalami Kaggle Secrets
+- ~~**Automatyczne skanowanie PR na obecnosc sekretow**~~ — GOTOWE: workflow `pr_secret_scan.yml` (GitHub Actions) + lokalny skrypt `scripts/scan_pr_secrets.py`; REVIEW_CHECKLIST.md zaktualizowany
+- ~~**Operator packet dla branch protection**~~ — GOTOWE: `BRANCH_PROTECTION_OPERATOR_PACKET.md` z krok po kroku instrukcja weryfikacji i wlaczenia protection na `main`
 
 ---
 

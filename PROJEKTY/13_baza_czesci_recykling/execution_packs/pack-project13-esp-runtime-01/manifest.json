@@ -1,0 +1,85 @@
+{
+  "schema_version": "v1",
+  "pack_id": "pack-project13-esp-runtime-01",
+  "title": "Project 13 ESP runtime pack — warstwa runtime odzyskanego hardware'u",
+  "linked_subject": {
+    "entity_kind": "capability_gap",
+    "entity_id": "gap-project13-esp-runtime-01"
+  },
+  "execution_mode": "local_agent",
+  "scope": "zatwierdzony design dossier + recovered ESP32 board profile -> runtime profile, pin map, Lua bundle, flash runbook, bench test -> review-ready runtime bundle",
+  "objective": "Zamienic zatwierdzony projekt urzadzenia i profil odzyskanej plytki ESP32 w review-ready pakiet runtime: konfiguracja, mapowanie pinow, skrypty wykonawcze i bench test, z ostrzejszym modelem governance niz zwykle packi katalogowe.",
+  "instructions_summary": "Lokalny agent albo maintainer przyjmuje zatwierdzony output z blueprint-design-01 i recovered board profile, generuje runtime profile, pin map, Lua bundle i flash runbook, a nastepnie uruchamia bench test przed otwarciem PR. Brak merge bez domknietego integrity_ready.",
+  "human_actions": [
+    "Miec zatwierdzony design dossier z packa blueprint-design-01.",
+    "Miec wypelniony board profile wg szablonu PROJEKTY/13_baza_czesci_recykling/docs/ESP32_RECOVERED_BOARD_PROFILE_TEMPLATE.md.",
+    "Przejrzec wygenerowany runtime profile i pin map pod katem spojnosci z profilem plytki.",
+    "Uruchomic bench test i sprawdzic raport przed otwarciem PR.",
+    "Otworzyc PR z runtime bundle i jawnym opisem provenance i testow."
+  ],
+  "required_resources": [
+    "zatwierdzony output z pack-project13-blueprint-design-01",
+    "wypelniony ESP32 recovered board profile",
+    "fizyczna plytka ESP32 (do bench testu)"
+  ],
+  "rag_sources": [
+    "PROJEKTY/13_baza_czesci_recykling/docs/PLAN_PACKOW_BLUEPRINT_ESP_CLAW.md",
+    "PROJEKTY/13_baza_czesci_recykling/docs/ESP32_RECOVERED_BOARD_PROFILE_TEMPLATE.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/CHAIN_MAP.md",
+    "PROJEKTY/13_baza_czesci_recykling/README.md",
+    "docs/REVIEW_ROTATION_GOVERNANCE.md"
+  ],
+  "runbook_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/RUNBOOK.md",
+  "resource_cost_hint": "Pack lokalny z opcjonalnym hardware. Koszt to czas agenta + czas na bench test fizycznej plytki. Brak prawdziwego hardware'u = brak bench testu = brak promocji do realnego runtime.",
+  "pr_template_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/PR_TEMPLATE.md",
+  "output_paths": [
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/runtime_profile.json",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/pin_map.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/lua_runtime_bundle/",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/flash_and_recovery_runbook.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/bench_test_report.md"
+  ],
+  "expected_artifacts": [
+    "runtime_profile.json",
+    "pin_map.md",
+    "lua_runtime_bundle/",
+    "flash_and_recovery_runbook.md",
+    "bench_test_report.md"
+  ],
+  "acceptance_criteria": [
+    "Runtime targetuje jawnie nazwana plytke, a nie abstrakcyjne ESP32.",
+    "Pin map i recovery path sa opisane przed pierwszym flash.",
+    "Pack nie steruje swiatem fizycznym bez bench testu.",
+    "Sekrety i credentiale nie trafiaja do firmware ani diffu.",
+    "Board profile jest wypelniony z co najmniej polami POMIERZONE.",
+    "Governance Wariant B: rozdzielony reviewer merytoryczny i integrity reviewer, approver nie jest jednoczesnie glownym reviewerem."
+  ],
+  "safety_notes": [
+    "NIE FLASHOWAC bez bench testu i bez ReadinessGate(integrity_ready).",
+    "NIE STEROWAC swiatem fizycznym (GPIO, peryferia, siec) bez jawnego bench review.",
+    "Runtime targetuje konkretna plytke z konkretnym board_id — nie abstrakcyjne ESP32.",
+    "Sekrety (Wi-Fi credentials, API keys) nie moga trafic do firmware ani do diffu PR.",
+    "Recovery path musi byc opisany i przetestowany PRZED pierwszym flash.",
+    "Uszkodzone piny z board profile moga byc uzywane w runtime tylko po jawnym potwierdzeniu pomiarem."
+  ],
+  "misuse_risks": [
+    "Flashowanie bez bench testu moze uszkodzic plytke albo urzadzenie podlaczone do GPIO.",
+    "Ukrycie uszkodzonych pinow w pin map moze prowadzic do niestabilnego runtime.",
+    "Sterowanie swiatem fizycznym bez review to ryzyko bezpieczenstwa fizycznego.",
+    "Zawlaszczenie runtime przez jedna osobe bez integrity review.",
+    "Promowanie runtime do realnego hardware bez Wariantu B governance.",
+    "Vendor lock-in na konkretne oprogramowanie firmware bez jawnej alternatywy."
+  ],
+  "target_output_kind": "pull_request",
+  "status": "draft",
+  "input_contracts": {
+    "design_dossier": "output z pack-project13-blueprint-design-01",
+    "board_profile": "PROJEKTY/13_baza_czesci_recykling/docs/ESP32_RECOVERED_BOARD_PROFILE_TEMPLATE.md",
+    "bench_test_contract": "PROJEKTY/13_baza_czesci_recykling/docs/BENCH_TEST_CONTRACT_ESP_RUNTIME_01.md",
+    "simulation_policy": "PROJEKTY/13_baza_czesci_recykling/docs/SIMULATION_VS_REAL_HARDWARE_POLICY_ESP_RUNTIME_01.md"
+  },
+  "governance_variant": "B",
+  "governance_notes": "Wariant B z REVIEW_ROTATION_GOVERNANCE.md: rozdzielony reviewer merytoryczny i integrity reviewer, approver nie jest jednoczesnie glownym reviewerem, brak merge bez domknietego integrity_ready, brak self-approval.",
+  "created_at": "2026-04-24T00:00:00Z",
+  "updated_at": "2026-04-25T00:00:00Z"
+}

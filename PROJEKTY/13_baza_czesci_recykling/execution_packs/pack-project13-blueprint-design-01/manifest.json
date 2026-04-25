@@ -1,0 +1,92 @@
+{
+  "schema_version": "v1",
+  "pack_id": "pack-project13-blueprint-design-01",
+  "title": "Project 13 blueprint design pack — warstwa Inzyniera AI",
+  "linked_subject": {
+    "entity_kind": "capability_gap",
+    "entity_id": "gap-project13-blueprint-design-01"
+  },
+  "execution_mode": "local_agent",
+  "scope": "design brief + kanoniczny katalog reuse parts -> BOM, schemat logiczny, instrukcje montazu -> review-ready design dossier",
+  "objective": "Zamienic brief funkcjonalny i katalog reuse parts w review-ready projekt urzadzenia: BOM z odniesieniami do katalogu, schemat logiczny, instrukcje montazu i jawnie oznaczone czesci brakujace.",
+  "instructions_summary": "Lokalny agent albo maintainer przyjmuje wypelniony design brief, wybiera reuse parts z kanonicznego katalogu, generuje design dossier, BOM, instrukcje montazu i riske, a nastepnie otwiera PR z review-ready artefaktami projektu.",
+  "human_actions": [
+    "Wypelnic design brief wg szablonu PROJEKTY/13_baza_czesci_recykling/docs/DESIGN_BRIEF_TEMPLATE.md.",
+    "Przejrzec wygenerowany design dossier i BOM pod katem spojnosci z briefem i katalogiem.",
+    "Otworzyc PR z design dossier i jawnym opisem reuse parts vs missing parts."
+  ],
+  "required_resources": [
+    "kanoniczny katalog reuse parts (data/parts_master.jsonl)",
+    "wypelniony design brief"
+  ],
+  "rag_sources": [
+    "PROJEKTY/13_baza_czesci_recykling/docs/PLAN_PACKOW_BLUEPRINT_ESP_CLAW.md",
+    "PROJEKTY/13_baza_czesci_recykling/docs/DESIGN_BRIEF_TEMPLATE.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/CHAIN_MAP.md",
+    "PROJEKTY/13_baza_czesci_recykling/README.md"
+  ],
+  "runbook_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/RUNBOOK.md",
+  "resource_cost_hint": "Pack lokalny. Koszt to glownie czas agenta na generowanie projektu i czas reviewera na weryfikacje BOM i schematu.",
+  "pr_template_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/PR_TEMPLATE.md",
+  "output_paths": [
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/output/design_dossier.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/output/bill_of_materials.json",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/output/assembly_instructions.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/output/design_risks.json",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/output/missing_parts_or_assumptions.json"
+  ],
+  "expected_artifacts": [
+    "design_dossier.md",
+    "bill_of_materials.json",
+    "assembly_instructions.md",
+    "design_risks.json",
+    "missing_parts_or_assumptions.json"
+  ],
+  "acceptance_criteria": [
+    "BOM odnosi sie do kanonicznych rekordow katalogu albo jawnie oznacza brakujace elementy.",
+    "Projekt rozroznia reuse parts od czesci hipotetycznych.",
+    "Instrukcja montazu i zalozenia sa reviewowalne bez czytania ukrytych promptow.",
+    "Pack nie udaje gotowosci hardware'u bez jawnego bench review.",
+    "Design brief jest wypelniony i spelnia wymagania szablonu."
+  ],
+  "safety_notes": [
+    "Pack generuje projekt dokumentacyjny, a nie gotowy do produkcji hardware.",
+    "Projekt musi przejsc przez IntegrityRiskAssessment przed promocja do runtime.",
+    "Nie udac, ze czesci brakujace sa dostepne — jawne oznaczenie missing w BOM.",
+    "Projekt nie moze byc traktowany jako gotowy do flashowania bez packa esp-runtime-01 i bench testu."
+  ],
+  "misuse_risks": [
+    "Traktowanie design dossier jako gotowego schematic bez recznego review.",
+    "Pominiecie missing parts w BOM i budowanie na zalozeniach zamiast na faktach.",
+    "Zawlaszczenie projektu przez jedna osobe bez review — Wariant A governance wymagany.",
+    "Promowanie projektu do runtime bez IntegrityRiskAssessment i ReadinessGate(integrity_ready)."
+  ],
+  "target_output_kind": "pull_request",
+  "status": "draft",
+  "input_contracts": {
+    "design_brief": "PROJEKTY/13_baza_czesci_recykling/docs/DESIGN_BRIEF_TEMPLATE.md",
+    "design_brief_schema": "PROJEKTY/13_baza_czesci_recykling/schemas/design_brief.schema.json",
+    "brief_validator": "PROJEKTY/13_baza_czesci_recykling/scripts/validate_design_brief.py",
+    "catalog_snapshot": "PROJEKTY/13_baza_czesci_recykling/data/parts_master.jsonl"
+  },
+  "brief_validation": {
+    "method": "validate_design_brief.py",
+    "command": "python3 PROJEKTY/13_baza_czesci_recykling/scripts/validate_design_brief.py <brief_file>",
+    "required_fields": [
+      "brief_id", "device_name", "device_purpose",
+      "primary_function", "inputs", "outputs", "communication_interfaces",
+      "power_source", "voltage_levels", "max_current_draw",
+      "operating_environment", "temperature_range",
+      "max_bom_cost", "reuse_priority",
+      "assumptions", "constraints"
+    ],
+    "enum_constrained_fields": {
+      "operating_environment": ["indoor", "outdoor_sheltered", "outdoor_exposed", "industrial", "wet_area"],
+      "reuse_priority": ["reuse_first", "cost_first"]
+    },
+    "note": "Walidator sprawdza obecnosc i niepustosc wymaganych pol, enum constraints dla operating_environment i reuse_priority, oraz nie-akceptuje wartosci placeholderowych (__DO_UZUPELNIENIA__, TBD, TODO)."
+  },
+  "governance_variant": "A",
+  "created_at": "2026-04-24T00:00:00Z",
+  "updated_at": "2026-04-25T00:00:00Z"
+}

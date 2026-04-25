@@ -2,7 +2,7 @@
 
 - [ ] PR wskazuje `pack_id`, `run_id`, branch i notebook
 - [ ] wynik pochodzi z forka wolontariusza, a nie z upstream
-- [ ] diff nie zawiera sekretow, plikow tymczasowych ani pobranych wideo
+- [ ] diff nie zawiera sekretow, plikow tymczasowych ani pobranych wideo (automatyczny scan: workflow `pr_secret_scan.yml` + lokalny skrypt `scripts/scan_pr_secrets.py --staged`)
 - [ ] `processed_videos.json` ma sensowny przyrost albo jawne wyjasnienie braku przyrostu
 - [ ] `test_db.jsonl` zawiera tylko review-ready rekordy albo jawnie opisane ograniczenia
 - [ ] `inventree_import.jsonl` i `ecoEDA_inventory.csv` sa zgodne z wynikami runu

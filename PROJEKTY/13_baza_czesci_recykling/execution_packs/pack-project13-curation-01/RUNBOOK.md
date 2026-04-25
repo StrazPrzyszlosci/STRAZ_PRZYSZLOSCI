@@ -153,7 +153,7 @@ python3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py val
 
 ## Aktualny status
 
-Pack jest `smoke_tested`:
+Pack jest `real_verified_tested`:
 
 - kontrakt dokumentacyjny jest gotowy,
 - outputy i acceptance criteria sa nazwane,
@@ -161,17 +161,23 @@ Pack jest `smoke_tested`:
 - handoff point do exportu jest czytelny,
 - review checklist definiuje, co znaczy "gotowe do katalogu",
 - execution surface jest dostepny: `scripts/curate_candidates.py` z 7 komendami,
-- smoke-test dry-run na 82 kandydatach z test_db.jsonl przeszedl (33 accepted, 49 rejected, 0 errors walidacyjnych),
-- nadal brakuje stabilnego inputu z verification (verified snapshot + verification report + disagreement log).
+- dry-run na 82 kandydatach z `test_db_verified.jsonl` (realny verified input): 23 accepted (9 confirmed + 14 triage=likely_confirmed), 9 deferred (7 ocr_needed + 2 manual_review), 50 rejected (43 rejected + 7 threshold_tuning),
+- disputed candidates sa teraz rozstrzygane na podstawie triage z verification (likely_confirmed->accept, threshold_tuning->reject, ocr_needed/manual_review->defer),
+- raport curation zawiera triage breakdown, stability assessment i jawne blockers do exportu.
 
 ## Minimalne kryterium sukcesu
 
-Pack bedzie gotowy do pierwszego realnego uruchomienia, gdy:
+Pack spelnia kryteria sukcesu:
 
-- bedzie mial stabilny input z verification (verified snapshot + report + disagreement log),
-- bedzie mial jawny output curation decisions z rationale,
-- reviewer dostanie audit trail zamiast czarnej skrzynki,
-- handoff do packa export bedzie czytelny w PR.
+- ma stabilny input z verification (verified snapshot + report + disagreement log),
+- ma jawny output curation decisions z rationale i triage category,
+- reviewer dostaje audit trail zamiast czarnej skrzynki,
+- handoff do packa export jest czytelny w PR.
+
+Pozostale warunki do domkniecia przed realnym apply:
+
+- 14 auto-promotowanych disputed candidates (triage=likely_confirmed) wymaga ludzkiego potwierdzenia,
+- 9 deferred candidates (7 ocr_needed + 2 manual_review) wymaga rozstrzygniecia.
 
 ## Execution surface
 
@@ -207,11 +213,14 @@ Opcja `--fallback-test-db` pozwala uzyc `test_db.jsonl` zamiast brakujacego veri
 python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py decide
 ```
 
-Stosuje automatyczne decyzje kuracyjne:
+Stosuje automatyczne decyzje kuracyjne z wykorzystaniem triage z verification:
 - `confirmed` z waznym MPN -> `accept` z rationale,
-- `disputed` -> `defer` z rationale (wymaga manualnego review),
+- `disputed` + triage=`likely_confirmed` -> `accept` (auto-promote per triage recommendation),
+- `disputed` + triage=`threshold_tuning` -> `reject` (part_number nie jest waznym MPN),
+- `disputed` + triage=`ocr_needed` -> `defer` (wymaga OCR frame check z GEMINI_API_KEY),
+- `disputed` + triage=`manual_review` -> `defer` (wymaga ludzkiego review),
 - `rejected` lub niewazny MPN -> `reject` z rationale,
-- zapisuje `curation_decisions.jsonl` z pelnym audit trail (candidate_id, decision, rationale, verification_status, provenance, decided_at).
+- zapisuje `curation_decisions.jsonl` z pelnym audit trail (candidate_id, decision, rationale, verification_status, triage_category, provenance, decided_at).
 
 ### `apply` — zapis do kanonicznego katalogu
 

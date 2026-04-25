@@ -20,9 +20,58 @@ fork -> Kaggle notebook -> branch na forku -> PR -> review -> merge
 
 ## Wymagane sekrety
 
-- `GITHUB_PAT`: token z uprawnieniem pushu do Twojego forka
-- `YOUTUBE_API_KEY`: klucz do YouTube Data API
-- `GEMINI_API_KEY`: klucz do analizy multimodalnej
+Pack wymaga trzech sekretow. Szczegolowa instrukcja, skad wziasc kazdy klucz, znajduje sie w `PROJEKTY/13_baza_czesci_recykling/README.md` sekcja "Jak ustawic sekrety". Plik `.env.example` w katalogu projektu zawiera gotowy szablon.
+
+### `GITHUB_PAT` — token pushu do Twojego forka
+
+1. Wejdz na https://github.com/settings/tokens?type=beta (Fine-grained tokens).
+2. Kliknij **Generate new token**.
+3. Nadaj nazwe, np. `kaggle-pack-push`.
+4. W **Repository access** wybierz **Only select repositories** i wskaz swoj fork.
+5. W **Permissions > Repository permissions** ustaw **Contents: Read and write**.
+6. Wygeneruj token i skopiuj wartosc.
+
+Alternatywa (legacy): https://github.com/settings/tokens ze scope `repo`.
+
+### `YOUTUBE_API_KEY` — klucz do YouTube Data API v3
+
+1. Wejdz na https://console.cloud.google.com/.
+2. Utworz projekt (lub wybierz istniejacy).
+3. Przejdz do **APIs & Services > Library** i wlacz **YouTube Data API v3**.
+4. Przejdz do **APIs & Services > Credentials** i kliknij **Create Credentials > API key**.
+5. Skopiuj klucz. Opcjonalnie ogranicz go do YouTube Data API v3 (**Restrict key**).
+
+Darmowa quota: ok. 10 000 jednostek/dobe; jeden search = 100 jednostek.
+
+### `GEMINI_API_KEY` — klucz do Gemini API (analiza multimodalna, OCR klatek)
+
+1. Wejdz na https://aistudio.google.com/apikey.
+2. Zaloguj sie kontem Google.
+3. Kliknij **Create API key** albo **Get API key**.
+4. Wybierz projekt Google Cloud (lub utworz nowy).
+5. Skopiuj klucz.
+
+Darmowy tier: limity requests/min i tokens/min — patrz https://ai.google.dev/pricing.
+
+### Lokalny plik `.env`
+
+Skopiuj szablon i uzupelnij wartosci:
+
+```bash
+cp PROJEKTY/13_baza_czesci_recykling/.env.example PROJEKTY/13_baza_czesci_recykling/.env
+```
+
+Nigdy nie commituj pliku `.env` do repozytorium — jest w `.gitignore`.
+
+### Przeniesienie do Kaggle Secrets
+
+Te same wartosci z `.env` musisz dodac w UI Kaggle:
+
+1. W otwartym notebooku kliknij w pasku bocznym ikone klucza (**Add-ons > Secrets**).
+2. Kliknij **+ Add Secret**.
+3. Dodaj sekret o nazwie `GITHUB_PAT` z wartoscia z Twojego `.env`.
+4. Powtorz dla `YOUTUBE_API_KEY` i `GEMINI_API_KEY`.
+5. Nazwy w Kaggle Secrets musza byc dokladnie takie same jak wyzej — notebook odczyta je przez `kaggle_secrets.UserSecretClient()`.
 
 Nie zapisuj tych sekretow w repozytorium ani w tresci PR.
 
@@ -163,6 +212,16 @@ Helper zapisze rekord `Artifact` w katalogu:
 - nie commituj sekretow ani pelnych URL-i z tokenem
 - nie podmieniaj autora commita na maintainera lub inna osobe
 - nie promuj wynikow bez raportu runu i jawnego PR
+
+## Krok 10. Co zrobic, gdy cos pojdzie nie tak
+
+Jesli notebook zawiesi sie, zwroci blad albo wynik bedzie pusty:
+
+1. Przeczytaj `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_FALLBACK_GUIDE.md`.
+2. Jesli nie wiesz, co zrobic, przerwij i zglos problem przez GitHub Issue z labelka `volunteer-support`.
+3. Mozesz przerwac w dowolnym momencie — to jest dobrowolna praca.
+
+Warunki udzialu sa opisane w `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_TERMS_OF_PARTICIPATION.md`. Uruchomienie notebooka oznacza, ze znasz i akceptujesz te warunki.
 
 ## Minimalne kryterium sukcesu
 

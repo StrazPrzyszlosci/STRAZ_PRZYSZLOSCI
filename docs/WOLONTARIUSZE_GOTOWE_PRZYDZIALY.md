@@ -40,15 +40,18 @@ Lokalny agent ma wejsc tutaj, wybrac pierwszy pasujacy przydzial i poprowadzic w
   - `YOUTUBE_API_KEY`
   - `GEMINI_API_KEY`
 - Czytaj najpierw:
-  - `PROJEKTY/13_baza_czesci_recykling/README.md`
-  - `PROJEKTY/13_baza_czesci_recykling/docs/MODEL_WOLONTARIACKICH_NOTEBOOKOW_KAGGLE.md`
-  - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md`
+- `PROJEKTY/13_baza_czesci_recykling/README.md` (sekcja "Jak ustawic sekrety")
+- `PROJEKTY/13_baza_czesci_recykling/.env.example`
+- `PROJEKTY/13_baza_czesci_recykling/docs/MODEL_WOLONTARIACKICH_NOTEBOOKOW_KAGGLE.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_TERMS_OF_PARTICIPATION.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_FALLBACK_GUIDE.md`
+- `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md`
 - Wynik koncowy:
   - branch i `PR` z forka wolontariusza do upstream dla packa `pack-project13-kaggle-enrichment-01`
 - Rola lokalnego agenta:
-  - przeprowadzic setup
-  - pilnowac bezpieczenstwa sekretow
-  - przygotowac opis `PR` i dopiecie `Artifact`
+- przeprowadzic setup sekretow (instrukcja w `PROJEKTY/13_baza_czesci_recykling/README.md` sekcja "Jak ustawic sekrety")
+- pilnowac bezpieczenstwa sekretow
+- przygotowac opis `PR` i dopiecie `Artifact`
 
 ### `VOL-P13-02` Lokalny dry-run i audyt tarcia `Project 13`
 
@@ -61,6 +64,7 @@ Lokalny agent ma wejsc tutaj, wybrac pierwszy pasujacy przydzial i poprowadzic w
 - Czytaj najpierw:
   - `PROJEKTY/13_baza_czesci_recykling/README.md`
   - `PROJEKTY/13_baza_czesci_recykling/docs/PUBLIC_VOLUNTEER_RUN_READINESS.md`
+  - `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_FALLBACK_GUIDE.md`
   - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md`
 - Wynik koncowy:
   - `Issue` albo `PR` z tarciem onboardingowym, niejasnymi krokami i wynikiem lokalnego dry-runu

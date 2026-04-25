@@ -9,7 +9,9 @@
 - `fork_owner`:
 - `branch_name`:
 - `verification_run_timestamp_utc`:
-- `execution_surface`:
+- `execution_surface`: `scripts/verify_candidates.py`
+- `run_command`: (e.g. `python3 scripts/verify_candidates.py run`)
+- `ocr_enabled`: (true/false)
 
 ## Outputs
 

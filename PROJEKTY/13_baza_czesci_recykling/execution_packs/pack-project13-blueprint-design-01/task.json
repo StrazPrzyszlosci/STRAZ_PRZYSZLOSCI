@@ -1,0 +1,10 @@
+{
+  "schema_version": "v1",
+  "task_id": "task-project13-blueprint-design-01",
+  "pack_id": "pack-project13-blueprint-design-01",
+  "assignee_mode": "agent_only",
+  "requested_by": "maintainer",
+  "status": "pending",
+  "created_at": "2026-04-24T00:00:00Z",
+  "updated_at": "2026-04-24T00:00:00Z"
+}
