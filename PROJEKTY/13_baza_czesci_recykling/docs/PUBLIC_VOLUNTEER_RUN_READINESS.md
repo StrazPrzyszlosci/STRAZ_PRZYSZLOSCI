@@ -25,11 +25,20 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 
 | Sekret | Potrzebny? | Kto ustawia? | Uwagi |
 |--------|-----------|-------------|-------|
-| `GITHUB_PAT` | TAK | Wolontariusz | Push do forka; nie wolno zapisac w repo; instrukcja: `README.md` sekcja "Jak ustawic sekrety" |
-| `YOUTUBE_API_KEY` | TAK | Wolontariusz | Wyszukiwanie kandydatow filmow; instrukcja: `README.md` sekcja "Jak ustawic sekrety" |
-| `GEMINI_API_KEY` | TAK | Wolontariusz | Analiza multimodalna, OCR klatek; instrukcja: `README.md` sekcja "Jak ustawic sekrety" |
+| `GITHUB_PAT` | TAK | Wolontariusz | Push do forka; nie wolno zapisac w repo; instrukcja: `README.md` sekcja "Jak ustawic sekrety"; scope: Fine-grained Contents=R+W albo classic repo |
+| `YOUTUBE_API_KEY` | TAK | Wolontariusz | Wyszukiwanie kandydatow filmow; instrukcja: `README.md` sekcja "Jak ustawic sekrety"; quota: ~10 000 jednostek/dobe |
+| `GEMINI_API_KEY` | TAK | Wolontariusz | Analiza multimodalna, OCR klatek; instrukcja: `README.md` sekcja "Jak ustawic sekrety"; limity RPM/TPM na darmowym tierze |
 
-**Status: GOTOWE** — publiczna instrukcja setupu sekretow znajduje sie w `PROJEKTY/13_baza_czesci_recykling/README.md` sekcja "Jak ustawic sekrety". Plik `.env.example` zawiera szablon z krok po kroku opisem pozyskania kazdego klucza i przeniesienia do Kaggle Secrets. RUNBOOK.md krok 3 odsyla do tej instrukcji. Otwarte pozostaja: weryfikacja scope `GITHUB_PAT` w notebooku oraz pre-flight check quota YouTube/Gemini (do decyzji operatora).
+**Status: GOTOWE** — publiczna instrukcja setupu sekretow znajduje sie w `PROJEKTY/13_baza_czesci_recykling/README.md` sekcja "Jak ustawic sekrety". Plik `.env.example` zawiera szablon z krok po kroku opisem pozyskania kazdego klucza i przeniesienia do Kaggle Secrets. RUNBOOK.md krok 3 odsyla do tej instrukcji.
+
+### 1.2a Pre-flight check
+
+| Element | Status | Uwagi |
+|---------|--------|-------|
+| Skrypt pre-flight `preflight_check.py` | GOTOWE | Sprawdza: `.env`, obecnosc sekretow, pliki projektu, smoke notebooka, format GITHUB_PAT |
+| Jawna checklist reczna (scope, quota, Kaggle) | GOTOWE | `VOLUNTEER_PREFLIGHT_CHECKLIST.md` — scope GITHUB_PAT, quota YouTube/Gemini, runtime Kaggle |
+| Weryfikacja scope GITHUB_PAT | RECZNA | Skrypt sprawdza format tokenu, ale scope trzeba potwierdzic recznie na https://github.com/settings/tokens |
+| Pre-flight check quota YouTube/Gemini | RECZNA | Quota nie da sie sprawdzic offline; wolontariusz musi potwierdzic recznie w konsoli Google Cloud i na https://ai.google.dev/pricing |
 
 ### 1.3 Zaleznosci runtime
 
@@ -66,7 +75,7 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 
 ## 3. Gotowosc review
 
-### 3.1 Review Checklist
+### 3.1 Review Checklist i Review Enforcement
 
 | Element | Status | Uwagi |
 |---------|--------|-------|
@@ -74,6 +83,10 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 | Reviewer jest zdefiniowany | CZESCIOWO | `community_curator` jako rola, ale brak konkretnej osoby na pierwsze review |
 | Sciezka approval jest jawna | CZESCIOWO | Baseline governance jest juz opisana w `docs/REVIEW_ROTATION_GOVERNANCE.md`, ale nadal trzeba nazwac konkretnego approvera dla pierwszego publicznego PR |
 | Rotacja review | CZESCIOWO | Baseline governance jest juz opisana w `docs/REVIEW_ROTATION_GOVERNANCE.md`, ale nadal trzeba nazwac konkretna pule reviewerow i approvera dla pierwszego pilota |
+| `.github/CODEOWNERS` istnieje | GOTOWE | Baseline z mapowaniem sciezek na role review; loginy `DO_UZUPELNIENIA` — maintainer musi uzupelnic |
+| CODEOWNERS loginy uzupelnione | DO POTWIERDZENIA | Maintainer musi zamienic `@DO_UZUPELNIENIA_*` na loginy GitHub; patrz `REVIEW_ENFORCEMENT_BASELINE.md` krok 1 |
+| `require_code_owner_reviews` wlaczone | DO POTWIERDZENIA | Wymaga: (1) uzupelnienia CODEOWNERS, (2) wlaczenia opcji w branch protection; patrz `BRANCH_PROTECTION_OPERATOR_PACKET.md` |
+| Dokument review enforcement | GOTOWE | `REVIEW_ENFORCEMENT_BASELINE.md` opisuje, jak CODEOWNERS, secret scan i branch protection sie uzupelniaja |
 
 ### 3.2 Provenance
 
@@ -130,7 +143,7 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 | Wynik jest pusty albo bledny | niski | rebuild report i skipped log | GOTOWE |
 | Wolontariusz zglasza problem i nie ma odpowiedzi | wysoki | kanal komunikacji | CZESCIOWO — Issue template istnieje, ale brak kanalu na zywo; cel 48h odpowiedzi |
 | Recenzent nie jest dostepny | sredni | zasada rotacji review + wyznaczenie backup reviewera przed pilotem | CZESCIOWO — governance jest opisana, ale brak jeszcze nazwanych osob do pierwszego pilota |
-| PR omija review | niski | branch protection | CZESCIOWO — operator packet istnieje (`BRANCH_PROTECTION_OPERATOR_PACKET.md`), ale maintainer musi jeszcze wykonac weryfikacje i potwierdzic recznie |
+| PR omija review | niski | branch protection + CODEOWNERS | CZESCIOWO — operator packet istnieje (`BRANCH_PROTECTION_OPERATOR_PACKET.md`), CODEOWNERS istnieje (`.github/CODEOWNERS`), ale maintainer musi jeszcze wykonac weryfikacje branch protection i uzupelnic loginy w CODEOWNERS |
 | Zawlaszczenie pracy wolontariusza | niski | fork flow + jawny PR + provenance | GOTOWE |
 
 ---
@@ -154,7 +167,10 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 - Notebook dziala na prawdziwym runtime Kaggle bez bledow wersji pakietow
 - Wolontariusz potrafi przejsc przez runbook bez pomocy maintainera
 - Sekrety sa prawidlowo ustawione w Kaggle Secrets (instrukcja dostepna w README.md i .env.example; pozostaje do potwierdzenia realne wykonanie przez wolontariusza)
+- Scope `GITHUB_PAT` jest prawidlowy (pre-flight skrypt sprawdza format; scope trzeba potwierdzic recznie — patrz `VOLUNTEER_PREFLIGHT_CHECKLIST.md` sekcja 2)
+- Quota YouTube i Gemini jest wystarczajaca (nie da sie sprawdzic offline — patrz `VOLUNTEER_PREFLIGHT_CHECKLIST.md` sekcje 3 i 4)
 - Branch protection na upstream jest wlaczona (operator packet: `BRANCH_PROTECTION_OPERATOR_PACKET.md`; maintainer musi wykonac weryfikacje)
+- CODEOWNERS loginy sa uzupelnione (`.github/CODEOWNERS` istnieje z `@DO_UZUPELNIENIA_*`; maintainer musi zamienic na loginy GitHub — patrz `REVIEW_ENFORCEMENT_BASELINE.md` krok 1)
 - Recenzent pierwszego PR jest wyznaczony i dostepny
 
 ### NIE GOTOWE (wymaga pracy przed publicznym runem)
@@ -174,6 +190,11 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 - ~~**Instrukcja setupu sekretow dla wolontariusza**~~ — GOTOWE: `README.md` sekcja "Jak ustawic sekrety" + `.env.example` + RUNBOOK.md krok 3 z detalami Kaggle Secrets
 - ~~**Automatyczne skanowanie PR na obecnosc sekretow**~~ — GOTOWE: workflow `pr_secret_scan.yml` (GitHub Actions) + lokalny skrypt `scripts/scan_pr_secrets.py`; REVIEW_CHECKLIST.md zaktualizowany
 - ~~**Operator packet dla branch protection**~~ — GOTOWE: `BRANCH_PROTECTION_OPERATOR_PACKET.md` z krok po kroku instrukcja weryfikacji i wlaczenia protection na `main`
+- ~~**Pre-flight check dla wolontariusza**~~ — GOTOWE: skrypt `scripts/preflight_check.py` + `VOLUNTEER_PREFLIGHT_CHECKLIST.md` z reczna checklist scope i quota
+- ~~**Weryfikacja scope GITHUB_PAT**~~ — CZESCIOWO→RECZNA: skrypt pre-flight sprawdza format tokenu, ale scope trzeba potwierdzic recznie; instrukcja w `VOLUNTEER_PREFLIGHT_CHECKLIST.md` sekcja 2
+- ~~**Pre-flight check quota YouTube/Gemini**~~ — NIE GOTOWE→RECZNA: quota nie da sie sprawdzic offline; wolontariusz dostaje jawna instrukcje w `VOLUNTEER_PREFLIGHT_CHECKLIST.md` sekcje 3 i 4
+- ~~**CODEOWNERS**~~ — NIE ISTNIAL→GOTOWE: `.github/CODEOWNERS` z baseline mapowaniem sciezek na role review; loginy `DO_UZUPELNIENIA`
+- ~~**Review enforcement baseline**~~ — NIE ISTNIAL→GOTOWE: `REVIEW_ENFORCEMENT_BASELINE.md` opisuje, jak CODEOWNERS, secret scan i branch protection sie uzupelniaja; instrukcja aktywacji dla maintainera
 
 ---
 
@@ -193,10 +214,17 @@ Pierwszy publiczny run powinien byc traktowany jako **controlled pilot**, a nie 
 
 - `PROJEKTY/13_baza_czesci_recykling/README.md`
 - `PROJEKTY/13_baza_czesci_recykling/docs/MODEL_WOLONTARIACKICH_NOTEBOOKOW_KAGGLE.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md`
+- `PROJEKTY/13_baza_czesci_recykling/scripts/preflight_check.py`
 - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md`
 - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/manifest.json`
 - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/REVIEW_CHECKLIST.md`
 - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/integrity_risk_assessment.json`
 - `PROJEKTY/13_baza_czesci_recykling/execution_packs/CHAIN_MAP.md`
 - `docs/HANDOFF_DLA_NASTEPNEGO_AGENTA_2026-04-22.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/REVIEW_ENFORCEMENT_BASELINE.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/BRANCH_PROTECTION_OPERATOR_PACKET.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/PILOT_REVIEW_ASSIGNMENT_AND_APPROVAL_PATH.md`
+- `.github/CODEOWNERS`
+- `.github/workflows/pr_secret_scan.yml`
 - `docs/REVIEW_ROTATION_GOVERNANCE.md`

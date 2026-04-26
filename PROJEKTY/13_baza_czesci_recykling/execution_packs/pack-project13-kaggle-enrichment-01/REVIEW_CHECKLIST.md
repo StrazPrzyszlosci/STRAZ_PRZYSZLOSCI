@@ -11,3 +11,4 @@
 - [ ] `rebuild_autonomous_outputs_skipped.jsonl` jest spojny z rebuild report i pozwala przejrzec odrzucone rekordy
 - [ ] autorstwo commita i branch sa zgodne z wolontariuszem wykonujacym run
 - [ ] PR nie omija normalnego review ani promocji do kanonicznego katalogu
+- [ ] Wymagany review owner z `.github/CODEOWNERS` zatwierdzil zmiane (jesli `require_code_owner_reviews` jest wlaczone)

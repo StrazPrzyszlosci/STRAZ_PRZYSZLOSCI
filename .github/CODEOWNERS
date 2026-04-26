@@ -1,0 +1,77 @@
+# CODEOWNERS — Review Ownership Baseline
+#
+# Reguly review ownership dla repo STRAZ_POLSKIEGO_Ai.
+# Ten plik wspiera review enforcement razem z:
+#   - branch protection (patrz PROJEKTY/13_baza_czesci_recykling/docs/BRANCH_PROTECTION_OPERATOR_PACKET.md)
+#   - secret scan (patrz .github/workflows/pr_secret_scan.yml)
+#   - review rotation governance (patrz docs/REVIEW_ROTATION_GOVERNANCE.md)
+#
+# Zmiany w sciezkach ponizej wymagaja review od wskazanych wlascicieli.
+# Jesli maintainer nie uzupelnil jeszcze loginow GitHub, zmiana wymaga
+# review od co najmniej jednego czlonka organizacji.
+#
+# Instrukcja dla maintainera: zamien @DO_UZUPELNIENIA na loginy GitHub
+# osob pelniacych role zdefiniowane w
+# PROJEKTY/13_baza_czesci_recykling/docs/PILOT_REVIEW_ASSIGNMENT_AND_APPROVAL_PATH.md
+# sekcja 2.1.
+
+# ── Project 13: execution packi ──────────────────────────────────────
+# Zmiany w packach, manifestach, runbookach i review checklistach
+# wymagaja review od primary_pack_reviewer.
+
+PROJEKTY/13_baza_czesci_recykling/execution_packs/  @DO_UZUPELNIENIA_primary_pack_reviewer
+
+# ── Project 13: skrypty i pipeline ──────────────────────────────────
+# Skrypty wykonawcze, finalizery, rebuild, pre-flight, scan
+# wymagaja review od primary_pack_reviewer.
+
+PROJEKTY/13_baza_czesci_recykling/scripts/          @DO_UZUPELNIENIA_primary_pack_reviewer
+PROJEKTY/13_baza_czesci_recykling/pipelines/         @DO_UZUPELNIENIA_primary_pack_reviewer
+
+# ── Project 13: dane kanoniczne ─────────────────────────────────────
+# Zmiany w kanonicznym katalogu czesci i donorow
+# wymagaja review od integrity_reviewer.
+
+PROJEKTY/13_baza_czesci_recykling/data/              @DO_UZUPELNIENIA_integrity_reviewer
+PROJEKTY/13_baza_czesci_recykling/schemas/           @DO_UZUPELNIENIA_integrity_reviewer
+
+# ── Project 13: dokumentacja governance i onboarding ────────────────
+# Zmiany w dokumentacji governance, review path, readiness,
+# terms of participation, fallback guide
+# wymagaja review od integrity_reviewer.
+
+PROJEKTY/13_baza_czesci_recykling/docs/BRANCH_PROTECTION_OPERATOR_PACKET.md   @DO_UZUPELNIENIA_integrity_reviewer
+PROJEKTY/13_baza_czesci_recykling/docs/PILOT_REVIEW_ASSIGNMENT_AND_APPROVAL_PATH.md @DO_UZUPELNIENIA_integrity_reviewer
+PROJEKTY/13_baza_czesci_recykling/docs/PUBLIC_VOLUNTEER_RUN_READINESS.md      @DO_UZUPELNIENIA_integrity_reviewer
+PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_TERMS_OF_PARTICIPATION.md    @DO_UZUPELNIENIA_integrity_reviewer
+PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_FALLBACK_GUIDE.md            @DO_UZUPELNIENIA_integrity_reviewer
+PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md       @DO_UZUPELNIENIA_integrity_reviewer
+PROJEKTY/13_baza_czesci_recykling/docs/REVIEW_ENFORCEMENT_BASELINE.md         @DO_UZUPELNIENIA_integrity_reviewer
+
+# ── Governance repo ─────────────────────────────────────────────────
+# Zmiany w governance, review rotation, codeowners, workflows CI
+# wymagaja review od integrity_reviewer.
+
+docs/REVIEW_ROTATION_GOVERNANCE.md                   @DO_UZUPELNIENIA_integrity_reviewer
+docs/AGENTY_PODWYKONAWCZE/                           @DO_UZUPELNIENIA_integrity_reviewer
+.github/CODEOWNERS                                   @DO_UZUPELNIENIA_integrity_reviewer
+.github/workflows/                                   @DO_UZUPELNIENIA_integrity_reviewer
+
+# ── Wolontariusze ───────────────────────────────────────────────────
+# Zmiany w kanonicznym przydziale wolontariuszy
+# wymagaja review od integrity_reviewer.
+
+docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md              @DO_UZUPELNIENIA_integrity_reviewer
+
+# ── D1 / Worker / Backend ───────────────────────────────────────────
+# Zmiany w workerze, D1 schema i deploy
+# wymagaja review od approvera.
+
+workers/                                             @DO_UZUPELNIENIA_approver
+data/d1_schema.sql                                   @DO_UZUPELNIENIA_approver
+
+# ── Domyslne ────────────────────────────────────────────────────────
+# Wszystkie inne zmiany wymagaja review od co najmniej jednego
+# czlonka organizacji (branch protection wymaga min. 1 approval).
+
+*                                                    @DO_UZUPELNIENIA_approver

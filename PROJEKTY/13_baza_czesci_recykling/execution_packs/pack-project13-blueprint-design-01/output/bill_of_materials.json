@@ -1,0 +1,71 @@
+{
+  "brief_id": "brief-wifi-temp-sensor-01",
+  "device_name": "Czujnik temperatury Wi-Fi z ESP8266",
+  "items": [
+    {
+      "part_slug": "esp8266ex",
+      "quantity": "1",
+      "source": "reuse_catalog",
+      "part_name": "ESP8266EX",
+      "species": "IC",
+      "genus": "MCU"
+    },
+    {
+      "part_slug": "lm7805-regulator",
+      "quantity": "1",
+      "source": "reuse_catalog",
+      "part_name": "7805",
+      "species": "IC",
+      "genus": "Power"
+    },
+    {
+      "part_slug": "resistor-100k-0805",
+      "quantity": "2",
+      "source": "reuse_catalog",
+      "part_name": "100K Resistor",
+      "species": "Resistor",
+      "genus": "Passive"
+    },
+    {
+      "part_slug": "missing-termistor-ntc-10k",
+      "quantity": "1",
+      "source": "missing",
+      "part_name": "Termistor NTC 10k",
+      "species": "",
+      "genus": "",
+      "required_param": "10k, B=3950",
+      "donor_available": "TAK — popularny w starych termostatach",
+      "notes": "Brak w katalogu, ale czesty w elektroodpadach"
+    },
+    {
+      "part_slug": "missing-modul-esp8266-na-plytce-deweloperskiej",
+      "quantity": "1",
+      "source": "missing",
+      "part_name": "Modul ESP8266 na plytce deweloperskiej",
+      "species": "",
+      "genus": "",
+      "required_param": "GPIO, ADC, Wi-Fi",
+      "donor_available": "TAK — z odzyskanych routerow/IoT",
+      "notes": "Uzyty jako czarna skrzynka, bez lutowania samego QFN"
+    },
+    {
+      "part_slug": "missing-rezystor-10k-do-dzielnika-ntc",
+      "quantity": "1",
+      "source": "missing",
+      "part_name": "Rezystor 10k do dzielnika NTC",
+      "species": "",
+      "genus": "",
+      "required_param": "10k, 0805",
+      "donor_available": "TAK",
+      "notes": "Brak w katalogu, ale powszechny"
+    }
+  ],
+  "summary": {
+    "total_items": 6,
+    "reuse_catalog": 3,
+    "missing_from_catalog": 0,
+    "missing": 3
+  },
+  "dry_run": true,
+  "generated_at": "2026-04-26T15:45:53+00:00"
+}

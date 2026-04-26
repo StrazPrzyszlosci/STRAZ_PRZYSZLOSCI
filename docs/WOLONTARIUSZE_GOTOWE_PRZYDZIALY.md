@@ -40,6 +40,7 @@ Lokalny agent ma wejsc tutaj, wybrac pierwszy pasujacy przydzial i poprowadzic w
   - `YOUTUBE_API_KEY`
   - `GEMINI_API_KEY`
 - Czytaj najpierw:
+- `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md`
 - `PROJEKTY/13_baza_czesci_recykling/README.md` (sekcja "Jak ustawic sekrety")
 - `PROJEKTY/13_baza_czesci_recykling/.env.example`
 - `PROJEKTY/13_baza_czesci_recykling/docs/MODEL_WOLONTARIACKICH_NOTEBOOKOW_KAGGLE.md`
@@ -49,6 +50,7 @@ Lokalny agent ma wejsc tutaj, wybrac pierwszy pasujacy przydzial i poprowadzic w
 - Wynik koncowy:
   - branch i `PR` z forka wolontariusza do upstream dla packa `pack-project13-kaggle-enrichment-01`
 - Rola lokalnego agenta:
+- uruchomic pre-flight check: `python3 PROJEKTY/13_baza_czesci_recykling/scripts/preflight_check.py`
 - przeprowadzic setup sekretow (instrukcja w `PROJEKTY/13_baza_czesci_recykling/README.md` sekcja "Jak ustawic sekrety")
 - pilnowac bezpieczenstwa sekretow
 - przygotowac opis `PR` i dopiecie `Artifact`
@@ -62,7 +64,8 @@ Lokalny agent ma wejsc tutaj, wybrac pierwszy pasujacy przydzial i poprowadzic w
   - `python3`
   - fork repo albo lokalna kopia
 - Czytaj najpierw:
-  - `PROJEKTY/13_baza_czesci_recykling/README.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md`
+- `PROJEKTY/13_baza_czesci_recykling/README.md`
   - `PROJEKTY/13_baza_czesci_recykling/docs/PUBLIC_VOLUNTEER_RUN_READINESS.md`
   - `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_FALLBACK_GUIDE.md`
   - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md`

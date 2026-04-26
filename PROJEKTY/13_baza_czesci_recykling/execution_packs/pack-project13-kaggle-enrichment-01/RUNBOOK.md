@@ -75,6 +75,30 @@ Te same wartosci z `.env` musisz dodac w UI Kaggle:
 
 Nie zapisuj tych sekretow w repozytorium ani w tresci PR.
 
+## Krok 0. Pre-flight check
+
+Zanim zaczniesz cokolwiek ustawiac, uruchom pre-flight check:
+
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/preflight_check.py
+```
+
+Skrypt sprawdzi:
+
+- czy istnieje plik `.env` z sekretami,
+- czy wymagane pliki projektu sa obecne,
+- czy notebook parsuje sie poprawnie,
+- czy format `GITHUB_PAT` wyglada prawidlowo.
+
+Skrypt NIE sprawdzi (i nie moze):
+
+- scope `GITHUB_PAT` — sprawd recznie na https://github.com/settings/tokens,
+- quota YouTube API — sprawd w Google Cloud Console,
+- quota Gemini API — sprawd na https://ai.google.dev/pricing,
+- dostepnosci darmowego runtime Kaggle.
+
+Jesli pre-flight pokazuje FAIL, popraw te punkty przed kontynuowaniem. Szczegolowa checklist reczna: `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md`.
+
 ## Krok 1. Przygotuj fork
 
 1. Otworz repo upstream `StrazPrzyszlosci/STRAZ_PRZYSZLOSCI`.

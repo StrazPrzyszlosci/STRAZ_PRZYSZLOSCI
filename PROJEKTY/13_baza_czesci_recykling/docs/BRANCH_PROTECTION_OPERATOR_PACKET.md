@@ -126,7 +126,7 @@ Po udanej weryfikacji maintainer powinien:
 
 - **Czy `enforce_admins` ma byc `true`?** Rekomendacja: na czas pilota `false`, po ustabilizowaniu `true`. Decyzja maintainera.
 - **Czy wymagac `secret-scan` jako required status check?** Rekomendacja: tak. Workflow `pr_secret_scan.yml` musi jednak najpierw przejsc na branchu `main` (trzeba zmergeowac workflow przez PR).
-- **Czy wymagac code owner reviews?** Na razie nie — brak pliku `CODEOWNERS`. Do dodania w przyszlej iteracji.
+- **Czy wymagac code owner reviews?** Baseline `CODEOWNERS` istnieje w `.github/CODEOWNERS`. Aby wymusic code owner reviews: (1) uzupelnij loginy `@DO_UZUPELNIENIA_*` na prawdziwe loginy GitHub, (2) wlacz `require_code_owner_reviews: true` w branch protection. Patrz `REVIEW_ENFORCEMENT_BASELINE.md` krok 1 i 2.
 
 ---
 

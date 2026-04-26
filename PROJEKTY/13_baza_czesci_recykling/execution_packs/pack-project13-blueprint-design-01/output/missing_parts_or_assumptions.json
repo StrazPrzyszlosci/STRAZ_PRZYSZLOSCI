@@ -1,0 +1,84 @@
+{
+  "brief_id": "brief-wifi-temp-sensor-01",
+  "entries": [
+    {
+      "kind": "missing_part",
+      "description": "Termistor NTC 10k",
+      "required_param": "10k, B=3950",
+      "donor_available": "TAK — popularny w starych termostatach",
+      "assumption": ""
+    },
+    {
+      "kind": "missing_part",
+      "description": "Modul ESP8266 na plytce deweloperskiej",
+      "required_param": "GPIO, ADC, Wi-Fi",
+      "donor_available": "TAK — z odzyskanych routerow/IoT",
+      "assumption": ""
+    },
+    {
+      "kind": "missing_part",
+      "description": "Rezystor 10k do dzielnika NTC",
+      "required_param": "10k, 0805",
+      "donor_available": "TAK",
+      "assumption": ""
+    },
+    {
+      "kind": "assumption",
+      "description": "1",
+      "required_param": "",
+      "donor_available": "",
+      "assumption": "1"
+    },
+    {
+      "kind": "assumption",
+      "description": "ESP8266 modul deweloperski jest dostepny z odzysku",
+      "required_param": "",
+      "donor_available": "",
+      "assumption": "ESP8266 modul deweloperski jest dostepny z odzysku"
+    },
+    {
+      "kind": "assumption",
+      "description": "2",
+      "required_param": "",
+      "donor_available": "",
+      "assumption": "2"
+    },
+    {
+      "kind": "assumption",
+      "description": "Zasilanie USB jest stale dostepne",
+      "required_param": "",
+      "donor_available": "",
+      "assumption": "Zasilanie USB jest stale dostepne"
+    },
+    {
+      "kind": "assumption",
+      "description": "3",
+      "required_param": "",
+      "donor_available": "",
+      "assumption": "3"
+    },
+    {
+      "kind": "assumption",
+      "description": "MQTT broker istnieje w sieci lokalnej",
+      "required_param": "",
+      "donor_available": "",
+      "assumption": "MQTT broker istnieje w sieci lokalnej"
+    },
+    {
+      "kind": "assumption",
+      "description": "4",
+      "required_param": "",
+      "donor_available": "",
+      "assumption": "4"
+    },
+    {
+      "kind": "assumption",
+      "description": "ADC ESP8266 jest wystarczajacy do odczytu NTC (10-bit, 0-1V)",
+      "required_param": "",
+      "donor_available": "",
+      "assumption": "ADC ESP8266 jest wystarczajacy do odczytu NTC (10-bit, 0-1V)"
+    }
+  ],
+  "dry_run": true,
+  "generated_at": "2026-04-26T15:45:53+00:00"
+}

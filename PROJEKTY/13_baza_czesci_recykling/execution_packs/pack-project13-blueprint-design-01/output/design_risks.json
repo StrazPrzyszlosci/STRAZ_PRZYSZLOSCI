@@ -1,0 +1,56 @@
+{
+  "brief_id": "brief-wifi-temp-sensor-01",
+  "risks": [
+    {
+      "id": "R001",
+      "description": "1",
+      "severity": "medium",
+      "mitigation": "Wymagane reczne review przed promocja do runtime",
+      "dry_run_flag": true
+    },
+    {
+      "id": "R002",
+      "description": "ADC ESP8266 ma tylko 1 kanal i zakres 0-1V — wymaga dzielnika napiecia",
+      "severity": "medium",
+      "mitigation": "Wymagane reczne review przed promocja do runtime",
+      "dry_run_flag": true
+    },
+    {
+      "id": "R003",
+      "description": "2",
+      "severity": "medium",
+      "mitigation": "Wymagane reczne review przed promocja do runtime",
+      "dry_run_flag": true
+    },
+    {
+      "id": "R004",
+      "description": "Wi-Fi na ESP8266 moze byc niestabilny przy malym zasiegu",
+      "severity": "medium",
+      "mitigation": "Wymagane reczne review przed promocja do runtime",
+      "dry_run_flag": true
+    },
+    {
+      "id": "R005",
+      "description": "3",
+      "severity": "medium",
+      "mitigation": "Wymagane reczne review przed promocja do runtime",
+      "dry_run_flag": true
+    },
+    {
+      "id": "R006",
+      "description": "Brak watchdog — ryzyko zawieszenia bez autorestartu",
+      "severity": "medium",
+      "mitigation": "Wymagane reczne review przed promocja do runtime",
+      "dry_run_flag": true
+    },
+    {
+      "id": "R099",
+      "description": "ADC ESP8266 ma tylko 1 kanal i zakres 0-1V — wymaga dzielnika napiecia",
+      "severity": "high",
+      "mitigation": "Dodac dzielnik napiecia w assembly instructions; zweryfikowac zakres sensora",
+      "dry_run_flag": true
+    }
+  ],
+  "dry_run": true,
+  "generated_at": "2026-04-26T15:45:53+00:00"
+}

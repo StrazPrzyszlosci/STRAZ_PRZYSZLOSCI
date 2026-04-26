@@ -36,9 +36,28 @@ Jesli brief nie przechodzi walidacji, pack nie startuje — brakujace pola sa na
 
 ## Komenda glowna
 
-PLACEHOLDER — execution surface nie istnieje jeszcze. Pack jest w statusie `draft`.
+### Dry-run (minimal execution surface)
 
-Docelowo:
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/dry_run_blueprint_design.py \
+  --brief PROJEKTY/13_baza_czesci_recykling/docs/SAMPLE_DESIGN_BRIEF_WIFI_TEMP_SENSOR.md
+```
+
+Opcje:
+
+- `--catalog <path>` — sciezka do kanonicznego katalogu (domyslnie `data/parts_master.jsonl`)
+- `--output-dir <dir>` — katalog wyjsciowy (domyslnie `execution_packs/pack-project13-blueprint-design-01/output/`)
+
+Dry-run generuje 6 artefaktow w `output/`:
+
+1. `design_dossier.md` — uzasadnienie wyboru czesci i opis logiczny
+2. `bill_of_materials.json` — BOM z odniesieniami do katalogu lub oznaczeniem missing
+3. `assembly_instructions.md` — instrukcja montazu (opisowa, nie CAD)
+4. `design_risks.json` — zidentyfikowane ryzyka projektowe
+5. `missing_parts_or_assumptions.json` — czesci brakujace i zalozenia
+6. `dry_run_report.md` — raport z dry-run z checkami
+
+### Docelowy pelny run (niezaimplementowany)
 
 ```bash
 python3 PROJEKTY/13_baza_czesci_recykling/scripts/generate_blueprint.py --brief <brief_id> --catalog data/parts_master.jsonl

@@ -688,6 +688,237 @@ def cmd_decide(args):
     return counts
 
 
+def cmd_review_queue(args):
+    print("=== Curation Review Queue: Generating explicit review queue ===\n")
+
+    decisions = read_jsonl(CURATION_DECISIONS_PATH)
+    if not decisions:
+        print(" No curation decisions found. Run 'decide' first.")
+        return {"queue_entries": 0}
+
+    snapshot_path = Path(args.snapshot) if args.snapshot else VERIFIED_SNAPSHOT_PATH
+    candidates = read_jsonl(snapshot_path) if snapshot_path.exists() else []
+
+    cand_map = {}
+    for idx, rec in enumerate(candidates):
+        cid = rec.get("candidate_id", f"candidate-{idx:04d}")
+        cand_map[cid] = rec
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    queue_entries = []
+
+    for d in decisions:
+        cid = d["candidate_id"]
+        decision = d["decision"]
+        vs = d.get("verification_status", "unknown")
+        tc = d.get("triage_category", "")
+        rationale = d.get("rationale", "")
+
+        rec = cand_map.get(cid, {})
+        part_number = rec.get("part_number", "")
+        part_name = rec.get("part_name", "")
+        device = rec.get("device", "")
+        triage = rec.get("triage", {})
+        status_resolution = rec.get("status_resolution", {})
+        sr_policy = status_resolution.get("policy", "")
+
+        if decision == "accept":
+            if vs == "confirmed" and tc != "likely_confirmed":
+                review_status = "auto_approved"
+                review_note = "Confirmed by verification; no additional review needed"
+            elif tc == "likely_confirmed" or sr_policy == "likely_confirmed_promote_v2":
+                review_status = "pending_human_approval"
+                review_note = "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export"
+            else:
+                review_status = "pending_human_approval"
+                review_note = f"Accepted ({vs}, triage={tc}); requires human approval before export"
+        elif decision == "defer":
+            review_status = "deferred"
+            review_note = f"Deferred ({tc}): {rationale}"
+        elif decision == "reject":
+            review_status = "auto_rejected"
+            review_note = f"Rejected ({vs}): {rationale}"
+        else:
+            review_status = "unknown"
+            review_note = f"Unknown decision: {decision}"
+
+        queue_entries.append({
+            "candidate_id": cid,
+            "part_number": part_number,
+            "part_name": part_name,
+            "device": device,
+            "curation_decision": decision,
+            "verification_status": vs,
+            "triage_category": tc,
+            "status_resolution_policy": sr_policy,
+            "review_status": review_status,
+            "review_note": review_note,
+            "rationale": rationale,
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "queue_added_at": now,
+        })
+
+    pending = [e for e in queue_entries if e["review_status"] == "pending_human_approval"]
+    auto_approved = [e for e in queue_entries if e["review_status"] == "auto_approved"]
+    auto_rejected = [e for e in queue_entries if e["review_status"] == "auto_rejected"]
+    deferred = [e for e in queue_entries if e["review_status"] == "deferred"]
+
+    print(f" Review queue entries: {len(queue_entries)}")
+    print(f"  auto_approved: {len(auto_approved)}")
+    print(f"  pending_human_approval: {len(pending)}")
+    print(f"  auto_rejected: {len(auto_rejected)}")
+    print(f"  deferred: {len(deferred)}")
+
+    if pending:
+        print(f"\n Candidates pending human approval:")
+        for e in pending:
+            print(f"  - {e['part_number']} ({e['part_name']}, {e['device']}) — {e['review_note']}")
+
+    if deferred:
+        print(f"\n Deferred candidates (not in export queue):")
+        for e in deferred:
+            print(f"  - {e['part_number']} ({e['part_name']}, {e['device']}) — {e['review_note']}")
+
+    write_jsonl(REVIEW_QUEUE_PATH, queue_entries)
+    print(f"\n Review queue saved to: {REVIEW_QUEUE_PATH}")
+
+    print(f"\n=== Review Queue complete ===")
+    return {
+        "queue_entries": len(queue_entries),
+        "auto_approved": len(auto_approved),
+        "pending_human_approval": len(pending),
+        "auto_rejected": len(auto_rejected),
+        "deferred": len(deferred),
+    }
+
+
+def cmd_export_gate(args):
+    print("=== Curation Export Gate: Checking export readiness ===\n")
+
+    decisions = read_jsonl(CURATION_DECISIONS_PATH)
+    review_queue = read_jsonl(REVIEW_QUEUE_PATH)
+    snapshot_path = Path(args.snapshot) if args.snapshot else VERIFIED_SNAPSHOT_PATH
+
+    status_resolution = {}
+    if STATUS_RESOLUTION_PACKET_PATH.exists():
+        with open(STATUS_RESOLUTION_PACKET_PATH, "r", encoding="utf-8") as f:
+            status_resolution = json.load(f)
+
+    gate_checks = []
+    blockers = []
+    warnings = []
+
+    pending_approval = [e for e in review_queue if e.get("review_status") == "pending_human_approval"]
+    if not pending_approval:
+        gate_checks.append(("no_pending_approvals", True, "No candidates pending human approval"))
+    else:
+        pns = [e["part_number"] for e in pending_approval]
+        gate_checks.append(("no_pending_approvals", False, f"{len(pending_approval)} candidates pending human approval: {', '.join(pns)}"))
+        blockers.append(f"{len(pending_approval)} accepted candidates still pending human approval: {', '.join(pns)}")
+
+    deferred_entries = [e for e in review_queue if e.get("review_status") == "deferred"]
+    if deferred_entries:
+        pns = [e["part_number"] for e in deferred_entries]
+        gate_checks.append(("no_unresolved_deferrals", False, f"{len(deferred_entries)} deferred candidates: {', '.join(pns)}"))
+        warnings.append(f"{len(deferred_entries)} deferred candidates not in export: {', '.join(pns)}")
+    else:
+        gate_checks.append(("no_unresolved_deferrals", True, "No unresolved deferrals"))
+
+    validate_result = cmd_validate(argparse.Namespace())
+    check_3_pass = validate_result.get("status") == "pass"
+    if check_3_pass:
+        gate_checks.append(("catalog_validation_passes", True, "Catalog validation passed"))
+    else:
+        gate_checks.append(("catalog_validation_passes", False, f"Catalog validation failed: {validate_result.get('errors', 0)} errors"))
+        blockers.append(f"Catalog validation failed with {validate_result.get('errors', 0)} errors")
+
+    human_approvals = [e for e in review_queue if e.get("reviewed_by") is not None and e.get("review_status") == "pending_human_approval"]
+    if not pending_approval:
+        gate_checks.append(("human_review_recorded", True, "No pending approvals require human review"))
+    elif human_approvals:
+        gate_checks.append(("human_review_recorded", True, f"{len(human_approvals)} human reviews recorded"))
+    else:
+        gate_checks.append(("human_review_recorded", False, "No human review approval recorded for pending candidates"))
+        blockers.append("No human review approval recorded for pending candidates")
+
+    if status_resolution:
+        ocr_remaining = len(status_resolution.get("ocr_needed_remaining", []))
+        manual_remaining = len(status_resolution.get("manual_review_remaining", []))
+        if ocr_remaining > 0:
+            warnings.append(f"{ocr_remaining} records still deferred by verification (ocr_needed)")
+        if manual_remaining > 0:
+            warnings.append(f"{manual_remaining} records still deferred by verification (manual_review)")
+
+    all_pass = all(c[1] for c in gate_checks)
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    accepted_count = sum(1 for e in review_queue if e.get("curation_decision") == "accept")
+    deferred_count = sum(1 for e in review_queue if e.get("curation_decision") == "defer")
+    rejected_count = sum(1 for e in review_queue if e.get("curation_decision") == "reject")
+
+    packet = {
+        "generated_at": now,
+        "gate_result": "OPEN" if all_pass else "BLOCKED",
+        "gate_checks": [{"check": c[0], "pass": c[1], "detail": c[2]} for c in gate_checks],
+        "blockers": blockers,
+        "warnings": warnings,
+        "queue_summary": {
+            "accept": accepted_count,
+            "defer": deferred_count,
+            "reject": rejected_count,
+            "pending_human_approval": len(pending_approval),
+            "auto_approved": sum(1 for e in review_queue if e.get("review_status") == "auto_approved"),
+        },
+        "status_resolution_ref": str(STATUS_RESOLUTION_PACKET_PATH) if status_resolution else None,
+        "next_steps": [],
+    }
+
+    if all_pass:
+        packet["next_steps"].append("Export gate is OPEN. Run: python3 scripts/build_catalog_artifacts.py export-all")
+        packet["next_steps"].append("Then validate: python3 scripts/build_catalog_artifacts.py validate")
+    else:
+        packet["next_steps"].append(f"Resolve {len(blockers)} blocker(s) before export:")
+        for b in blockers:
+            packet["next_steps"].append(f"  - {b}")
+        if pending_approval:
+            packet["next_steps"].append("To approve pending candidates, update curation_review_queue.jsonl: set reviewed_by and reviewed_at for each pending entry, then re-run export-gate")
+
+    write_json(EXPORT_GATE_PACKET_PATH, packet)
+
+    print(f" Export gate result: {'OPEN' if all_pass else 'BLOCKED'}")
+    print(f"\n Gate checks:")
+    for check_name, passed, detail in gate_checks:
+        mark = "PASS" if passed else "FAIL"
+        print(f"  [{mark}] {check_name}: {detail}")
+
+    if blockers:
+        print(f"\n Blockers ({len(blockers)}):")
+        for b in blockers:
+            print(f"  - {b}")
+
+    if warnings:
+        print(f"\n Warnings ({len(warnings)}):")
+        for w in warnings:
+            print(f"  - {w}")
+
+    print(f"\n Next steps:")
+    for step in packet["next_steps"]:
+        print(f"  {step}")
+
+    print(f"\n Export gate packet saved to: {EXPORT_GATE_PACKET_PATH}")
+
+    print(f"\n=== Export Gate complete ===")
+    return {
+        "gate_result": packet["gate_result"],
+        "blockers": len(blockers),
+        "warnings": len(warnings),
+        "checks": len(gate_checks),
+    }
+
+
 def cmd_apply(args):
     print("=== Curation Apply: Writing accepted candidates to canonical catalog ===\n")
 

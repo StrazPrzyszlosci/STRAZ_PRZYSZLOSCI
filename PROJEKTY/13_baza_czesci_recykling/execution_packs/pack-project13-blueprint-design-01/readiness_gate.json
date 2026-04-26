@@ -6,7 +6,7 @@
     "entity_id": "pack-project13-blueprint-design-01"
   },
   "gate_kind": "pack_ready",
-  "status": "pending",
-  "notes": "Pack jest w statusie draft — brak execution surface. Gate bedzie pass po implementacji skryptu generujacego design dossier i BOM.",
-  "checked_at": "2026-04-24T00:00:00Z"
+  "status": "conditional",
+  "notes": "Pack ma minimalny dry-run execution surface (dry_run_blueprint_design.py). Dry-run generuje review-ready artefakty na poprawnym briefie, ale pelny execution surface (generate_blueprint.py) nie istnieje. Gate jest conditional — dry-run przechodzi, pelny run jeszcze nie.",
+  "checked_at": "2026-04-26T00:00:00Z"
 }

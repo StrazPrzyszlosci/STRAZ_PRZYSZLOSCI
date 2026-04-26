@@ -62,7 +62,7 @@
     "Promowanie projektu do runtime bez IntegrityRiskAssessment i ReadinessGate(integrity_ready)."
   ],
   "target_output_kind": "pull_request",
-  "status": "draft",
+  "status": "dry_run_ready",
   "input_contracts": {
     "design_brief": "PROJEKTY/13_baza_czesci_recykling/docs/DESIGN_BRIEF_TEMPLATE.md",
     "design_brief_schema": "PROJEKTY/13_baza_czesci_recykling/schemas/design_brief.schema.json",
@@ -88,5 +88,12 @@
   },
   "governance_variant": "A",
   "created_at": "2026-04-24T00:00:00Z",
-  "updated_at": "2026-04-25T00:00:00Z"
+  "dry_run_surface": {
+        "script": "PROJEKTY/13_baza_czesci_recykling/scripts/dry_run_blueprint_design.py",
+        "command": "python3 PROJEKTY/13_baza_czesci_recykling/scripts/dry_run_blueprint_design.py --brief <brief_file>",
+        "description": "Minimal dry-run execution surface: waliduje brief, parsuje reuse parts z sekcji 6, dopasowuje do kanonicznego katalogu, generuje 5 review-ready artefaktow + dry-run report. Nie generuje CAD ani nie udaje gotowosci hardware.",
+        "added_by": "zadanie_27",
+        "added_at": "2026-04-26T00:00:00Z"
+    },
+    "updated_at": "2026-04-26T00:00:00Z"
 }

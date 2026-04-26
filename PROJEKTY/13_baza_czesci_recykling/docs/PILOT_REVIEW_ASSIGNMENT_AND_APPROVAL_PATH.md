@@ -157,6 +157,8 @@ Exception od rotacji jest dopuszczalny, gdy:
 - [ ] `approver` nie jest jednoczesnie jedynym `pack_reviewer`
 - [ ] `review_coordinator` jest wyznaczony
 - [ ] Branch protection na upstream jest wlaczona (instrukcja weryfikacji: `BRANCH_PROTECTION_OPERATOR_PACKET.md`)
+- [ ] `.github/CODEOWNERS` ma uzupelnione loginy GitHub zamiast `@DO_UZUPELNIENIA_*` (patrz `REVIEW_ENFORCEMENT_BASELINE.md` krok 1)
+- [ ] `require_code_owner_reviews` jest wlaczone w branch protection (patrz `REVIEW_ENFORCEMENT_BASELINE.md` krok 2)
 - [ ] REVIEW_CHECKLIST.md jest gotowy do uzycia przez reviewerow
 - [ ] Rekord `Approval` bedzie utworzony po wydaniu approval
 - [ ] Kanal komunikacji z wolontariuszem jest potwierdzony (GitHub Issues z labelka `volunteer-support` jako minimum)

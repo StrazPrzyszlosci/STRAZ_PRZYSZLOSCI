@@ -85,6 +85,12 @@ W tym sensie `Project 13` jest nie tylko baza czesci, ale takze zalazkiem warstw
 
 ## Komendy
 
+Pre-flight check (uruchom przed pierwszym runem):
+
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/preflight_check.py
+```
+
 Walidacja katalogu:
 
 ```bash
@@ -333,8 +339,20 @@ Szczegoly krok po kroku znajdziesz w `RUNBOOK.md` krok 3.
 
 ### Decyzje wymagajace potwierdzenia operatora
 
-- **Brak kodu weryfikacyjnego dla `GITHUB_PAT`** — notebook nie sprawdza, czy token ma scope `repo`/`contents:write`. Wolontariusz moze ustawic token bez wystarczajacych uprawnien i push nie zadziala bez jasnego komunikatu. Do potwierdzenia: czy dodac weryfikacje scope w notebooku.
-- **Limity quota YouTube i Gemini** — notebook nie sprawdza wyczerpania quota przed startem. Wolontariusz moze rozpoczac run i utknac w polowie. Do potwierdzenia: czy dodac pre-flight check quota.
+- **Weryfikacja scope `GITHUB_PAT`** — pre-flight skrypt sprawdza format tokenu, ale scope (`contents:write` albo `repo`) trzeba potwierdzic recznie na https://github.com/settings/types. Instrukcja w `VOLUNTEER_PREFLIGHT_CHECKLIST.md` sekcja 2.
+- **Limity quota YouTube i Gemini** — quota nie da sie sprawdzic offline. Wolontariusz musi recznie potwierdzic dostepnosc quota w Google Cloud Console i na https://ai.google.dev/pricing. Instrukcja w `VOLUNTEER_PREFLIGHT_CHECKLIST.md` sekcje 3 i 4.
+
+## Pre-flight check przed pierwszym runem
+
+Zanim odpalisz notebook — lokalnie albo na Kaggle — uruchom pre-flight:
+
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/preflight_check.py
+```
+
+Skrypt sprawdzi, czy masz `.env`, obecnosc sekretow, pliki projektu i czy notebook parsuje sie poprawnie. Nie sprawdzi scope tokenu ani quota — to musisz potwierdzic recznie.
+
+Szczegolowa checklist reczna: `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md`.
 
 ## Zasady bezpieczenstwa dla notatnikow Kaggle
 
