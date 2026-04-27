@@ -125,6 +125,8 @@ Każdy kierunek rozwoju powinien przechodzić przez `PotentialDossier` i zostać
 - koszt wejścia,
 - dostępność danych,
 - dostępność zasobów sprzętowych lub obliczeniowych,
+- latwosc dopasowania zasobu do realnego lokalnego zapotrzebowania,
+- potencjal wynikajacy z polaczenia wielu slabych sygnalow w jedna mocna okazje,
 - zgodność z modelem pracy wolontariuszy z agentami,
 - możliwość budowy reusable capability,
 - możliwość wyjścia do świata fizycznego,
@@ -210,20 +212,26 @@ Bramka wyjścia:
 
 To jest właściwy rdzeń organizacji.
 
+To jest rowniez warstwa o jednej z najwyzszych dzwigni w calej inicjatywie, bo umozliwia wykrywanie okazji zanim jeszcze trzeba ponosic istotny koszt wykonawczy.
+
 Zakres:
 
 - tworzenie `PotentialDossier` dla problemów, zasobów i kierunków,
 - budowa rankingu priorytetów,
 - aktywne wyszukiwanie zasobów materialnych, obliczeniowych, informacyjnych i logistycznych,
+- szerokie pobieranie sygnalow z dokumentacji, repozytoriow, grup spolecznosciowych, portali lokalnych, ogloszen darmowych, aukcji i zgloszen zapotrzebowania,
+- laczenie podazy, popytu, lokalizacji, czasu i kosztu przejecia w jedna ocene potencjalu,
 - porównywanie, które zasoby najlepiej nadają się do budowy kolejnych zdolności działania.
 
 Najważniejsza zasada:
 
 - elektrośmieci są pilotem, ale system nie może ograniczać się tylko do nich.
+- najcenniejsza okazja nie zawsze jest pojedynczym zasobem; czesto powstaje dopiero przez dopasowanie `oddam za darmo` + `ktos potrzebuje` + `da sie to tanio odebrac i uruchomic`.
 
 Bramka wyjścia:
 
 - organizacja potrafi uzasadnić, dlaczego rozwija dany kierunek teraz, a nie inny.
+- organizacja potrafi tez wskazac, kiedy polaczenie kilku slabych sygnalow daje wyzszy potencjal niz pojedynczy "mocny" obiekt.
 
 ### Etap 2. Budowa wspólnej warstwy wiedzy i RAG otwartych wzorców
 

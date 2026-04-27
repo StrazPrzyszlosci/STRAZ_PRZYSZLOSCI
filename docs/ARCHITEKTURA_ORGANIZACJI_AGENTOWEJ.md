@@ -86,8 +86,19 @@ Zasobem może być:
 - notebook Kaggle lub Colab możliwy do uruchomienia przez wolontariusza,
 - gotowy kod open-source i jego README jako zasób intelektualny,
 - dane terenowe, raporty i dokumentacja,
+- ogloszenie `oddam za darmo`, oferta lokalna z odbiorem wlasnym albo post typu `smieciarka jedzie`,
+- zgloszenie zapotrzebowania na czesc, modul, urzadzenie albo odbior sprzetu,
 - wolne urządzenia, odpady produkcyjne i nadwyżki magazynowe,
 - lokalna infrastruktura, energia, przestrzeń robocza i logistyka.
+
+Najwieksza dzwignia tej warstwy nie zawsze lezy w pojedynczym zasobie. Często pojawia sie dopiero po polaczeniu kilku slabych sygnalow:
+
+- darmowy albo bardzo tani zasob,
+- konkretne lokalne zapotrzebowanie,
+- bliska logistyka i niski koszt przejecia,
+- znana sciezka reuse, naprawy albo dalszej automatyzacji.
+
+Dlatego system powinien analizowac nie tylko obiekty, ale rowniez relacje miedzy podaza, popytem, lokalizacja, czasem i kosztem aktywacji zasobu.
 
 Dlatego `PotentialDossier` powinno być powiązane nie tylko z problemem, ale też z klasami zasobów, które system sam wykrywa i ocenia.
 
@@ -258,13 +269,18 @@ Sygnałem może być:
 - nowa obserwacja terenowa,
 - nowy zasób sprzętowy,
 - nowy donor parts w katalogu,
+- nowe ogloszenie `oddam za darmo` albo `sprzedam tanio`,
+- nowe zgloszenie zapotrzebowania na czesc, modul albo urzadzenie,
+- nowa koincydencja kilku sygnalow, ktore razem tworza okazje o wysokiej dzwigni,
 - nowa możliwość uruchomienia darmowych zasobów obliczeniowych.
 
 Docelowo system powinien nie tylko reagować na takie sygnały, ale również sam ich aktywnie szukać:
 
 - skanować klasy odpadów, nadwyżek i wolnych urządzeń,
+- skanowac grupy spolecznosciowe, portale ogloszeniowe, aukcje lokalne i sygnaly zapotrzebowania,
 - rozpoznawać źródła darmowych lub tanich zasobów obliczeniowych,
 - identyfikować gotowe otwarte narzędzia i architektury do adaptacji,
+- laczyc darmowa podaz z realnym popytem i tania logistyka przejecia,
 - porównywać, które zasoby najlepiej nadają się do budowy kolejnych zdolności automatyzacji.
 
 ## Minimalne byty, które trzeba dodać do systemu
