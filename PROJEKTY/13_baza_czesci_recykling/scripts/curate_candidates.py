@@ -10,6 +10,9 @@ Commands:
  align — Align each candidate to canonical catalog schemas
  decide — Apply curation decisions (auto + triage-informed for disputed)
  review-queue — Generate explicit review queue from curation decisions
+ record-review — Record a human review decision for a pending candidate (approved/rejected/defer)
+ list-pending — List pending_human_approval cases with batch annotation and export to JSON
+ review-status — Show current review status summary and remaining pending entries
  export-gate — Check whether export is allowed; generate export gate packet
  apply — Write accepted candidates into canonical catalog files
  validate — Validate catalog cross-file consistency after apply
@@ -43,6 +46,8 @@ CURATION_DECISIONS_PATH = REPORTS_DIR / "curation_decisions.jsonl"
 CURATION_REPORT_PATH = REPORTS_DIR / "curation_report.md"
 REVIEW_QUEUE_PATH = REPORTS_DIR / "curation_review_queue.jsonl"
 EXPORT_GATE_PACKET_PATH = REPORTS_DIR / "export_gate_packet.json"
+
+HUMAN_REVIEW_LEDGER_PATH = REPORTS_DIR / "human_review_ledger.jsonl"
 
 STATUS_RESOLUTION_PACKET_PATH = REPORTS_DIR / "status_resolution_packet.json"
 
@@ -800,6 +805,331 @@ def cmd_review_queue(args):
     }
 
 
+VALID_REVIEW_DECISIONS = ("approved", "rejected", "defer")
+
+REVIEW_BATCH_RULES = [
+    {
+        "batch": "A",
+        "name": "Komponenty laptopowe (Lenovo + ASUS + Compal)",
+        "match_devices": [
+            "Lenovo Laptop",
+            "ASUS K52F",
+            "Compal LA-G021P",
+        ],
+        "recommended_mode": "per-batch",
+    },
+    {
+        "batch": "B",
+        "name": "Komponenty z innych urzadzen (Samsung TV, Electrolux, vintage, LED, Gigabyte)",
+        "match_devices": [
+            "Samsung UE50MU6102K",
+            "Electrolux EnergySaver",
+            "Various Vintage Electronics",
+            "DesignLight LDF-12V16W",
+            "Gigabyte Graphics Card",
+        ],
+        "recommended_mode": "per-candidate",
+    },
+    {
+        "batch": "C",
+        "name": "IC z e-waste + desktop",
+        "match_devices": [
+            "Unknown Electronic Waste",
+            "Generic Desktop Motherboard (Socket 939)",
+        ],
+        "recommended_mode": "per-batch",
+    },
+]
+
+
+def assign_batch(device):
+    for rule in REVIEW_BATCH_RULES:
+        if device in rule["match_devices"]:
+            return rule["batch"]
+    return "unbatched"
+
+
+def cmd_record_review(args):
+    print("=== Curation Record Review: Recording human review decision ===\n")
+
+    candidate_id = args.candidate_id
+    decision = args.decision
+    reviewed_by = args.reviewed_by
+    note = args.note or ""
+
+    if decision not in VALID_REVIEW_DECISIONS:
+        print(f" ERROR: Invalid decision '{decision}'. Must be one of: {', '.join(VALID_REVIEW_DECISIONS)}")
+        return {"status": "error", "reason": f"invalid_decision:{decision}"}
+
+    if not reviewed_by:
+        print(f" ERROR: --reviewed-by is required. No fictional reviewers allowed.")
+        return {"status": "error", "reason": "missing_reviewed_by"}
+
+    review_queue = read_jsonl(REVIEW_QUEUE_PATH)
+    if not review_queue:
+        print(f" No review queue found. Run 'review-queue' first.")
+        return {"status": "error", "reason": "no_review_queue"}
+
+    target_entry = None
+    target_idx = None
+    for idx, entry in enumerate(review_queue):
+        if entry.get("candidate_id") == candidate_id:
+            target_entry = entry
+            target_idx = idx
+            break
+
+    if target_entry is None:
+        print(f" ERROR: candidate_id '{candidate_id}' not found in review queue.")
+        available = [e["candidate_id"] for e in review_queue if e.get("review_status") == "pending_human_approval"]
+        if available:
+            print(f" Candidates pending human approval: {', '.join(available)}")
+        return {"status": "error", "reason": f"candidate_not_found:{candidate_id}"}
+
+    current_review_status = target_entry.get("review_status", "")
+    if current_review_status not in ("pending_human_approval", "deferred"):
+        print(f" WARNING: candidate '{candidate_id}' has review_status='{current_review_status}', not 'pending_human_approval' or 'deferred'.")
+        print(f" Recording review anyway, but this may not change export gate behavior.")
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    ledger_entry = {
+        "ledger_id": f"review-{candidate_id}-{now.replace(':', '-').replace('T', '-').rstrip('Z')}",
+        "candidate_id": candidate_id,
+        "part_number": target_entry.get("part_number", ""),
+        "part_name": target_entry.get("part_name", ""),
+        "device": target_entry.get("device", ""),
+        "previous_review_status": current_review_status,
+        "review_decision": decision,
+        "reviewed_by": reviewed_by,
+        "reviewed_at": now,
+        "note": note,
+        "curation_decision_before": target_entry.get("curation_decision", ""),
+        "verification_status": target_entry.get("verification_status", ""),
+        "triage_category": target_entry.get("triage_category", ""),
+    }
+
+    append_jsonl(HUMAN_REVIEW_LEDGER_PATH, [ledger_entry])
+
+    if decision == "approved":
+        review_queue[target_idx]["review_status"] = "approved"
+        review_queue[target_idx]["reviewed_by"] = reviewed_by
+        review_queue[target_idx]["reviewed_at"] = now
+        if note:
+            review_queue[target_idx]["review_note"] = (
+                review_queue[target_idx].get("review_note", "") + f" | Human review: {note}"
+            )
+    elif decision == "rejected":
+        review_queue[target_idx]["review_status"] = "human_rejected"
+        review_queue[target_idx]["reviewed_by"] = reviewed_by
+        review_queue[target_idx]["reviewed_at"] = now
+        review_queue[target_idx]["curation_decision"] = "reject"
+        if note:
+            review_queue[target_idx]["review_note"] = (
+                review_queue[target_idx].get("review_note", "") + f" | Human review rejection: {note}"
+            )
+    elif decision == "defer":
+        review_queue[target_idx]["review_status"] = "deferred"
+        review_queue[target_idx]["reviewed_by"] = reviewed_by
+        review_queue[target_idx]["reviewed_at"] = now
+        if note:
+            review_queue[target_idx]["review_note"] = (
+                review_queue[target_idx].get("review_note", "") + f" | Human review defer: {note}"
+            )
+
+    write_jsonl(REVIEW_QUEUE_PATH, review_queue)
+
+    print(f" Recorded review for: {candidate_id}")
+    print(f" Part: {target_entry.get('part_number', '')} ({target_entry.get('part_name', '')})")
+    print(f" Device: {target_entry.get('device', '')}")
+    print(f" Decision: {decision}")
+    print(f" Reviewed by: {reviewed_by}")
+    print(f" Reviewed at: {now}")
+    if note:
+        print(f" Note: {note}")
+    print(f" Previous review_status: {current_review_status}")
+    print(f" New review_status: {review_queue[target_idx]['review_status']}")
+    print(f"\n Ledger entry saved to: {HUMAN_REVIEW_LEDGER_PATH}")
+    print(f" Review queue updated: {REVIEW_QUEUE_PATH}")
+
+    remaining_pending = sum(
+        1 for e in review_queue if e.get("review_status") == "pending_human_approval"
+    )
+    total_approved = sum(
+        1 for e in review_queue if e.get("review_status") == "approved"
+    )
+    total_human_rejected = sum(
+        1 for e in review_queue if e.get("review_status") == "human_rejected"
+    )
+    print(f"\n Remaining pending_human_approval: {remaining_pending}")
+    print(f" Total approved (human): {total_approved}")
+    print(f" Total human-rejected: {total_human_rejected}")
+
+    if remaining_pending > 0:
+        print(f"\n To review remaining candidates:")
+        pending_ids = [e["candidate_id"] for e in review_queue if e.get("review_status") == "pending_human_approval"]
+        for pid in pending_ids:
+            entry = next(e for e in review_queue if e["candidate_id"] == pid)
+            print(f"   python3 scripts/curate_candidates.py record-review --candidate-id {pid} --decision approved --reviewed-by <YOUR_NAME>")
+    else:
+        print(f"\n All pending_human_approval entries have been reviewed!")
+        print(f" Re-run export gate to check if gate opens:")
+        print(f"   python3 scripts/curate_candidates.py export-gate")
+
+    return {
+        "status": "recorded",
+        "candidate_id": candidate_id,
+        "review_decision": decision,
+        "remaining_pending": remaining_pending,
+    }
+
+
+def cmd_list_pending(args):
+    print("=== Curation List Pending: Pending human approval cases with batch annotation ===\n")
+
+    review_queue = read_jsonl(REVIEW_QUEUE_PATH)
+    if not review_queue:
+        print(" No review queue found. Run 'review-queue' first.")
+        return {"pending": 0}
+
+    pending = [e for e in review_queue if e.get("review_status") == "pending_human_approval"]
+
+    if not pending:
+        print(" No pending_human_approval entries found.")
+        return {"pending": 0}
+
+    for e in pending:
+        e["_batch"] = assign_batch(e.get("device", ""))
+
+    batch_order = {r["batch"]: i for i, r in enumerate(REVIEW_BATCH_RULES)}
+    batch_order["unbatched"] = len(REVIEW_BATCH_RULES)
+    pending.sort(key=lambda e: (batch_order.get(e["_batch"], 99), e["candidate_id"]))
+
+    batch_groups = {}
+    for e in pending:
+        b = e["_batch"]
+        if b not in batch_groups:
+            batch_groups[b] = []
+        batch_groups[b].append(e)
+
+    print(f" Total pending_human_approval: {len(pending)}")
+    print(f" Batches: {len(batch_groups)}")
+    print()
+
+    for batch_id in sorted(batch_groups.keys(), key=lambda b: batch_order.get(b, 99)):
+        entries = batch_groups[batch_id]
+        rule = next((r for r in REVIEW_BATCH_RULES if r["batch"] == batch_id), None)
+        batch_name = rule["name"] if rule else "Unbatched"
+        recommended_mode = rule["recommended_mode"] if rule else "per-candidate"
+        print(f" Batch {batch_id}: {batch_name} ({len(entries)} cases, recommended: {recommended_mode})")
+        for e in entries:
+            print(f"  {e['candidate_id']} | {e.get('part_number', '')} | {e.get('part_name', '')} | {e.get('device', '')}")
+        print()
+
+    pending_export_path = REPORTS_DIR / "pending_human_approval_list.json"
+    export_data = {
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "total_pending": len(pending),
+        "batch_rules": REVIEW_BATCH_RULES,
+        "pending_entries": [
+            {
+                "candidate_id": e["candidate_id"],
+                "part_number": e.get("part_number", ""),
+                "part_name": e.get("part_name", ""),
+                "device": e.get("device", ""),
+                "verification_status": e.get("verification_status", ""),
+                "triage_category": e.get("triage_category", ""),
+                "status_resolution_policy": e.get("status_resolution_policy", ""),
+                "review_note": e.get("review_note", ""),
+                "batch": e["_batch"],
+            }
+            for e in pending
+        ],
+    }
+    write_json(pending_export_path, export_data)
+    print(f" Pending list exported to: {pending_export_path}")
+
+    return {"pending": len(pending), "batches": len(batch_groups)}
+
+
+def cmd_review_status(args):
+    print("=== Curation Review Status: Current review state summary ===\n")
+
+    review_queue = read_jsonl(REVIEW_QUEUE_PATH)
+    if not review_queue:
+        print(" No review queue found. Run 'review-queue' first.")
+        return {"status": "no_queue"}
+
+    ledger = read_jsonl(HUMAN_REVIEW_LEDGER_PATH)
+
+    status_counts = {}
+    for entry in review_queue:
+        rs = entry.get("review_status", "unknown")
+        status_counts[rs] = status_counts.get(rs, 0) + 1
+
+    print(f" Review queue entries: {len(review_queue)}")
+    print(f" Review status breakdown:")
+    for rs, count in sorted(status_counts.items()):
+        print(f"   {rs}: {count}")
+
+    pending = [e for e in review_queue if e.get("review_status") == "pending_human_approval"]
+    if pending:
+        print(f"\n Pending human approval ({len(pending)}):")
+        for e in pending:
+            print(f"   - {e['candidate_id']}: {e.get('part_number', '')} ({e.get('part_name', '')}, {e.get('device', '')})")
+            print(f"     Note: {e.get('review_note', '')}")
+    else:
+        print(f"\n No pending_human_approval entries remaining.")
+
+    approved = [e for e in review_queue if e.get("review_status") == "approved"]
+    if approved:
+        print(f"\n Human-approved ({len(approved)}):")
+        for e in approved:
+            print(f"   - {e['candidate_id']}: {e.get('part_number', '')} | reviewed_by={e.get('reviewed_by', 'N/A')}, reviewed_at={e.get('reviewed_at', 'N/A')}")
+
+    deferred = [e for e in review_queue if e.get("review_status") == "deferred"]
+    human_rejected = [e for e in review_queue if e.get("review_status") == "human_rejected"]
+    if human_rejected:
+        print(f"\n Human-rejected ({len(human_rejected)}):")
+        for e in human_rejected:
+            print(f"   - {e['candidate_id']}: {e.get('part_number', '')} | reviewed_by={e.get('reviewed_by', 'N/A')}")
+
+    if ledger:
+        print(f"\n Review ledger entries: {len(ledger)}")
+        print(f" Ledger file: {HUMAN_REVIEW_LEDGER_PATH}")
+        reviewers = set(e.get("reviewed_by", "") for e in ledger if e.get("reviewed_by"))
+        print(f" Reviewers who recorded decisions: {', '.join(sorted(reviewers))}")
+    else:
+        print(f"\n No review ledger entries yet.")
+        print(f" To record a review:")
+        print(f"   python3 scripts/curate_candidates.py record-review --candidate-id <ID> --decision approved --reviewed-by <YOUR_NAME>")
+
+    all_resolved = len(pending) == 0 and len(deferred) == 0
+    gate_ready = all_resolved and len(approved) > 0
+
+    print(f"\n Export gate readiness:")
+    if gate_ready:
+        print(f"   READY: No pending approvals, no unresolved deferrals, {len(approved)} human approvals recorded.")
+        print(f"   Run: python3 scripts/curate_candidates.py export-gate")
+    else:
+        if pending:
+            print(f"   NOT READY: {len(pending)} candidates still pending human approval.")
+        if deferred:
+            print(f"   NOT READY: {len(deferred)} candidates still deferred and block export gate OPEN.")
+        if not approved:
+            print(f"   NOT READY: No human approvals recorded yet.")
+        print(f"   Record reviews with: python3 scripts/curate_candidates.py record-review --candidate-id <ID> --decision <approved|rejected|defer> --reviewed-by <YOUR_NAME>")
+
+    return {
+        "queue_entries": len(review_queue),
+        "status_counts": status_counts,
+        "pending_human_approval": len(pending),
+        "approved": len(approved),
+        "human_rejected": len(human_rejected),
+        "ledger_entries": len(ledger),
+        "gate_ready": gate_ready,
+    }
+
+
 def cmd_export_gate(args):
     print("=== Curation Export Gate: Checking export readiness ===\n")
 
@@ -828,7 +1158,7 @@ def cmd_export_gate(args):
     if deferred_entries:
         pns = [e["part_number"] for e in deferred_entries]
         gate_checks.append(("no_unresolved_deferrals", False, f"{len(deferred_entries)} deferred candidates: {', '.join(pns)}"))
-        warnings.append(f"{len(deferred_entries)} deferred candidates not in export: {', '.join(pns)}")
+        blockers.append(f"{len(deferred_entries)} deferred candidates still unresolved: {', '.join(pns)}")
     else:
         gate_checks.append(("no_unresolved_deferrals", True, "No unresolved deferrals"))
 
@@ -840,14 +1170,15 @@ def cmd_export_gate(args):
         gate_checks.append(("catalog_validation_passes", False, f"Catalog validation failed: {validate_result.get('errors', 0)} errors"))
         blockers.append(f"Catalog validation failed with {validate_result.get('errors', 0)} errors")
 
-    human_approvals = [e for e in review_queue if e.get("reviewed_by") is not None and e.get("review_status") == "pending_human_approval"]
-    if not pending_approval:
-        gate_checks.append(("human_review_recorded", True, "No pending approvals require human review"))
-    elif human_approvals:
-        gate_checks.append(("human_review_recorded", True, f"{len(human_approvals)} human reviews recorded"))
+    human_approvals = [e for e in review_queue if e.get("reviewed_by") is not None and e.get("review_status") == "approved"]
+    if human_approvals:
+        gate_checks.append(("human_review_recorded", True, f"{len(human_approvals)} human reviews recorded (approved)"))
     else:
-        gate_checks.append(("human_review_recorded", False, "No human review approval recorded for pending candidates"))
-        blockers.append("No human review approval recorded for pending candidates")
+        detail = "No human review approval recorded yet"
+        if pending_approval:
+            detail = "No human review approval recorded for pending candidates"
+        gate_checks.append(("human_review_recorded", False, detail))
+        blockers.append(detail)
 
     if status_resolution:
         ocr_remaining = len(status_resolution.get("ocr_needed_remaining", []))
@@ -889,8 +1220,13 @@ def cmd_export_gate(args):
         packet["next_steps"].append(f"Resolve {len(blockers)} blocker(s) before export:")
         for b in blockers:
             packet["next_steps"].append(f"  - {b}")
-        if pending_approval:
-            packet["next_steps"].append("To approve pending candidates, update curation_review_queue.jsonl: set reviewed_by and reviewed_at for each pending entry, then re-run export-gate")
+    if pending_approval:
+        packet["next_steps"].append("To approve pending candidates, use record-review command:")
+        for e in pending_approval[:5]:
+            packet["next_steps"].append(f"  python3 scripts/curate_candidates.py record-review --candidate-id {e['candidate_id']} --decision approved --reviewed-by <REVIEWER_NAME>")
+        if len(pending_approval) > 5:
+            packet["next_steps"].append(f"  ... and {len(pending_approval) - 5} more pending candidates")
+        packet["next_steps"].append("Then re-run: python3 scripts/curate_candidates.py export-gate")
 
     write_json(EXPORT_GATE_PACKET_PATH, packet)
 
@@ -1453,6 +1789,9 @@ def main():
             "Apply curation decisions (auto for confirmed/rejected, defer for disputed)",
         ),
         ("review-queue", "Generate explicit review queue from curation decisions"),
+        ("record-review", "Record a human review decision (approved/rejected/defer) for a pending candidate"),
+        ("list-pending", "List pending_human_approval cases with batch annotation; export to JSON"),
+        ("review-status", "Show current review status summary and remaining pending entries"),
         ("export-gate", "Check whether export is allowed; generate export gate packet"),
         ("apply", "Write accepted candidates into canonical catalog files"),
         ("validate", "Validate catalog cross-file consistency"),
@@ -1481,6 +1820,28 @@ def main():
                 action="store_true",
                 help="Use test_db.jsonl if verified snapshot not found",
             )
+        if name == "record-review":
+            sp.add_argument(
+                "--candidate-id",
+                required=True,
+                help="Candidate ID from review queue (e.g. candidate-0005)",
+            )
+            sp.add_argument(
+                "--decision",
+                required=True,
+                choices=list(VALID_REVIEW_DECISIONS),
+                help="Review decision: approved, rejected, or defer",
+            )
+            sp.add_argument(
+                "--reviewed-by",
+                required=True,
+                help="Name or identifier of the human reviewer (no fictional reviewers)",
+            )
+            sp.add_argument(
+                "--note",
+                default="",
+                help="Optional note explaining the review decision",
+            )
 
     args = parser.parse_args()
 
@@ -1493,6 +1854,9 @@ def main():
         "align": cmd_align,
         "decide": cmd_decide,
         "review-queue": cmd_review_queue,
+        "record-review": cmd_record_review,
+        "list-pending": cmd_list_pending,
+        "review-status": cmd_review_status,
         "export-gate": cmd_export_gate,
         "apply": cmd_apply,
         "validate": cmd_validate,

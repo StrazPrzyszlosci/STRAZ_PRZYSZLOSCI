@@ -40,6 +40,16 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 | Weryfikacja scope GITHUB_PAT | RECZNA | Skrypt sprawdza format tokenu, ale scope trzeba potwierdzic recznie na https://github.com/settings/tokens |
 | Pre-flight check quota YouTube/Gemini | RECZNA | Quota nie da sie sprawdzic offline; wolontariusz musi potwierdzic recznie w konsoli Google Cloud i na https://ai.google.dev/pricing |
 
+### 1.2b Canary pilot packet
+
+| Element | Status | Uwagi |
+|---------|--------|-------|
+| Canary pilot packet | GOTOWE | `CANARY_PILOT_PACKET.md` — sekwencja przed/w trakcie/po sesji, stop conditions, escalation points |
+| Retro template po pierwszej sesji | GOTOWE | `CANARY_RETRO_TEMPLATE.md` — template do wypelnienia po pierwszym canary runie; nie udaje, ze retro juz wykonano |
+| Stop conditions (STOP-QUOTA, STOP-HANG, STOP-DEPS, STOP-SCOPE, STOP-UNCLEAR) | GOTOWE | Definicja w `CANARY_PILOT_PACKET.md`; wolontariusz ma prawo przerwac bez czekania na maintainera |
+| Escalation points | GOTOWE | 3-poziomowa eskalacja: self-stop -> Issue -> maintainer na zywo; w `CANARY_PILOT_PACKET.md` |
+| Go-live operator packet | GOTOWE | `CANARY_GO_LIVE_OPERATOR_PACKET.md` — decyzja go/no-go z blocker ledger C-1..C-5; obecnie NO-GO |
+
 ### 1.3 Zaleznosci runtime
 
 | Zaleznosc | Status | Uwagi |
@@ -138,13 +148,15 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 
 | Ryzyko | Poziom | Mitygacja | Status mitygacji |
 |--------|--------|-----------|-----------------|
-| Notebook zawiesza sie na Kaggle | sredni | dry-run lokalny, komunikat o problemie | GOTOWE — `VOLUNTEER_FALLBACK_GUIDE.md` Sytuacja 1 |
-| Wolontariusz nie rozumie runbooka | sredni | test uzytecznosci z osoba spoza projektu | NIE GOTOWE |
+| Notebook zawiesza sie na Kaggle | sredni | dry-run lokalny, komunikat o problemie, stop condition STOP-HANG | GOTOWE — `VOLUNTEER_FALLBACK_GUIDE.md` Sytuacja 1 + `CANARY_PILOT_PACKET.md` STOP-HANG |
+| Wolontariusz nie rozumie runbooka | sredni | test uzytecznosci z osoba spoza projektu, stop condition STOP-UNCLEAR | CZESCIOWO — canary packet opisuje sekwencje i stop condition, ale test z realnym wolontariuszem nadal czeka |
 | Wynik jest pusty albo bledny | niski | rebuild report i skipped log | GOTOWE |
-| Wolontariusz zglasza problem i nie ma odpowiedzi | wysoki | kanal komunikacji | CZESCIOWO — Issue template istnieje, ale brak kanalu na zywo; cel 48h odpowiedzi |
+| Wolontariusz zglasza problem i nie ma odpowiedzi | wysoki | kanal komunikacji, escalation points | CZESCIOWO — Issue template istnieje, canary packet definiuje escalation, ale brak kanalu na zywo; cel 48h odpowiedzi |
 | Recenzent nie jest dostepny | sredni | zasada rotacji review + wyznaczenie backup reviewera przed pilotem | CZESCIOWO — governance jest opisana, ale brak jeszcze nazwanych osob do pierwszego pilota |
 | PR omija review | niski | branch protection + CODEOWNERS | CZESCIOWO — operator packet istnieje (`BRANCH_PROTECTION_OPERATOR_PACKET.md`), CODEOWNERS istnieje (`.github/CODEOWNERS`), ale maintainer musi jeszcze wykonac weryfikacje branch protection i uzupelnic loginy w CODEOWNERS |
 | Zawlaszczenie pracy wolontariusza | niski | fork flow + jawny PR + provenance | GOTOWE |
+| Wyczerpanie quota API podczas runu | sredni | stop condition STOP-QUOTA, jawna instrukcja w pre-flighcie | GOTOWE — `CANARY_PILOT_PACKET.md` STOP-QUOTA + `VOLUNTEER_PREFLIGHT_CHECKLIST.md` |
+| Blad zaleznosci / wersji pakietu na Kaggle | sredni | stop condition STOP-DEPS | GOTOWE — `CANARY_PILOT_PACKET.md` STOP-DEPS |
 
 ---
 
@@ -195,18 +207,24 @@ Rozdziela jasno to, co jest gotowe lokalnie, od tego, co musi byc potwierdzone p
 - ~~**Pre-flight check quota YouTube/Gemini**~~ — NIE GOTOWE→RECZNA: quota nie da sie sprawdzic offline; wolontariusz dostaje jawna instrukcje w `VOLUNTEER_PREFLIGHT_CHECKLIST.md` sekcje 3 i 4
 - ~~**CODEOWNERS**~~ — NIE ISTNIAL→GOTOWE: `.github/CODEOWNERS` z baseline mapowaniem sciezek na role review; loginy `DO_UZUPELNIENIA`
 - ~~**Review enforcement baseline**~~ — NIE ISTNIAL→GOTOWE: `REVIEW_ENFORCEMENT_BASELINE.md` opisuje, jak CODEOWNERS, secret scan i branch protection sie uzupelniaja; instrukcja aktywacji dla maintainera
+- ~~**Brak kontrolowanego packetu pierwszego pilota wolontariackiego**~~ — NIE ISTNIAL→GOTOWE: `CANARY_PILOT_PACKET.md` spina sekwencje przed/w trakcie/po sesji, stop conditions i escalation points
+- ~~**Retro template po pierwszym canary runie**~~ — NIE ISTNIAL→GOTOWE: `CANARY_RETRO_TEMPLATE.md` — template do wypelnienia po pierwszej sesji; nie udaje, ze retro juz wykonano
+- ~~**Stop conditions dla wolontariusza**~~ — NIE ISTNIAL→GOTOWE: 5 stop conditions (STOP-QUOTA, STOP-HANG, STOP-DEPS, STOP-SCOPE, STOP-UNCLEAR) w `CANARY_PILOT_PACKET.md`
 
 ---
 
 ## 7. Rekomendacja
 
-Pierwszy publiczny run powinien byc traktowany jako **controlled pilot**, a nie jako rutynowa operacja. Oznacza to:
+Pierwszy publiczny run powinien byc traktowany jako **controlled canary pilot**, a nie jako rutynowa operacja. Oznacza to:
 
 1. Wyznaczyc jednego wolontariusza z istniejacego kregu zaufanych osob, a nie otwierac run dla kazdego.
 2. Ustalic maintainera dostepnego na zywo podczas pierwszego uruchomienia (kanal tekstowy, PR comment albo inny szybki kontakt).
 3. Przed pierwszym runem potwierdzic recznie, ze branch protection na upstream jest wlaczona.
-4. Po pierwszym PR przeprowadzic retro z wolontariuszem: co bylo niejasne, co nie dzialalo, co brakowalo w runbooku.
-5. Dopiero po retro i poprawkach otworzyc run dla szerszego kregu wolontariuszy.
+4. Podczas runu obowiazuja stop conditions z `CANARY_PILOT_PACKET.md` — wolontariusz ma prawo przerwac bez czekania na maintainera.
+5. Po pierwszym PR przeprowadzic retro z wolontariuszem wg `CANARY_RETRO_TEMPLATE.md`.
+6. Dopiero po retro i poprawkach otworzyc run dla szerszego kregu wolontariuszy.
+
+Sekwencja canary (przed, w trakcie, po) jest opisana w `CANARY_PILOT_PACKET.md`. Decyzje `go / no-go` podejmuje maintainer na podstawie `CANARY_GO_LIVE_OPERATOR_PACKET.md` — packet spina blokery C-1..C-5 z evidence i statusami.
 
 ---
 
@@ -228,3 +246,6 @@ Pierwszy publiczny run powinien byc traktowany jako **controlled pilot**, a nie 
 - `.github/CODEOWNERS`
 - `.github/workflows/pr_secret_scan.yml`
 - `docs/REVIEW_ROTATION_GOVERNANCE.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_PILOT_PACKET.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_RETRO_TEMPLATE.md`
+- `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_GO_LIVE_OPERATOR_PACKET.md`

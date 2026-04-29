@@ -6,8 +6,20 @@
     "entity_id": "pack-project13-esp-runtime-01"
   },
   "gate_kind": "pack_ready",
-  "status": "pending",
+  "status": "real_hardware_bench_packet_ready",
   "sub_gates": [
+    {
+      "gate": "simulated_precheck_pass",
+      "status": "pass",
+      "description": "Simulated precheck uruchomiony na sample board profile. Wynik: conditional (38 pass, 3 warn, 0 fail). Warnings: power_consumption_idle/wifi_tx=unknown, runtime_profile not provided. Patrz: output/simulated_precheck_report.md",
+      "required": false
+    },
+    {
+      "gate": "real_hardware_bench_packet_ready",
+      "status": "pass",
+      "description": "Operator-ready bench packet, measurement ledger template, operator checklist i readiness gate mapping przygotowane. Patrz: output/REAL_HARDWARE_BENCH_PACKET.md, output/MEASUREMENT_LEDGER.md, output/OPERATOR_PRE_START_CHECKLIST.md, output/READINESS_GATE_MAPPING.md. Zadne pomiary nie zostaly wpisane — packet jest gotowy do uzycia z realna plytka.",
+      "required": false
+    },
     {
       "gate": "review_ready",
       "status": "pending",
@@ -39,6 +51,6 @@
       "required": true
     }
   ],
-  "notes": "Bench test contract i simulation policy sa zdefiniowane (pass). Brakuje execution surface, realnego bench testu i integrity review. Gate bedzie pass po implementacji skryptu generujacego runtime profile, po udanym bench test na real_hardware i po domknieciu integrity_ready.",
-  "checked_at": "2026-04-25T00:00:00Z"
+  "notes": "Simulated precheck passed (pass). Real hardware bench packet ready (pass). Bench test contract i simulation policy zdefiniowane (pass). Brakuje realnego bench testu (pending) i integrity review (pending). Symulacja NIE zastepuje bench testu na real_hardware — pack nie moze byc promowany do runtime bez bench_test_real_hardware_pass i integrity_ready. Operator moze rozpoczac bench test uzywajac REAL_HARDWARE_BENCH_PACKET.md i MEASUREMENT_LEDGER.md.",
+  "checked_at": "2026-04-29T15:49:00Z"
 }

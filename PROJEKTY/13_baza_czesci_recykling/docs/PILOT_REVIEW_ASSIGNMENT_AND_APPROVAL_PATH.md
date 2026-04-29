@@ -24,7 +24,8 @@ Ponizsze zasady pochodza z `REVIEW_ROTATION_GOVERNANCE.md` i obowiazuja niezalez
 4. Zmiana promujaca artefakt do kanonicznej bazy wiedzy musi przejsc przez jawny `ReadinessGate(review_ready)` przed `Approval`.
 5. Publiczny wynik wolontariusza nie moze byc mergowany poza `fork -> PR -> review`.
 6. Zmiana o istotnym ryzyku governance musi przejsc przez `ReadinessGate(integrity_ready)` albo rownowazna jawna ocene integrity przed merge.
-7. Pierwszy publiczny run idzie w modelu `controlled pilot` z jawnym przydzialem reviewerow przed uruchomieniem notebooka.
+7. Pierwszy publiczny run idzie w modelu `controlled canary pilot` z jawnym przydzialem reviewerow przed uruchomieniem notebooka. Sekwencja canary jest opisana w `CANARY_PILOT_PACKET.md`.
+8. Po pierwszym canary runie przeprowadza sie retro wg `CANARY_RETRO_TEMPLATE.md`.
 
 ---
 
@@ -162,7 +163,9 @@ Exception od rotacji jest dopuszczalny, gdy:
 - [ ] REVIEW_CHECKLIST.md jest gotowy do uzycia przez reviewerow
 - [ ] Rekord `Approval` bedzie utworzony po wydaniu approval
 - [ ] Kanal komunikacji z wolontariuszem jest potwierdzony (GitHub Issues z labelka `volunteer-support` jako minimum)
-- [ ] Retro z wolontariuszem jest zaplanowane po pierwszym PR
+- [ ] Retro z wolontariuszem jest zaplanowane po pierwszym PR (template: `CANARY_RETRO_TEMPLATE.md`)
+
+Ta checklist odpowiada blockerom C-1..C-5 w `CANARY_GO_LIVE_OPERATOR_PACKET.md`. Zamkniecie wszystkich blockerow = decyzja GO.
 
 ---
 

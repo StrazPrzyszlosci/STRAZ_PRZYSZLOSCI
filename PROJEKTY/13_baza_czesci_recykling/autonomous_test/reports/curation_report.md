@@ -75,16 +75,18 @@ Export gate is **BLOCKED**. Do not run export until blockers are resolved:
 - warning: 2 records still deferred by verification (manual_review)
 
 To resolve:
-1. Review pending_human_approval candidates in curation_review_queue.jsonl
-2. Set reviewed_by and reviewed_at for approved entries
-3. Re-run: python3 scripts/curate_candidates.py export-gate
+1. Review pending_human_approval candidates using `record-review` command (see: docs/HUMAN_APPROVAL_LEDGER.md)
+2. After all pending resolved: re-run `python3 scripts/curate_candidates.py export-gate`
+3. If gate OPEN: follow the export-open readiness packet (docs/EXPORT_OPEN_READINESS_PACKET.md)
+4. After export: fill and save receipt (autonomous_test/reports/export_release_receipt_TEMPLATE.json)
 
 ### Next steps (from gate packet)
 
 - Resolve 2 blocker(s) before export:
--   - 14 accepted candidates still pending human approval: M425R1GB4BB0-CWM0D, P28A41E, 230130, 2R2, 33 25V H33, K6100 1124 08.24, M51413ASP, MT1588AE 0311-ARS HF986, MINIJST E DC546134603 ST, JKB1, JKB2, INTEL 08 i7-628M, BD82HM55 SLGZR, 775i65G, RM 121, LDF-12V16W, V17081
--   - No human review approval recorded for pending candidates
-- To approve pending candidates, update curation_review_queue.jsonl: set reviewed_by and reviewed_at for each pending entry, then re-run export-gate
+- - 14 accepted candidates still pending human approval: M425R1GB4BB0-CWM0D, P28A41E, 230130, 2R2, 33 25V H33, K6100 1124 08.24, M51413ASP, MT1588AE 0311-ARS HF986, MINIJST E DC546134603 ST, JKB1, JKB2, INTEL 08 i7-628M, BD82HM55 SLGZR, 775i65G, RM 121, LDF-12V16W, V17081
+- - No human review approval recorded for pending candidates
+- To approve pending candidates, use record-review command (see: docs/HUMAN_APPROVAL_LEDGER.md)
+- When gate OPEN: follow docs/EXPORT_OPEN_READINESS_PACKET.md for full execution sequence
 
 ## Deferred candidates detail
 

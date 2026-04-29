@@ -59,6 +59,8 @@ VALID_REUSE_PRIORITIES = [
     "cost_first",
 ]
 
+VALID_QUANTITY_PATTERN = re.compile(r"^[1-9]\d*\s*(x|szt|pcs)?\.?$", re.IGNORECASE)
+
 SECTION_HEADERS = {
     "1": "Identyfikacja urzadzenia",
     "2": "Funkcja urzadzenia",
@@ -69,6 +71,8 @@ SECTION_HEADERS = {
     "7": "Zalozenia i ograniczenia projektowe",
     "8": "Donor board profile",
 }
+
+PLACEHOLDER_VALUES = {"__do_uzupelnienia__", "tbd", "todo", "__do_uzupełnienia__"}
 
 
 def parse_markdown_tables(text: str) -> dict[str, str]:
@@ -142,6 +146,251 @@ def validate_fields(fields: dict[str, str]) -> list[str]:
     if rp and rp not in VALID_REUSE_PRIORITIES:
         errors.append(
             f"reuse_priority='{rp}' nie jest w dozwolonych wartosciach: {VALID_REUSE_PRIORITIES}"
+        )
+
+    return errors
+
+
+def parse_reuse_sections(text: str) -> tuple[list[dict], list[dict]]:
+    """Parse section 6.1 and 6.2 from design brief markdown.
+
+    Returns (catalog_parts, missing_parts) as lists of dicts.
+    """
+    catalog_parts: list[dict] = []
+    missing_parts: list[dict] = []
+
+    lines = text.split("\n")
+    i = 0
+    in_catalog_section = False
+    in_missing_section = False
+
+    while i < len(lines):
+        line = lines[i].strip()
+
+        if "6.1" in line and ("kanoniczn" in line.lower() or "katalog" in line.lower()):
+            in_catalog_section = True
+            in_missing_section = False
+            i += 1
+            continue
+        elif "6.2" in line and ("spoza" in line.lower() or "missing" in line.lower()):
+            in_missing_section = True
+            in_catalog_section = False
+            i += 1
+            continue
+        elif line.startswith("## ") and "6" not in line:
+            in_catalog_section = False
+            in_missing_section = False
+
+        if in_catalog_section and line.startswith("|"):
+            cells = [c.strip() for c in line.split("|")[1:-1]]
+            if len(cells) >= 3 and cells[0] not in ("part_slug", "---", "") and not cells[0].startswith("-"):
+                catalog_parts.append({
+                    "part_slug": cells[0],
+                    "quantity": cells[1] if len(cells) > 1 else "1",
+                    "notes": cells[2] if len(cells) > 2 else "",
+                    "line_number": i + 1,
+                })
+
+        if in_missing_section and line.startswith("|"):
+            cells = [c.strip() for c in line.split("|")[1:-1]]
+            if len(cells) >= 3 and cells[0] not in ("Funkcja", "---", "") and not cells[0].startswith("-"):
+                missing_parts.append({
+                    "function": cells[0],
+                    "required_param": cells[1] if len(cells) > 1 else "",
+                    "donor_available": cells[2] if len(cells) > 2 else "",
+                    "notes": cells[3] if len(cells) > 3 else "",
+                    "line_number": i + 1,
+                })
+
+        i += 1
+
+    return catalog_parts, missing_parts
+
+
+def validate_reuse_section_rows(catalog_parts: list[dict], missing_parts: list[dict]) -> list[str]:
+    """Validate individual rows in section 6.1 and 6.2 of the brief.
+
+    Returns a list of error messages.
+    """
+    errors: list[str] = []
+
+    for cp in catalog_parts:
+        slug = cp["part_slug"]
+        qty = cp["quantity"]
+        ln = cp.get("line_number", "?")
+
+        if slug.lower().strip("`") in PLACEHOLDER_VALUES or not slug.strip():
+            errors.append(
+                f"SEKCJA 6.1 wiersz linia {ln}: part_slug jest placeholderem albo pusty: '{slug}'"
+            )
+
+        if qty.lower() in PLACEHOLDER_VALUES or not qty.strip():
+            errors.append(
+                f"SEKCJA 6.1 wiersz linia {ln}: quantity jest placeholderem albo pusty dla part_slug='{slug}': '{qty}'"
+            )
+        elif not VALID_QUANTITY_PATTERN.match(qty.strip()):
+            errors.append(
+                f"SEKCJA 6.1 wiersz linia {ln}: quantity='{qty}' dla part_slug='{slug}' nie jest prawidlowa liczba (np. 1, 2x, 3szt)"
+            )
+
+        if not re.match(r"^[a-z0-9][a-z0-9_-]*[a-z0-9]$", slug.strip().lower()):
+            errors.append(
+                f"SEKCJA 6.1 wiersz linia {ln}: part_slug='{slug}' nie pasuje do formatu slug (male litery, cyfry, mysliniki, podkreslenia)"
+            )
+
+    for mp in missing_parts:
+        func = mp["function"]
+        req_param = mp["required_param"]
+        donor = mp["donor_available"]
+        ln = mp.get("line_number", "?")
+
+        if func.lower() in PLACEHOLDER_VALUES or not func.strip():
+            errors.append(
+                f"SEKCJA 6.2 wiersz linia {ln}: Funkcja jest placeholderem albo pusta: '{func}'"
+            )
+
+        if req_param.lower() in PLACEHOLDER_VALUES or not req_param.strip():
+            errors.append(
+                f"SEKCJA 6.2 wiersz linia {ln}: Wymagany parametr jest placeholderem albo pusty dla Funkcja='{func}': '{req_param}'"
+            )
+
+    donor_upper = donor.upper().strip()
+    if donor_upper not in ("TAK", "NIE", "SPRAWDZIC", "") and not donor_upper.startswith("TAK") and not donor_upper.startswith("NIE") and not donor_upper.startswith("SPRAWDZIC"):
+        errors.append(
+            f"SEKCJA 6.2 wiersz linia {ln}: Czy da sie pozyskac='{donor}' dla Funkcja='{func}' — oczekiwano TAK/NIE/SPRAWDZIC (opcjonalnie z wyjasnieniem po mysliniku)"
+        )
+
+    return errors
+
+
+def validate_assumptions_constraints_rows(fields: dict[str, str]) -> list[str]:
+    """Validate assumptions and constraints fields for placeholder-only content
+    and minimal structural quality.
+
+    Returns a list of error messages.
+    """
+    errors: list[str] = []
+
+    assumptions = fields.get("assumptions", "").strip()
+    if assumptions.lower() in PLACEHOLDER_VALUES:
+        errors.append("assumptions zawiera tylko placeholder — wymagane sa konkretne zalozenia")
+    elif not assumptions:
+        errors.append("assumptions jest puste — wymagane sa konkretne zalozenia")
+
+    constraints = fields.get("constraints", "").strip()
+    if constraints.lower() in PLACEHOLDER_VALUES:
+        errors.append("constraints zawiera tylko placeholder — wymagane sa konkretne ograniczenia")
+    elif not constraints:
+        errors.append("constraints jest puste — wymagane sa konkretne ograniczenia")
+
+    NUMBERED_SEGMENT_PATTERN = re.compile(r"^\d+\s*[.):]\s*")
+
+    if assumptions and assumptions.lower() not in PLACEHOLDER_VALUES:
+        raw_segments = [s.strip().rstrip(",") for s in assumptions.split(".") if s.strip().rstrip(",")]
+        merged: list[str] = []
+        for seg in raw_segments:
+            if re.match(r"^\d+$", seg.strip()):
+                merged.append(seg.strip() + ".")
+            elif merged and re.match(r"^\d+\.$", merged[-1].strip()):
+                merged[-1] = merged[-1].rstrip(".") + ". " + seg
+            else:
+                merged.append(seg)
+        segments = []
+        for seg in merged:
+            cleaned = NUMBERED_SEGMENT_PATTERN.sub("", seg).strip()
+            if cleaned:
+                segments.append(cleaned)
+        if len(segments) < 2:
+            errors.append(
+                f"assumptions ma tylko {len(segments)} punkt — wymagane min 2 konkretne zalozenia (oddzielone kropkami)"
+            )
+        for idx, seg in enumerate(segments, 1):
+            if len(seg) < 5:
+                errors.append(
+                    f"assumptions punkt {idx} jest zbyt krotki ('{seg}') — zalozenie musi byc konkretnym zdaniem"
+                )
+            if seg.lower() in PLACEHOLDER_VALUES:
+                errors.append(
+                    f"assumptions punkt {idx} jest placeholderem ('{seg}') — wymagane konkretne zalozenie"
+                )
+
+    if constraints and constraints.lower() not in PLACEHOLDER_VALUES:
+        raw_segments = [s.strip().rstrip(",") for s in constraints.split(".") if s.strip().rstrip(",")]
+        merged: list[str] = []
+        for seg in raw_segments:
+            if re.match(r"^\d+$", seg.strip()):
+                merged.append(seg.strip() + ".")
+            elif merged and re.match(r"^\d+\.$", merged[-1].strip()):
+                merged[-1] = merged[-1].rstrip(".") + ". " + seg
+            else:
+                merged.append(seg)
+        segments = []
+        for seg in merged:
+            cleaned = NUMBERED_SEGMENT_PATTERN.sub("", seg).strip()
+            if cleaned:
+                segments.append(cleaned)
+        if len(segments) < 2:
+            errors.append(
+                f"constraints ma tylko {len(segments)} punkt — wymagane min 2 konkretne ograniczenia (oddzielone kropkami)"
+            )
+        for idx, seg in enumerate(segments, 1):
+            if len(seg) < 5:
+                errors.append(
+                    f"constraints punkt {idx} jest zbyt krotki ('{seg}') — ograniczenie musi byc konkretnym zdaniem"
+                )
+        if seg.lower() in PLACEHOLDER_VALUES:
+            errors.append(
+                f"constraints punkt {idx} jest placeholderem ('{seg}') — wymagane konkretne ograniczenie"
+            )
+
+    return errors
+
+
+def validate_internal_consistency(fields: dict[str, str]) -> list[str]:
+    """Validate internal consistency between fields in the brief.
+
+    Returns a list of error messages.
+    """
+    errors: list[str] = []
+
+    voltage = fields.get("voltage_levels", "").lower()
+    power_source = fields.get("power_source", "").lower()
+    if "3.3v" in voltage and "5v" not in voltage and "usb" in power_source and "regulator" not in power_source:
+        if "regulator" not in fields.get("assumptions", "").lower() and "lm7805" not in fields.get("assumptions", "").lower() and "stab" not in fields.get("assumptions", "").lower():
+            errors.append(
+                "WYSTEPNA SPOJNOSC: voltage_levels wymaga 3.3V, power_source=USB 5V, ale assumptions nie wspomina o regulatorze napiecia — brakuje wytlumaczenia konwersji 5V->3.3V"
+            )
+
+    env = fields.get("operating_environment", "").lower()
+    temp_range = fields.get("temperature_range", "").lower()
+    if env == "outdoor_exposed" and ("0c" in temp_range or "-40" not in temp_range):
+        if "outdoor" not in fields.get("assumptions", "").lower() and "obudow" not in fields.get("constraints", "").lower():
+            errors.append(
+                "WYSTEPNA SPOJNOSC: operating_environment=outdoor_exposed, ale temperature_range i constraints nie odnosia sie do ochrony przed warunkami zewnetrznymi"
+            )
+
+    max_bom = fields.get("max_bom_cost", "").strip()
+    if max_bom:
+        cost_match = re.search(r"(\d+)", max_bom)
+        reuse_priority = fields.get("reuse_priority", "").strip().lower()
+        if cost_match and int(cost_match.group(1)) == 0 and reuse_priority != "cost_first":
+            errors.append(
+                "WYSTEPNA SPOJNOSC: max_bom_cost=0 ale reuse_priority nie jest cost_first — sprzecnosc pomiedzy budzetem a priorytetem"
+            )
+
+    inputs = fields.get("inputs", "").lower()
+    comms = fields.get("communication_interfaces", "").lower()
+    if "i2c" in inputs and "i2c" not in comms:
+        errors.append(
+            "WYSTEPNA SPOJNOSC: inputs wymienia I2C, ale communication_interfaces nie zawiera I2C"
+        )
+    if "spi" in inputs and "spi" not in comms:
+        errors.append(
+            "WYSTEPNA SPOJNOSC: inputs wymienia SPI, ale communication_interfaces nie zawiera SPI"
+        )
+    if "uart" in inputs and "uart" not in comms and "serial" not in comms:
+        errors.append(
+            "WYSTEPNA SPOJNOSC: inputs wymienia UART, ale communication_interfaces nie zawiera UART ani Serial"
         )
 
     return errors
@@ -223,26 +472,39 @@ def validate_brief(brief_path: Path, schema_path: Path | None = None, is_json: b
             req_marker = "[WYMAGANE]" if k in REQUIRED_FIELDS else "[opcja]"
             print(f"  {req_marker} {k}: {v[:80]}{'...' if len(v) > 80 else ''}")
 
-        md_errors = validate_fields(fields)
-        all_errors.extend(md_errors)
+    md_errors = validate_fields(fields)
+    all_errors.extend(md_errors)
 
-        if schema_path.exists():
-            schema = json.loads(schema_path.read_text(encoding="utf-8"))
-            schema_fields = set(schema.get("properties", {}).keys())
-            extracted_keys = set(fields.keys())
-            missing_in_schema = extracted_keys - schema_fields
-            if missing_in_schema:
-                print(f"\nUWAGA: Pola w briefie nieobecne w schema (nie blokuja walidacji): {missing_in_schema}")
+    row_errors = validate_assumptions_constraints_rows(fields)
+    all_errors.extend(row_errors)
+
+    consistency_errors = validate_internal_consistency(fields)
+    all_errors.extend(consistency_errors)
+
+    catalog_parts, missing_parts = parse_reuse_sections(text)
+    if catalog_parts or missing_parts:
+        reuse_row_errors = validate_reuse_section_rows(catalog_parts, missing_parts)
+        all_errors.extend(reuse_row_errors)
+    elif "reuse" in text.lower() or "6.1" in text or "6.2" in text:
+        all_errors.append("SEKCJA 6 istnieje, ale nie znaleziono zadnych wierszy czesci — sekcja 6.1 i/lub 6.2 jest pusta albo zle sformatowana")
+
+    if schema_path.exists():
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        schema_fields = set(schema.get("properties", {}).keys())
+        extracted_keys = set(fields.keys())
+        missing_in_schema = extracted_keys - schema_fields
+        if missing_in_schema:
+            print(f"\nUWAGA: Pola w briefie nieobecne w schema (nie blokuja walidacji): {missing_in_schema}")
 
     print(f"\n{'='*60}")
     print(f"Walidacja: {brief_path.name}")
-    print(f"Schema:    {schema_path}")
+    print(f"Schema: {schema_path}")
     print(f"{'='*60}")
 
     if all_errors:
         print(f"\nBLEDY WALIDACJI ({len(all_errors)}):")
         for err in all_errors:
-            print(f"  - {err}")
+            print(f" - {err}")
         print(f"\nWERDYKT: FAIL — brief nie przechodzi walidacji")
         return False
     else:

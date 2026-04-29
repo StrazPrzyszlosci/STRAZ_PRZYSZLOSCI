@@ -9,17 +9,18 @@ OCR-based verification (multimodal frame check) requires the API key and
 falls back to rule-based-only mode when absent.
 
 Commands:
- load — Load candidate snapshot and report stats
- validate — Rule-based MPN validation + enrichment field cross-check
- ocr-check — Attempt OCR-based frame verification (requires GEMINI_API_KEY)
- score — Compute disagreement scores and assign verification_status
- triage — Classify disputed records into triage categories (ocr_needed, manual_review, threshold_tuning, likely_confirmed)
- resolve-status — Apply status resolution policy: promote likely_confirmed, reject threshold_tuning, defer ocr_needed/manual_review
- deferred-workpack — Generate operator-ready workpack for deferred OCR and manual review cases
- snapshot — Write verified snapshot (test_db_verified.jsonl)
- report — Generate verification_report.md (includes triage summary when available)
- run — Execute full pipeline: load + validate + score + triage + resolve-status + snapshot + report
- dry-run — Same as run but writes to a separate dry-run output directory
+load — Load candidate snapshot and report stats
+validate — Rule-based MPN validation + enrichment field cross-check
+ocr-check — Attempt OCR-based frame verification (requires GEMINI_API_KEY)
+ocr-selector — List/select individual OCR-deferred cases for surgical execution (--case CANDIDATE_ID or --group VIDEO_URL)
+score — Compute disagreement scores and assign verification_status
+triage — Classify disputed records into triage categories (ocr_needed, manual_review, threshold_tuning, likely_confirmed)
+resolve-status — Apply status resolution policy: promote likely_confirmed, reject threshold_tuning, defer ocr_needed/manual_review
+deferred-workpack — Generate operator-ready workpack for deferred OCR and manual review cases
+snapshot — Write verified snapshot (test_db_verified.jsonl)
+report — Generate verification_report.md (includes triage summary when available)
+run — Execute full pipeline: load + validate + score + triage + resolve-status + snapshot + report
+dry-run — Same as run but writes to a separate dry-run output directory
 """
 
 from __future__ import annotations
@@ -996,6 +997,7 @@ def cmd_resolve_status(args: argparse.Namespace) -> dict[str, Any]:
 
 DEFERRED_WORKPACK_JSON_PATH = REPORTS_DIR / "deferred_resolution_workpack.json"
 DEFERRED_WORKPACK_MD_PATH = REPORTS_DIR / "deferred_resolution_workpack.md"
+OCR_DEFERRED_CASE_PACKET_PATH = REPORTS_DIR / "ocr_deferred_case_packet.json"
 
 
 def cmd_deferred_workpack(args: argparse.Namespace) -> dict[str, Any]:
@@ -1243,6 +1245,158 @@ def cmd_deferred_workpack(args: argparse.Namespace) -> dict[str, Any]:
         "manual_review": len(manual_entries),
         "json_path": str(workpack_json_path),
         "md_path": str(workpack_md_path),
+    }
+
+
+def build_ocr_case_map() -> list[dict[str, Any]]:
+    workpack_path = DEFERRED_WORKPACK_JSON_PATH
+    if not workpack_path.exists():
+        return []
+    with open(workpack_path, "r", encoding="utf-8") as f:
+        workpack = json.load(f)
+    ocr_cases = workpack.get("ocr_needed", [])
+    case_map: list[dict[str, Any]] = []
+    for case in ocr_cases:
+        candidate_id = case.get("candidate_id", "")
+        part_number = case.get("part_number", "")
+        evidence_url = case.get("evidence_url", "")
+        source_video = case.get("source_video", "")
+        observed_text = case.get("verification_observed_text", "") or case.get("verification_raw_observed_text", "")
+        part_name = case.get("part_name", "")
+        device = case.get("device", "")
+        disagreement_score = case.get("disagreement_score", 0.0)
+        confidence = case.get("confidence", 0.0)
+        footprint = case.get("footprint")
+        datasheet_url = case.get("datasheet_url")
+        cmd = f"GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-selector --case {candidate_id}"
+        case_map.append({
+            "candidate_id": candidate_id,
+            "part_number": part_number,
+            "part_name": part_name,
+            "device": device,
+            "evidence_url": evidence_url,
+            "source_video": source_video,
+            "expected_text": observed_text,
+            "disagreement_score": disagreement_score,
+            "confidence": confidence,
+            "footprint": footprint,
+            "datasheet_url": datasheet_url,
+            "next_command": cmd,
+            "next_action": case.get("next_action", "run_ocr_check"),
+            "resolution_if_ocr_confirms": case.get("resolution_if_ocr_confirms", ""),
+            "resolution_if_ocr_rejects": case.get("resolution_if_ocr_rejects", ""),
+            "resolution_if_ocr_inconclusive": case.get("resolution_if_ocr_inconclusive", ""),
+        })
+    return case_map
+
+
+def cmd_ocr_selector(args: argparse.Namespace) -> dict[str, Any]:
+    print("=== Verification OCR Selector: Surgical case-level OCR execution surface ===\n")
+
+    case_map = build_ocr_case_map()
+    if not case_map:
+        print(" No OCR-deferred cases found. Run 'deferred-workpack' first.")
+        return {"selector": False, "cases": 0}
+
+    case_filter = getattr(args, "case", None)
+    group_filter = getattr(args, "group", None)
+
+    if case_filter:
+        selected = [c for c in case_map if c["candidate_id"] == case_filter]
+        if not selected:
+            print(f" Case '{case_filter}' not found. Available:")
+            for c in case_map:
+                print(f"  {c['candidate_id']}: {c['part_number']} ({c['part_name']})")
+            return {"selector": False, "cases": 0, "reason": "case_not_found"}
+        print(f" Selected single case: {case_filter}")
+        selected_map = selected
+    elif group_filter:
+        video_groups: dict[str, list[dict[str, Any]]] = {}
+        for c in case_map:
+            vid = c.get("source_video", "unknown")
+            video_groups.setdefault(vid, []).append(c)
+        if group_filter not in video_groups:
+            print(f" Group '{group_filter}' not found. Available video sources:")
+            for vid, cases in video_groups.items():
+                ids = [c["candidate_id"] for c in cases]
+                print(f"  {vid}: {ids}")
+            return {"selector": False, "cases": 0, "reason": "group_not_found"}
+        selected_map = video_groups[group_filter]
+        print(f" Selected group: {len(selected_map)} cases from same video")
+    else:
+        selected_map = case_map
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    packet: dict[str, Any] = {
+        "generated_at": now,
+        "pack": "pack-project13-kaggle-verification-01",
+        "description": "OCR deferred case selector and prompt packet. Each case is independently actionable with GEMINI_API_KEY.",
+        "total_ocr_cases": len(case_map),
+        "selected_cases": len(selected_map),
+        "selection_filter": case_filter or group_filter or "all",
+        "ocr_cases": selected_map,
+        "video_source_groups": {},
+        "operator_instructions": {
+            "step_1_set_key": "export GEMINI_API_KEY=your_key_here",
+            "step_2_single_case": "python3 scripts/verify_candidates.py ocr-selector --case candidate-XXXX",
+            "step_2_group": "python3 scripts/verify_candidates.py ocr-selector --group <video_url>",
+            "step_2_all": "python3 scripts/verify_candidates.py ocr-selector",
+            "step_3_run_ocr": "python3 scripts/verify_candidates.py ocr-check",
+            "step_4_review": "Check verification_scored.jsonl for ocr_check results per candidate_id",
+            "step_5_rerun_pipeline": "python3 scripts/verify_candidates.py run",
+            "step_6_rerun_curation": "python3 scripts/curate_candidates.py dry-run --fallback-test-db",
+            "step_7_check_gate": "python3 scripts/curate_candidates.py export-gate",
+            "important": "Do NOT mark any OCR case as resolved without a real OCR run and result review.",
+        },
+    }
+
+    video_groups: dict[str, list[str]] = {}
+    for c in case_map:
+        vid = c.get("source_video", "unknown")
+        video_groups.setdefault(vid, []).append(c["candidate_id"])
+    packet["video_source_groups"] = video_groups
+
+    dry_run = getattr(args, "dry_run", False)
+    out_path = OCR_DEFERRED_CASE_PACKET_PATH
+    if dry_run:
+        out_path = OCR_DEFERRED_CASE_PACKET_PATH.parent / (
+            OCR_DEFERRED_CASE_PACKET_PATH.name + DRY_RUN_SUFFIX
+        )
+
+    write_json(out_path, packet)
+
+    print(f"\n OCR deferred case map ({len(selected_map)} case(s)):")
+    print(f" {'candidate_id':<18} {'part_number':<20} {'expected_text':<20} {'evidence_url'}")
+    print(f" {'-'*18} {'-'*20} {'-'*20} {'-'*40}")
+    for c in selected_map:
+        ev_short = c["evidence_url"][:60] + "..." if len(c["evidence_url"]) > 60 else c["evidence_url"]
+        print(f" {c['candidate_id']:<18} {c['part_number']:<20} {c['expected_text']:<20} {ev_short}")
+
+    print(f"\n Video source grouping (cases runnable in single OCR pass):")
+    for vid, cids in video_groups.items():
+        print(f"  {vid[:60]}...")
+        for cid in cids:
+            c = next(x for x in case_map if x["candidate_id"] == cid)
+            print(f"    {cid}: {c['part_number']} -> expected: '{c['expected_text']}'")
+
+    print(f"\n Operator instructions when GEMINI_API_KEY available:")
+    print(f"  1. export GEMINI_API_KEY=your_key_here")
+    print(f"  2. Single case: python3 scripts/verify_candidates.py ocr-selector --case candidate-XXXX")
+    print(f"  3. Or run OCR directly: GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-check")
+    print(f"  4. Review: verification_scored.jsonl -> ocr_check field per candidate_id")
+    print(f"  5. Re-run pipeline: python3 scripts/verify_candidates.py run")
+    print(f"  6. Re-run curation: python3 scripts/curate_candidates.py dry-run --fallback-test-db")
+    print(f"  7. Check export gate: python3 scripts/curate_candidates.py export-gate")
+
+    print(f"\n OCR case packet written: {out_path}")
+    print(f"\n=== OCR Selector complete ===")
+    return {
+        "selector": True,
+        "total_ocr_cases": len(case_map),
+        "selected_cases": len(selected_map),
+        "video_groups": len(video_groups),
+        "packet_path": str(out_path),
     }
 
 
@@ -1597,6 +1751,7 @@ def main() -> None:
         ("load", "Load candidate snapshot and report stats"),
         ("validate", "Rule-based MPN validation + cross-check"),
         ("ocr-check", "OCR-based frame verification (requires GEMINI_API_KEY)"),
+        ("ocr-selector", "List/select individual OCR-deferred cases for surgical execution"),
         ("score", "Compute disagreement scores and assign verification status"),
         ("triage", "Classify disputed records into triage categories"),
         ("resolve-status", "Apply status resolution policy to disputed records"),
@@ -1612,6 +1767,9 @@ def main() -> None:
         sp = sub.add_parser(name, help=help_text)
         for flag, desc in common_args:
             sp.add_argument(flag, default=None, help=desc)
+        if name == "ocr-selector":
+            sp.add_argument("--case", default=None, help="Select single case by candidate_id (e.g. candidate-0008)")
+            sp.add_argument("--group", default=None, help="Select cases grouped by video source URL")
 
     args = parser.parse_args()
 
@@ -1623,6 +1781,7 @@ def main() -> None:
         "load": cmd_load,
         "validate": cmd_validate,
         "ocr-check": cmd_ocr_check,
+        "ocr-selector": cmd_ocr_selector,
         "score": cmd_score,
         "triage": cmd_triage,
         "resolve-status": cmd_resolve_status,

@@ -1,25 +1,26 @@
 # Dry Run Report: pack-project13-blueprint-design-01
 
-- executed_at_utc: 2026-04-27T14:59:55+00:00
+- executed_at_utc: 2026-04-28T01:23:38+00:00
 - run_mode: local_dry_run
 - overall_status: pass
 - pack_id: pack-project13-blueprint-design-01
-- brief_file: PROJEKTY/13_baza_czesci_recykling/docs/SAMPLE_DESIGN_BRIEF_WIFI_TEMP_SENSOR.md
+- brief_file: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/docs/SAMPLE_DESIGN_BRIEF_WIFI_TEMP_SENSOR.md
 - brief_id: brief-wifi-temp-sensor-01
 - device_name: Czujnik temperatury Wi-Fi z ESP8266
 - bom_summary: total=6, reuse=3, missing=3
 - output_dir: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/output
-- run_stamp: 20260427T145955Z
+- run_stamp: 20260428T012338Z
 
 ## Checks
 
-- [pass] brief_validation: PROJEKTY/13_baza_czesci_recykling/docs/SAMPLE_DESIGN_BRIEF_WIFI_TEMP_SENSOR.md — PASS
+- [pass] brief_validation: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/docs/SAMPLE_DESIGN_BRIEF_WIFI_TEMP_SENSOR.md — PASS
 - [pass] brief_fields_extracted: 30 pol wyciagnietych z markdown
 - [pass] catalog_loaded: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/data/parts_master.jsonl — 4 rekordow
 - [pass] manifest_exists: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/manifest.json
 - [pass] runbook_exists: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/RUNBOOK.md
 - [pass] review_checklist_exists: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/REVIEW_CHECKLIST.md
 - [pass] reuse_parts_parsed: catalog_parts=3, missing_parts=3
+- [pass] brief_row_validation: Wszystkie wiersze sekcji 6.1, 6.2 i sekcji 7 przeszly walidacje
 - [pass] catalog_part_coverage: Wszystkie catalog_parts znalezione w kanonicznym katalogu
 - [pass] artifact::bill_of_materials: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/output/bill_of_materials.json
 - [pass] artifact::design_dossier: /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-blueprint-design-01/output/design_dossier.md

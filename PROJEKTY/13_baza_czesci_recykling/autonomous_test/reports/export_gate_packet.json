@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-27T16:15:51Z",
+  "generated_at": "2026-04-29T17:17:24Z",
   "gate_result": "BLOCKED",
   "gate_checks": [
     {
@@ -25,10 +25,10 @@
   ],
   "blockers": [
     "14 accepted candidates still pending human approval: M425R1GB4BB0-CWM0D, P28A41E, 230130, 2R2, 33 25V H33, K6100 1124 08.24, M51413ASP, MT1588AE 0311-ARS HF986, MINIJST E DC546134603 ST, JKB1, JKB2, INTEL 08 i7-628M, BD82HM55 SLGZR, 775i65G, RM 121, LDF-12V16W, V17081",
+    "9 deferred candidates still unresolved: 3336220400007, UE50MU6102KXXH, 1244-2, LF80537, TS8121K, BN44-00213A, QHAD01249, BD243C, QHA001249",
     "No human review approval recorded for pending candidates"
   ],
   "warnings": [
-    "9 deferred candidates not in export: 3336220400007, UE50MU6102KXXH, 1244-2, LF80537, TS8121K, BN44-00213A, QHAD01249, BD243C, QHA001249",
     "7 records still deferred by verification (ocr_needed)",
     "2 records still deferred by verification (manual_review)"
   ],
@@ -41,9 +41,17 @@
   },
   "status_resolution_ref": "/home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/status_resolution_packet.json",
   "next_steps": [
-    "Resolve 2 blocker(s) before export:",
+    "Resolve 3 blocker(s) before export:",
     "  - 14 accepted candidates still pending human approval: M425R1GB4BB0-CWM0D, P28A41E, 230130, 2R2, 33 25V H33, K6100 1124 08.24, M51413ASP, MT1588AE 0311-ARS HF986, MINIJST E DC546134603 ST, JKB1, JKB2, INTEL 08 i7-628M, BD82HM55 SLGZR, 775i65G, RM 121, LDF-12V16W, V17081",
+    "  - 9 deferred candidates still unresolved: 3336220400007, UE50MU6102KXXH, 1244-2, LF80537, TS8121K, BN44-00213A, QHAD01249, BD243C, QHA001249",
     "  - No human review approval recorded for pending candidates",
-    "To approve pending candidates, update curation_review_queue.jsonl: set reviewed_by and reviewed_at for each pending entry, then re-run export-gate"
+    "To approve pending candidates, use record-review command:",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0005 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0006 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0007 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0015 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0019 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  ... and 9 more pending candidates",
+    "Then re-run: python3 scripts/curate_candidates.py export-gate"
   ]
 }

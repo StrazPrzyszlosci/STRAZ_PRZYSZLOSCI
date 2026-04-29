@@ -354,6 +354,16 @@ Skrypt sprawdzi, czy masz `.env`, obecnosc sekretow, pliki projektu i czy notebo
 
 Szczegolowa checklist reczna: `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md`.
 
+## Canary pilot
+
+Pierwszy wolontariusz nie robi zwyklego publicznego runu — robi **controlled canary**. Sekwencja (przed sesja, w trakcie, po sesji), stop conditions i escalation points sa opisane w:
+
+- `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_PILOT_PACKET.md`
+- Decyzja maintainera `go / no-go`: `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_GO_LIVE_OPERATOR_PACKET.md`
+- Retro template: `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_RETRO_TEMPLATE.md`
+
+Dopiero po canary i retro otwieramy run dla szerszego krgu wolontariuszy.
+
 ## Zasady bezpieczenstwa dla notatnikow Kaggle
 
 Ten model musi pozostac jawnie dobrowolny i bezpieczny:

@@ -1,0 +1,74 @@
+{
+  "schema_version": "v1",
+  "receipt_id": "__DO_UZUPELNIENIA__",
+  "export_type": "catalog_export_first",
+  "generated_at": null,
+  "operator": {
+    "operator_kind": "__DO_UZUPELNIENIA__",
+    "operator_id": "__DO_UZUPELNIENIA__",
+    "branch_name": "__DO_UZUPELNIENIA__"
+  },
+  "export_gate_snapshot": {
+    "gate_result": null,
+    "gate_checked_at": null,
+    "gate_packet_path": "autonomous_test/reports/export_gate_packet.json"
+  },
+  "review_queue_snapshot": {
+    "total_candidates": null,
+    "auto_approved": null,
+    "approved_after_human_review": null,
+    "human_rejected": null,
+    "deferred": null,
+    "auto_rejected": null,
+    "pending_human_approval": null,
+    "review_queue_path": "autonomous_test/reports/curation_review_queue.jsonl",
+    "human_review_ledger_path": "autonomous_test/reports/human_review_ledger.jsonl"
+  },
+  "apply_snapshot": {
+    "devices_added": null,
+    "parts_added": null,
+    "device_parts_added": null,
+    "backup_path": "data/backups/",
+    "apply_command": "python3 scripts/curate_candidates.py apply"
+  },
+  "export_artifacts": {
+    "inventory_csv": {
+      "path": "data/inventory.csv",
+      "row_count": null,
+      "sha256": null
+    },
+    "seed_sql": {
+      "path": "data/recycled_parts_seed.sql",
+      "row_count": null,
+      "sha256": null
+    },
+    "mcp_catalog": {
+      "path": "data/mcp_reuse_catalog.json",
+      "entry_count": null,
+      "sha256": null
+    },
+    "inventree_import": {
+      "path": "data/inventree_import.jsonl",
+      "entry_count": null,
+      "sha256": null
+    }
+  },
+  "validation_results": {
+    "catalog_validate_passed": null,
+    "export_validate_passed": null,
+    "validate_run_at": null
+  },
+  "deferred_candidates_excluded": {
+    "count": null,
+    "ocr_needed": null,
+    "manual_review": null,
+    "note": "Deferred candidates are correctly excluded from export. They remain in review queue with review_status=deferred."
+  },
+  "known_issues": [],
+  "integrity_notes": {
+    "export_from_reviewed_catalog": null,
+    "no_manual_edits_of_generated_files": null,
+    "catalog_validation_passed_before_pr": null,
+    "pr_does_not_mix_export_with_discovery": null
+  }
+}

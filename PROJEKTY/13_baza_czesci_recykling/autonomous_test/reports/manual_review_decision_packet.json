@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-04-29T02:20:00Z",
+  "source": "deferred_resolution_workpack.json",
+  "source_task": 30,
+  "description": "Decision packet for 2 manual_review cases. Contains evidence, rubric summary, and decision fields for human reviewer.",
+  "total_manual_review_cases": 2,
+  "cases": [
+    {
+      "candidate_id": "candidate-0076",
+      "part_number": "BN44-00213A",
+      "part_name": "Power Supply Board",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "case_type": "board_model_number",
+      "disagreement_score": 0.38,
+      "confidence": 1.0,
+      "triage_indicators": ["board_model_number"],
+      "evidence_url": "https://www.youtube.com/watch?v=Abhlw8diSrk&t=6s",
+      "source_video": "https://www.youtube.com/watch?v=Abhlw8diSrk",
+      "datasheet_url": "https://www.google.com/search?q=BN44-00213A schematic diagram pdf",
+      "footprint": "PCB",
+      "ocr_actionable": false,
+      "verification_raw_verified": true,
+      "verification_raw_observed_text": "BN44-00213A",
+      "rubric_summary": {
+        "character": "Board model number — identyfikator calej plyty zasilajacej, nie pojedynczego komponentu",
+        "key_question": "Czy cale plyty zasilajace sa w scope katalogu recyklingowego?",
+        "accept_if": "Plyty PSU sa realnie demontowane i sprzedawane jako czesc; BN44-00213A jest katalogowym part number uzywany w serwisie",
+        "reject_if": "Katalog obejmuje tylko komponenty na plycie, nie cale plyty; BN44-00213A jest identyfikatorem urzadzenia, nie czescia",
+        "defer_if": "Reviewer potrzebuje konsensusu co do scope katalogu (cale plyty vs komponenty)"
+      },
+      "decision": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "note": null
+    },
+    {
+      "candidate_id": "candidate-0077",
+      "part_number": "QHAD01249",
+      "part_name": "Transformer",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "case_type": "custom_wound_transformer_no_datasheet",
+      "disagreement_score": 0.38,
+      "confidence": 0.95,
+      "triage_indicators": ["custom_wound_transformer_no_datasheet"],
+      "evidence_url": "https://www.youtube.com/watch?v=Abhlw8diSrk&t=8s",
+      "source_video": "https://www.youtube.com/watch?v=Abhlw8diSrk",
+      "datasheet_url": "https://www.google.com/search?q=QHAD01249 transformer datasheet",
+      "footprint": "Custom Transformer Package",
+      "ocr_actionable": false,
+      "verification_raw_verified": true,
+      "verification_raw_observed_text": "QHAD01249",
+      "rubric_summary": {
+        "character": "Custom wound transformer — dedykowany na konkretna plyte, brak publicznego datasheetu",
+        "key_question": "Czy custom transformer bez datasheetu i parametrow jest uytecznym wpisem katalogowym?",
+        "accept_if": "Transformer jest realnie odzyskiwany i wymieniany caloscia; QHAD01249 jest unikalnym identyfikatorem Samsung; wpis bez pelnych parametrow jest lepszy niz brak wpisu",
+        "reject_if": "Bez datasheetu nie da sie okreslic parametrow elektrycznych; custom transformer nie jest uniwersalnie zamienny; wpis bez specyfikacji jest gorszy niz brak wpisu",
+        "defer_if": "Reviewer potrzebuje dodatkowej weryfikacji (sprzedawcy, polityka katalogu dla brakujacych datasheetow)"
+      },
+      "decision": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "note": null
+    }
+  ],
+  "how_to_record_decision": "python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py record-review --candidate-id <ID> --decision <approved|rejected|defer> --reviewed-by <IDENTIFIER> --note <JUSTIFICATION>",
+  "after_review": "python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py review-status && python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py export-gate",
+  "constraints": [
+    "Nie wpisuj fikcyjnych reviewerow — reviewed_by musi byc prawdziwa osoba",
+    "Nie podejmuj decyzji z glowy — uzyj rubric w MANUAL_REVIEW_RUBRIC_AND_DECISION_PACKET.md",
+    "Decyzje sa niezalezne — jeden case moze byc accepted, drugi rejected",
+    "Po rozstrzygnieciu obu przypadkow, re-run export-gate"
+  ]
+}

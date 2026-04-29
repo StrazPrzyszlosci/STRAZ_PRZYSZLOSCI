@@ -94,7 +94,7 @@ Dla kazdego kandydata ze snapshotu:
    - **counts**: accepted, deferred, rejected (z podzialam na confirmed/disputed/rejected z verification)
    - **najwazniejsze przypadki wymagajace review**: kandydaci sporni zaakceptowani, kandydaci deferred
    - **provenance**: odeslanie do wejsciowego verification reportu i snapshotu
-   - **handoff do exportu**: informacja, ze po merge PR mozna uruchomic `pack-project13-catalog-export-01`
+   - **handoff do exportu**: informacja, ze po merge PR i gate OPEN mozna uruchomic `pack-project13-catalog-export-01` (szczegoly: docs/EXPORT_OPEN_READINESS_PACKET.md, receipt: autonomous_test/reports/export_release_receipt_TEMPLATE.json)
 
 ## Krok 4. Zaktualizuj kanoniczny katalog
 
@@ -132,22 +132,44 @@ Dla kazdego kandydata ze snapshotu:
    - re-run `export-gate` po kazdej zmianie.
 4. Jesli gate jest OPEN, przejdz do Kroku 7.
 
-## Krok 7. Handoff do exportu
+## Krok 7. Handoff do exportu (warunkowany gate OPEN)
 
 Po merge PR curation **i po tym, jak export gate jest OPEN**:
 
-1. Uruchomienie packa `pack-project13-catalog-export-01` jest bezpieczne, bo katalog jest po review.
-2. Komenda:
+**Pelny szlak wykonawczy** (szczegoly: `docs/EXPORT_OPEN_READINESS_PACKET.md`):
 
 ```bash
+# 1. Potwierdz stan gate
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py export-gate
+# Oczekiwany wynik: gate_result: OPEN
+
+# 2. Zapisz approved candidates do kanonicznego katalogu
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py apply
+
+# 3. Walidacja spojnosci katalogu po apply
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py validate
+
+# 4. Wygeneruj downstream artefakty
 python3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py export-all
-```
 
-3. Walidacja przed PR exportu:
-
-```bash
+# 5. Walidacja downstream artefaktow
 python3 PROJEKTY/13_baza_czesci_recykling/scripts/build_catalog_artifacts.py validate
+
+# 6. Zapisz export receipt z template
+# Wypelnij: autonomous_test/reports/export_release_receipt_TEMPLATE.json
+# Zapisz jako: autonomous_test/reports/export_release_receipt_YYYY-MM-DD.json
 ```
+
+Jesli gate jest BLOCKED, nie uruchamiaj `apply` ani `export-all`. Wroc do Krok 6.
+
+### Artefakty do zarchiwizowania po eksporcie
+
+- `autonomous_test/reports/export_gate_packet.json` — stan gate w momencie OPEN
+- `autonomous_test/reports/curation_review_queue.jsonl` — stan kolejki
+- `autonomous_test/reports/human_review_ledger.jsonl` — decyzje reviewerow
+- `data/backups/` — backup katalogu sprzed apply
+- `autonomous_test/reports/export_release_receipt_YYYY-MM-DD.json` — receipt po eksporcie
+- `data/inventory.csv`, `data/recycled_parts_seed.sql`, `data/mcp_reuse_catalog.json`, `data/inventree_import.jsonl` — wygenerowane artefakty
 
 ## Czego pack nie powinien robic
 

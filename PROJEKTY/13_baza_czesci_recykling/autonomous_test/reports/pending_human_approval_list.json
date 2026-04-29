@@ -1,0 +1,193 @@
+{
+  "generated_at": "2026-04-29T17:12:29Z",
+  "total_pending": 14,
+  "batch_rules": [
+    {
+      "batch": "A",
+      "name": "Komponenty laptopowe (Lenovo + ASUS + Compal)",
+      "match_devices": [
+        "Lenovo Laptop",
+        "ASUS K52F",
+        "Compal LA-G021P"
+      ],
+      "recommended_mode": "per-batch"
+    },
+    {
+      "batch": "B",
+      "name": "Komponenty z innych urzadzen (Samsung TV, Electrolux, vintage, LED, Gigabyte)",
+      "match_devices": [
+        "Samsung UE50MU6102K",
+        "Electrolux EnergySaver",
+        "Various Vintage Electronics",
+        "DesignLight LDF-12V16W",
+        "Gigabyte Graphics Card"
+      ],
+      "recommended_mode": "per-candidate"
+    },
+    {
+      "batch": "C",
+      "name": "IC z e-waste + desktop",
+      "match_devices": [
+        "Unknown Electronic Waste",
+        "Generic Desktop Motherboard (Socket 939)"
+      ],
+      "recommended_mode": "per-batch"
+    }
+  ],
+  "pending_entries": [
+    {
+      "candidate_id": "candidate-0005",
+      "part_number": "M425R1GB4BB0-CWM0D",
+      "part_name": "Battery Connector",
+      "device": "Lenovo Laptop",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "A"
+    },
+    {
+      "candidate_id": "candidate-0006",
+      "part_number": "P28A41E",
+      "part_name": "SMD Capacitors",
+      "device": "Lenovo Laptop",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "A"
+    },
+    {
+      "candidate_id": "candidate-0007",
+      "part_number": "230130, 2R2, 33 25V H33",
+      "part_name": "SMD Resistors",
+      "device": "Lenovo Laptop",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "A"
+    },
+    {
+      "candidate_id": "candidate-0032",
+      "part_number": "JKB1, JKB2",
+      "part_name": "PQB11",
+      "device": "Compal LA-G021P",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "A"
+    },
+    {
+      "candidate_id": "candidate-0041",
+      "part_number": "INTEL 08 i7-628M",
+      "part_name": "Intel Core i3-380M Processor",
+      "device": "ASUS K52F",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "A"
+    },
+    {
+      "candidate_id": "candidate-0042",
+      "part_number": "BD82HM55 SLGZR",
+      "part_name": "Thermal Paste",
+      "device": "ASUS K52F",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "A"
+    },
+    {
+      "candidate_id": "candidate-0015",
+      "part_number": "K6100 1124 08.24",
+      "part_name": "Układ scalony (prawdopodobnie EMMC)",
+      "device": "Samsung UE50MU6102K",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "B"
+    },
+    {
+      "candidate_id": "candidate-0028",
+      "part_number": "MINIJST E DC546134603 ST",
+      "part_name": "Washing machine control board (PCB)",
+      "device": "Electrolux EnergySaver",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "B"
+    },
+    {
+      "candidate_id": "candidate-0054",
+      "part_number": "RM 121",
+      "part_name": "Unitra RM 121 Automatic Radio",
+      "device": "Various Vintage Electronics",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "B"
+    },
+    {
+      "candidate_id": "candidate-0057",
+      "part_number": "LDF-12V16W",
+      "part_name": "LED Power Supply Unit",
+      "device": "DesignLight LDF-12V16W",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "B"
+    },
+    {
+      "candidate_id": "candidate-0062",
+      "part_number": "V17081",
+      "part_name": "PWM Controller",
+      "device": "Gigabyte Graphics Card",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "B"
+    },
+    {
+      "candidate_id": "candidate-0019",
+      "part_number": "M51413ASP",
+      "part_name": "Integrated Circuit (IC)",
+      "device": "Unknown Electronic Waste",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "C"
+    },
+    {
+      "candidate_id": "candidate-0020",
+      "part_number": "MT1588AE 0311-ARS HF986",
+      "part_name": "Integrated Circuit (IC)",
+      "device": "Unknown Electronic Waste",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "C"
+    },
+    {
+      "candidate_id": "candidate-0052",
+      "part_number": "775i65G",
+      "part_name": "CPU Socket",
+      "device": "Generic Desktop Motherboard (Socket 939)",
+      "verification_status": "confirmed",
+      "triage_category": "likely_confirmed",
+      "status_resolution_policy": "likely_confirmed_promote_v2",
+      "review_note": "Auto-promoted from disputed (likely_confirmed) per status resolution policy v2; requires human approval before export",
+      "batch": "C"
+    }
+  ]
+}

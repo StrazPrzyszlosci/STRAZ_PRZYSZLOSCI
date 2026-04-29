@@ -33,18 +33,30 @@
   "resource_cost_hint": "Pack lokalny z opcjonalnym hardware. Koszt to czas agenta + czas na bench test fizycznej plytki. Brak prawdziwego hardware'u = brak bench testu = brak promocji do realnego runtime.",
   "pr_template_path": "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/PR_TEMPLATE.md",
   "output_paths": [
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/simulated_precheck_report.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/bench_test_report_TEMPLATE.md",
     "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/runtime_profile.json",
     "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/pin_map.md",
-    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/lua_runtime_bundle/",
     "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/flash_and_recovery_runbook.md",
-    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/bench_test_report.md"
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/lua_runtime_bundle/",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/bench_test_report.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/REAL_HARDWARE_BENCH_PACKET.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/MEASUREMENT_LEDGER.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/OPERATOR_PRE_START_CHECKLIST.md",
+    "PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-esp-runtime-01/output/READINESS_GATE_MAPPING.md"
   ],
   "expected_artifacts": [
+    "simulated_precheck_report.md",
+    "bench_test_report_TEMPLATE.md",
     "runtime_profile.json",
     "pin_map.md",
-    "lua_runtime_bundle/",
     "flash_and_recovery_runbook.md",
-    "bench_test_report.md"
+    "lua_runtime_bundle/",
+    "bench_test_report.md",
+    "REAL_HARDWARE_BENCH_PACKET.md",
+    "MEASUREMENT_LEDGER.md",
+    "OPERATOR_PRE_START_CHECKLIST.md",
+    "READINESS_GATE_MAPPING.md"
   ],
   "acceptance_criteria": [
     "Runtime targetuje jawnie nazwana plytke, a nie abstrakcyjne ESP32.",
@@ -71,15 +83,32 @@
     "Vendor lock-in na konkretne oprogramowanie firmware bez jawnej alternatywy."
   ],
   "target_output_kind": "pull_request",
-  "status": "draft",
+  "status": "real_hardware_bench_packet_ready",
   "input_contracts": {
     "design_dossier": "output z pack-project13-blueprint-design-01",
-    "board_profile": "PROJEKTY/13_baza_czesci_recykling/docs/ESP32_RECOVERED_BOARD_PROFILE_TEMPLATE.md",
+    "board_profile": "PROJEKTY/13_baza_czesci_recykling/docs/SAMPLE_ESP32_BOARD_PROFILE_DEVKITC_V4.md",
     "bench_test_contract": "PROJEKTY/13_baza_czesci_recykling/docs/BENCH_TEST_CONTRACT_ESP_RUNTIME_01.md",
     "simulation_policy": "PROJEKTY/13_baza_czesci_recykling/docs/SIMULATION_VS_REAL_HARDWARE_POLICY_ESP_RUNTIME_01.md"
+  },
+  "simulated_precheck": {
+    "status": "conditional",
+    "overall": "conditional",
+    "checks_pass": 38,
+    "checks_warn": 3,
+    "checks_fail": 0,
+    "board_id": "recovered-esp-devkitc-v4-01",
+    "run_stamp": "20260428T075254Z",
+    "note": "Simulated precheck passed conditionally (3 warnings: power_consumption_idle, power_consumption_wifi_tx, runtime_profile not provided). Wszystkie real_hardware testy sa PENDING. To NIE jest bench test pass."
   },
   "governance_variant": "B",
   "governance_notes": "Wariant B z REVIEW_ROTATION_GOVERNANCE.md: rozdzielony reviewer merytoryczny i integrity reviewer, approver nie jest jednoczesnie glownym reviewerem, brak merge bez domknietego integrity_ready, brak self-approval.",
   "created_at": "2026-04-24T00:00:00Z",
-  "updated_at": "2026-04-25T00:00:00Z"
+  "real_hardware_bench_packet": {
+    "status": "ready",
+    "board_id": "recovered-esp-devkitc-v4-01",
+    "test_sequence": ["BT-PWR", "BT-FLS", "BT-GPIO", "BT-NET", "BT-STO"],
+    "total_tests": 20,
+    "note": "Operator-ready packet przygotowany. Wszystkie testy real_hardware sa PENDING — wymagaja fizycznej plytki. Zadne wartosci nie zostaly wpisane bez pomiaru."
+  },
+  "updated_at": "2026-04-29T15:49:00Z"
 }

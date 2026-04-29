@@ -1,0 +1,167 @@
+{
+  "generated_at": "2026-04-29T17:12:29Z",
+  "pack": "pack-project13-kaggle-verification-01",
+  "description": "OCR deferred case selector and prompt packet. Each case is independently actionable with GEMINI_API_KEY.",
+  "total_ocr_cases": 7,
+  "selected_cases": 7,
+  "selection_filter": "all",
+  "ocr_cases": [
+    {
+      "candidate_id": "candidate-0008",
+      "part_number": "3336220400007",
+      "part_name": "RAM slots",
+      "device": "Dell Precision M4800",
+      "evidence_url": "https://www.youtube.com/watch?v=7ZbFOgtHvFg&t=127s",
+      "source_video": "https://www.youtube.com/watch?v=7ZbFOgtHvFg",
+      "expected_text": "3336220400007",
+      "disagreement_score": 0.18,
+      "confidence": 0.9,
+      "footprint": null,
+      "datasheet_url": null,
+      "next_command": "GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-selector --case candidate-0008",
+      "next_action": "run_ocr_check",
+      "resolution_if_ocr_confirms": "promote to confirmed -> re-run curation pipeline",
+      "resolution_if_ocr_rejects": "reject -> update status_resolution -> re-run curation",
+      "resolution_if_ocr_inconclusive": "escalate to manual_review"
+    },
+    {
+      "candidate_id": "candidate-0012",
+      "part_number": "UE50MU6102KXXH",
+      "part_name": "Płyta główna (Mainboard)",
+      "device": "Samsung UE50MU6102K",
+      "evidence_url": "https://www.youtube.com/watch?v=OONXjU17iNc&t=9s",
+      "source_video": "https://www.youtube.com/watch?v=OONXjU17iNc",
+      "expected_text": "UE50MU6102KXXH",
+      "disagreement_score": 0.12,
+      "confidence": 0.95,
+      "footprint": null,
+      "datasheet_url": null,
+      "next_command": "GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-selector --case candidate-0012",
+      "next_action": "run_ocr_check",
+      "resolution_if_ocr_confirms": "promote to confirmed -> re-run curation pipeline",
+      "resolution_if_ocr_rejects": "reject -> update status_resolution -> re-run curation",
+      "resolution_if_ocr_inconclusive": "escalate to manual_review"
+    },
+    {
+      "candidate_id": "candidate-0018",
+      "part_number": "1244-2",
+      "part_name": "Speaker",
+      "device": "Samsung UE32EH4000",
+      "evidence_url": "https://www.youtube.com/watch?v=IJYjZasRQ6w&t=227s",
+      "source_video": "https://www.youtube.com/watch?v=IJYjZasRQ6w",
+      "expected_text": "1244-2",
+      "disagreement_score": 0.18,
+      "confidence": 0.9,
+      "footprint": null,
+      "datasheet_url": null,
+      "next_command": "GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-selector --case candidate-0018",
+      "next_action": "run_ocr_check",
+      "resolution_if_ocr_confirms": "promote to confirmed -> re-run curation pipeline",
+      "resolution_if_ocr_rejects": "reject -> update status_resolution -> re-run curation",
+      "resolution_if_ocr_inconclusive": "escalate to manual_review"
+    },
+    {
+      "candidate_id": "candidate-0073",
+      "part_number": "LF80537",
+      "part_name": "Heat Sink / Heat Pipe",
+      "device": "Laptop (Generic/Unspecified)",
+      "evidence_url": "https://www.youtube.com/watch?v=WRKu1dDCVEw&t=306s",
+      "source_video": "https://www.youtube.com/watch?v=WRKu1dDCVEw",
+      "expected_text": "LF80537",
+      "disagreement_score": 0.38,
+      "confidence": 0.95,
+      "footprint": "PGA478",
+      "datasheet_url": "https://www.google.com/search?q=LF80537 datasheet pdf",
+      "next_command": "GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-selector --case candidate-0073",
+      "next_action": "run_ocr_check",
+      "resolution_if_ocr_confirms": "promote to confirmed -> re-run curation pipeline",
+      "resolution_if_ocr_rejects": "reject -> update status_resolution -> re-run curation",
+      "resolution_if_ocr_inconclusive": "escalate to manual_review"
+    },
+    {
+      "candidate_id": "candidate-0074",
+      "part_number": "TS8121K",
+      "part_name": "CPU",
+      "device": "Laptop (Generic/Unspecified)",
+      "evidence_url": "https://www.youtube.com/watch?v=WRKu1dDCVEw&t=442s",
+      "source_video": "https://www.youtube.com/watch?v=WRKu1dDCVEw",
+      "expected_text": "TS8121K",
+      "disagreement_score": 0.38,
+      "confidence": 0.95,
+      "footprint": "SOIC-8",
+      "datasheet_url": "https://www.google.com/search?q=TS8121K datasheet pdf",
+      "next_command": "GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-selector --case candidate-0074",
+      "next_action": "run_ocr_check",
+      "resolution_if_ocr_confirms": "promote to confirmed -> re-run curation pipeline",
+      "resolution_if_ocr_rejects": "reject -> update status_resolution -> re-run curation",
+      "resolution_if_ocr_inconclusive": "escalate to manual_review"
+    },
+    {
+      "candidate_id": "candidate-0079",
+      "part_number": "BD243C",
+      "part_name": "Transistor",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "evidence_url": "https://www.youtube.com/watch?v=Abhlw8diSrk&t=486s",
+      "source_video": "https://www.youtube.com/watch?v=Abhlw8diSrk",
+      "expected_text": "BD243C",
+      "disagreement_score": 0.38,
+      "confidence": 0.95,
+      "footprint": "TO-220",
+      "datasheet_url": "https://www.google.com/search?q=BD243C datasheet pdf",
+      "next_command": "GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-selector --case candidate-0079",
+      "next_action": "run_ocr_check",
+      "resolution_if_ocr_confirms": "promote to confirmed -> re-run curation pipeline",
+      "resolution_if_ocr_rejects": "reject -> update status_resolution -> re-run curation",
+      "resolution_if_ocr_inconclusive": "escalate to manual_review"
+    },
+    {
+      "candidate_id": "candidate-0080",
+      "part_number": "QHA001249",
+      "part_name": "Capacitor",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "evidence_url": "https://www.youtube.com/watch?v=Abhlw8diSrk&t=1559s",
+      "source_video": "https://www.youtube.com/watch?v=Abhlw8diSrk",
+      "expected_text": "QHA001249",
+      "disagreement_score": 0.38,
+      "confidence": 0.8,
+      "footprint": "Custom Transformer",
+      "datasheet_url": "https://www.google.com/search?q=QHA001249 transformer datasheet",
+      "next_command": "GEMINI_API_KEY=... python3 scripts/verify_candidates.py ocr-selector --case candidate-0080",
+      "next_action": "run_ocr_check",
+      "resolution_if_ocr_confirms": "promote to confirmed -> re-run curation pipeline",
+      "resolution_if_ocr_rejects": "reject -> update status_resolution -> re-run curation",
+      "resolution_if_ocr_inconclusive": "escalate to manual_review"
+    }
+  ],
+  "video_source_groups": {
+    "https://www.youtube.com/watch?v=7ZbFOgtHvFg": [
+      "candidate-0008"
+    ],
+    "https://www.youtube.com/watch?v=OONXjU17iNc": [
+      "candidate-0012"
+    ],
+    "https://www.youtube.com/watch?v=IJYjZasRQ6w": [
+      "candidate-0018"
+    ],
+    "https://www.youtube.com/watch?v=WRKu1dDCVEw": [
+      "candidate-0073",
+      "candidate-0074"
+    ],
+    "https://www.youtube.com/watch?v=Abhlw8diSrk": [
+      "candidate-0079",
+      "candidate-0080"
+    ]
+  },
+  "operator_instructions": {
+    "step_1_set_key": "export GEMINI_API_KEY=your_key_here",
+    "step_2_single_case": "python3 scripts/verify_candidates.py ocr-selector --case candidate-XXXX",
+    "step_2_group": "python3 scripts/verify_candidates.py ocr-selector --group <video_url>",
+    "step_2_all": "python3 scripts/verify_candidates.py ocr-selector",
+    "step_3_run_ocr": "python3 scripts/verify_candidates.py ocr-check",
+    "step_4_review": "Check verification_scored.jsonl for ocr_check results per candidate_id",
+    "step_5_rerun_pipeline": "python3 scripts/verify_candidates.py run",
+    "step_6_rerun_curation": "python3 scripts/curate_candidates.py dry-run --fallback-test-db",
+    "step_7_check_gate": "python3 scripts/curate_candidates.py export-gate",
+    "important": "Do NOT mark any OCR case as resolved without a real OCR run and result review."
+  }
+}

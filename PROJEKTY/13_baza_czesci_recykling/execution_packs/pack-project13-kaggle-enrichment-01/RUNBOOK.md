@@ -255,3 +255,15 @@ Pack jest wykonany poprawnie, gdy:
 - wynik laduje na branchu w jego forku
 - powstaje raport runu
 - PR daje sie zreviewowac bez recznego odtwarzania calego przebiegu
+
+## Canary pilot
+
+Jesli jestes pierwszym wolontariuszem, Twoj run jest traktowany jako **controlled canary** — co oznacza, ze:
+
+- maintainer jest dostepny na zywo podczas Twojego runu,
+- obowiazuja stop conditions: masz prawo przerwac w dowolnym momencie bez czekania na maintainera,
+- po Twoim PR przeprowadzamy retro, zeby sprawdzic, czy proces dziala.
+
+Pelna sekwencja canary (przed, w trakcie, po sesji) i stop conditions sa opisane w `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_PILOT_PACKET.md`.
+
+Retro template jest w `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_RETRO_TEMPLATE.md`.

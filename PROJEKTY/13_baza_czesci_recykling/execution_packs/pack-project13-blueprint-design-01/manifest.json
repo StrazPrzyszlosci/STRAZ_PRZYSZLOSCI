@@ -84,16 +84,19 @@
       "operating_environment": ["indoor", "outdoor_sheltered", "outdoor_exposed", "industrial", "wet_area"],
       "reuse_priority": ["reuse_first", "cost_first"]
     },
-    "note": "Walidator sprawdza obecnosc i niepustosc wymaganych pol, enum constraints dla operating_environment i reuse_priority, oraz nie-akceptuje wartosci placeholderowych (__DO_UZUPELNIENIA__, TBD, TODO)."
-  },
+  "note": "Walidator sprawdza obecnosc i niepustosc wymaganych pol, enum constraints dla operating_environment i reuse_priority, nie-akceptuje wartosci placeholderowych (__DO_UZUPELNIENIA__, TBD, TODO), waliduje wiersze sekcji 6.1/6.2 (part_slug, quantity, donor_available), sprawdza spojnosc assumptions/constraints (min 2 punkty, min 5 znakow) oraz wewnetrzna spojnosc pol (I2C/SPI/UART w inputs vs comms, voltage 5V->3.3V bez regulatora)."
+},
   "governance_variant": "A",
   "created_at": "2026-04-24T00:00:00Z",
   "dry_run_surface": {
         "script": "PROJEKTY/13_baza_czesci_recykling/scripts/dry_run_blueprint_design.py",
         "command": "python3 PROJEKTY/13_baza_czesci_recykling/scripts/dry_run_blueprint_design.py --brief <brief_file>",
-        "description": "Minimal dry-run execution surface: waliduje brief, parsuje reuse parts z sekcji 6, dopasowuje do kanonicznego katalogu, generuje 5 review-ready artefaktow + dry-run report. Nie generuje CAD ani nie udaje gotowosci hardware.",
-        "added_by": "zadanie_27",
-        "added_at": "2026-04-26T00:00:00Z"
+  "description": "Minimal dry-run execution surface: waliduje brief, parsuje reuse parts z sekcji 6, waliduje wiersze sekcji 6 i 7, sprawdza wewnetrzna spojnosc, dopasowuje do kanonicznego katalogu, generuje 5 review-ready artefaktow + dry-run report. Nie generuje CAD ani nie udaje gotowosci hardware.",
+  "added_by": "zadanie_27",
+  "added_at": "2026-04-26T00:00:00Z",
+  "row_validation_added_by": "zadanie_33",
+  "row_validation_added_at": "2026-04-28T00:00:00Z",
+  "smoke_test_script": "PROJEKTY/13_baza_czesci_recykling/scripts/smoke_test_blueprint_design.py"
     },
-    "updated_at": "2026-04-26T00:00:00Z"
+    "updated_at": "2026-04-28T00:00:00Z"
 }

@@ -32,14 +32,15 @@ Lokalny agent ma wejsc tutaj, wybrac pierwszy pasujacy przydzial i poprowadzic w
 ### `VOL-P13-01` Realny run `Project 13` na `Kaggle`
 
 - Kiedy przydzielac:
-  - gdy wolontariusz ma konto `GitHub`, konto `Kaggle`, lokalnego agenta i gotowosc do ustawienia wlasnych sekretow
+- gdy wolontariusz ma konto `GitHub`, konto `Kaggle`, lokalnego agenta i gotowosc do ustawienia wlasnych sekretow
 - Minimalne zasoby:
-  - fork repo
-  - `Kaggle`
-  - `GITHUB_PAT`
-  - `YOUTUBE_API_KEY`
-  - `GEMINI_API_KEY`
+- fork repo
+- `Kaggle`
+- `GITHUB_PAT`
+- `YOUTUBE_API_KEY`
+- `GEMINI_API_KEY`
 - Czytaj najpierw:
+- `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_PILOT_PACKET.md`
 - `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md`
 - `PROJEKTY/13_baza_czesci_recykling/README.md` (sekcja "Jak ustawic sekrety")
 - `PROJEKTY/13_baza_czesci_recykling/.env.example`
@@ -48,22 +49,24 @@ Lokalny agent ma wejsc tutaj, wybrac pierwszy pasujacy przydzial i poprowadzic w
 - `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_FALLBACK_GUIDE.md`
 - `PROJEKTY/13_baza_czesci_recykling/execution_packs/pack-project13-kaggle-enrichment-01/RUNBOOK.md`
 - Wynik koncowy:
-  - branch i `PR` z forka wolontariusza do upstream dla packa `pack-project13-kaggle-enrichment-01`
+- branch i `PR` z forka wolontariusza do upstream dla packa `pack-project13-kaggle-enrichment-01`
 - Rola lokalnego agenta:
 - uruchomic pre-flight check: `python3 PROJEKTY/13_baza_czesci_recykling/scripts/preflight_check.py`
 - przeprowadzic setup sekretow (instrukcja w `PROJEKTY/13_baza_czesci_recykling/README.md` sekcja "Jak ustawic sekrety")
 - pilnowac bezpieczenstwa sekretow
 - przygotowac opis `PR` i dopiecie `Artifact`
+- pilnowac stop conditions z `CANARY_PILOT_PACKET.md` — wolontariusz ma prawo przerwac w dowolnym momencie
 
 ### `VOL-P13-02` Lokalny dry-run i audyt tarcia `Project 13`
 
 - Kiedy przydzielac:
-  - gdy wolontariusz ma laptop, lokalnego agenta i srodowisko `Python`, ale nie ma jeszcze `Kaggle` albo kluczy API
+- gdy wolontariusz ma laptop, lokalnego agenta i srodowisko `Python`, ale nie ma jeszcze `Kaggle` albo kluczy API
 - Minimalne zasoby:
-  - lokalny shell
-  - `python3`
-  - fork repo albo lokalna kopia
+- lokalny shell
+- `python3`
+- fork repo albo lokalna kopia
 - Czytaj najpierw:
+- `PROJEKTY/13_baza_czesci_recykling/docs/CANARY_PILOT_PACKET.md`
 - `PROJEKTY/13_baza_czesci_recykling/docs/VOLUNTEER_PREFLIGHT_CHECKLIST.md`
 - `PROJEKTY/13_baza_czesci_recykling/README.md`
   - `PROJEKTY/13_baza_czesci_recykling/docs/PUBLIC_VOLUNTEER_RUN_READINESS.md`

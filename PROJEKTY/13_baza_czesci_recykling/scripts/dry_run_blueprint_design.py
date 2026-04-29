@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -34,6 +35,9 @@ MANIFEST_PATH = PACK_DIR / "manifest.json"
 RUNBOOK_PATH = PACK_DIR / "RUNBOOK.md"
 REVIEW_CHECKLIST_PATH = PACK_DIR / "REVIEW_CHECKLIST.md"
 PR_TEMPLATE_PATH = PACK_DIR / "PR_TEMPLATE.md"
+
+PLACEHOLDER_VALUES = {"__do_uzupelnienia__", "tbd", "todo", "__do_uzupełnienia__"}
+VALID_QUANTITY_PATTERN = re.compile(r"^[1-9]\d*\s*(x|szt|pcs)?\.?$", re.IGNORECASE)
 
 
 def utc_now() -> datetime:
@@ -160,6 +164,68 @@ def parse_reuse_sections(text: str) -> tuple[list[dict], list[dict]]:
         i += 1
 
     return catalog_parts, missing_parts
+
+
+def validate_row_level(catalog_parts: list[dict], missing_parts: list[dict], fields: dict[str, str]) -> list[str]:
+    errors: list[str] = []
+
+    for cp in catalog_parts:
+        slug = cp.get("part_slug", "")
+        qty = cp.get("quantity", "1")
+        if slug.lower().strip("`") in PLACEHOLDER_VALUES or not slug.strip():
+            errors.append(f"SEKCJA 6.1: part_slug jest placeholderem albo pusty: '{slug}'")
+        if qty.lower() in PLACEHOLDER_VALUES or not qty.strip():
+            errors.append(f"SEKCJA 6.1: quantity jest placeholderem albo pusty dla part_slug='{slug}': '{qty}'")
+        elif not VALID_QUANTITY_PATTERN.match(qty.strip()):
+            errors.append(f"SEKCJA 6.1: quantity='{qty}' dla part_slug='{slug}' nie jest prawidlowa liczba")
+        if not re.match(r"^[a-z0-9][a-z0-9_-]*[a-z0-9]$", slug.strip().lower()) and slug.strip():
+            errors.append(f"SEKCJA 6.1: part_slug='{slug}' nie pasuje do formatu slug")
+
+    for mp in missing_parts:
+        func = mp.get("function", "")
+        req_param = mp.get("required_param", "")
+        donor = mp.get("donor_available", "")
+        if func.lower() in PLACEHOLDER_VALUES or not func.strip():
+            errors.append(f"SEKCJA 6.2: Funkcja jest placeholderem albo pusta: '{func}'")
+        if req_param.lower() in PLACEHOLDER_VALUES or not req_param.strip():
+            errors.append(f"SEKCJA 6.2: Wymagany parametr jest placeholderem albo pusty dla Funkcja='{func}': '{req_param}'")
+        donor_upper = donor.upper().strip()
+        if donor_upper not in ("TAK", "NIE", "SPRAWDZIC", "") and not donor_upper.startswith("TAK") and not donor_upper.startswith("NIE") and not donor_upper.startswith("SPRAWDZIC"):
+            errors.append(f"SEKCJA 6.2: Czy da sie pozyskac='{donor}' dla Funkcja='{func}' — oczekiwano TAK/NIE/SPRAWDZIC (opcjonalnie z wyjasnieniem po mysliniku)")
+
+    assumptions = fields.get("assumptions", "").strip()
+    if assumptions and assumptions.lower() not in PLACEHOLDER_VALUES:
+        numbered_pattern = re.compile(r"^\d+\s*[.):]\s*")
+        raw_segments = [s.strip().rstrip(",") for s in assumptions.split(".") if s.strip().rstrip(",")]
+        merged: list[str] = []
+        for seg in raw_segments:
+            if re.match(r"^\d+$", seg.strip()):
+                merged.append(seg.strip() + ".")
+            elif merged and re.match(r"^\d+\.$", merged[-1].strip()):
+                merged[-1] = merged[-1].rstrip(".") + ". " + seg
+            else:
+                merged.append(seg)
+        segments = [numbered_pattern.sub("", seg).strip() for seg in merged if numbered_pattern.sub("", seg).strip()]
+        if len(segments) < 2:
+            errors.append(f"assumptions ma tylko {len(segments)} punkt — wymagane min 2 konkretna zalozenia")
+
+    constraints = fields.get("constraints", "").strip()
+    if constraints and constraints.lower() not in PLACEHOLDER_VALUES:
+        numbered_pattern = re.compile(r"^\d+\s*[.):]\s*")
+        raw_segments = [s.strip().rstrip(",") for s in constraints.split(".") if s.strip().rstrip(",")]
+        merged: list[str] = []
+        for seg in raw_segments:
+            if re.match(r"^\d+$", seg.strip()):
+                merged.append(seg.strip() + ".")
+            elif merged and re.match(r"^\d+\.$", merged[-1].strip()):
+                merged[-1] = merged[-1].rstrip(".") + ". " + seg
+            else:
+                merged.append(seg)
+        segments = [numbered_pattern.sub("", seg).strip() for seg in merged if numbered_pattern.sub("", seg).strip()]
+        if len(segments) < 2:
+            errors.append(f"constraints ma tylko {len(segments)} punkt — wymagane min 2 konkretna ograniczenia")
+
+    return errors
 
 
 def build_bill_of_materials(
@@ -594,6 +660,31 @@ def main() -> int:
         "status": "pass" if catalog_parts or missing_parts else "warn",
         "details": f"catalog_parts={len(catalog_parts)}, missing_parts={len(missing_parts)}",
     })
+
+    row_errors = validate_row_level(catalog_parts, missing_parts, fields)
+    if row_errors:
+        checks.append({
+            "name": "brief_row_validation",
+            "status": "fail",
+            "details": f"{len(row_errors)} bledow w wierszach sekcji 6/7: {'; '.join(row_errors[:3])}{'...' if len(row_errors) > 3 else ''}",
+        })
+        print("BLEDY WALIDACJI WIERSZY BRIEFU:", file=sys.stderr)
+        for re_err in row_errors:
+            print(f"  - {re_err}", file=sys.stderr)
+        report = build_dry_run_report(
+            args.brief, output_dir, checks, fields,
+            {"summary": {"total_items": 0, "reuse_catalog": 0, "missing_from_catalog": 0, "missing": 0}},
+            run_stamp,
+        )
+        report_path = output_dir / "dry_run_report.md"
+        report_path.write_text(report, encoding="utf-8")
+        return 1
+    else:
+        checks.append({
+            "name": "brief_row_validation",
+            "status": "pass",
+            "details": "Wszystkie wiersze sekcji 6.1, 6.2 i sekcji 7 przeszly walidacje",
+        })
 
     catalog_parts_not_found: list[str] = []
     for cp in catalog_parts:

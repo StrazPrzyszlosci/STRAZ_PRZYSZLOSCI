@@ -29,6 +29,10 @@ Walidator sprawdza:
 - obecnosc i niepustosc wszystkich pol `[WYMAGANE]` z szablonu
 - enum constraints dla `operating_environment` i `reuse_priority`
 - odrzuca placeholderowe wartosci (`__DO_UZUPELNIENIA__`, `TBD`, `TODO`)
+- walidacja wierszy sekcji 6.1: part_slug (format slug, nie placeholder), quantity (prawidlowa liczba)
+- walidacja wierszy sekcji 6.2: Funkcja (nie placeholder), Wymagany parametr (nie pusty), donor_available (TAK/NIE/SPRAWDZIC z opcjonalnym wyjasnieniem)
+- walidacja assumptions/constraints: min 2 konkretne punkty, kazdy punkt min 5 znakow, nie placeholder
+- sprawdzenie wewnetrznej spojnosci: I2C/SPI/UART w inputs vs communication_interfaces, voltage 5V->3.3V bez regulatora w assumptions
 
 Schema baseline: `schemas/design_brief.schema.json`
 
@@ -56,6 +60,20 @@ Dry-run generuje 6 artefaktow w `output/`:
 4. `design_risks.json` — zidentyfikowane ryzyka projektowe
 5. `missing_parts_or_assumptions.json` — czesci brakujace i zalozenia
 6. `dry_run_report.md` — raport z dry-run z checkami
+
+### Smoke-test baseline
+
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/smoke_test_blueprint_design.py
+```
+
+Smoke-test uruchamia 4 testy:
+1. INVALID_BRIEF (dry-run) — oczekiwany FAIL
+2. INVALID_BRIEF (validator) — oczekiwany FAIL
+3. VALID_BRIEF (dry-run) — oczekiwany PASS
+4. VALID_BRIEF (validator) — oczekiwany PASS
+
+Opcje: `--verbose` — pokaz pelny output komend.
 
 ### Docelowy pelny run (niezaimplementowany)
 

@@ -31,7 +31,7 @@ Ten pack steruje swiatem fizycznym. Wymaga ostrzejszego governance (Wariant B):
 
 Pack musi spelnic bench test contract przed merge: `docs/BENCH_TEST_CONTRACT_ESP_RUNTIME_01.md`
 
-Contract definiuje 17 testow w 5 kategoriach (zasilanie, flashowanie, GPIO, siec, storage). Kazdy test ma kategorie `real_hardware`, `simulated` albo `either`.
+Contract definiuje 20 testow w 5 kategoriach (zasilanie, flashowanie, GPIO, siec, storage). Kazdy test ma kategorie `real_hardware`, `simulated` albo `either`.
 
 Zasada: runtime bundle nie moze byc mergowany, jesli jakikolwiek test `real_hardware` ma status inny niz `PASS` albo `NOT_APPLICABLE`.
 
@@ -49,19 +49,57 @@ Zasady kluczowe:
 
 ## Komenda glowna
 
-PLACEHOLDER — execution surface nie istnieje jeszcze. Pack jest w statusie `draft`.
+Simulated precheck (nie wymaga plytki):
 
-Docelowo:
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/simulated_precheck_esp_runtime.py \
+  --board-profile PROJEKTY/13_baza_czesci_recykling/docs/SAMPLE_ESP32_BOARD_PROFILE_DEVKITC_V4.md
+```
+
+Z opcjonalnym runtime_profile:
+
+```bash
+python3 PROJEKTY/13_baza_czesci_recykling/scripts/simulated_precheck_esp_runtime.py \
+  --board-profile <board_profile.md> \
+  --runtime-profile <runtime_profile.json> \
+  --output-dir <dir>
+```
+
+Docelowo (po zatwierdzonym design dossier):
 
 ```bash
 python3 PROJEKTY/13_baza_czesci_recykling/scripts/generate_esp_runtime.py --dossier <dossier_path> --board-profile <board_id>
 ```
 
-Bench test:
+Bench test (wymaga plytki; obecnie manualny, bo `scripts/bench_test_esp_runtime.py` jeszcze nie istnieje):
 
-```bash
-python3 PROJEKTY/13_baza_czesci_recykling/scripts/bench_test_esp_runtime.py --board-id <board_id>
-```
+Real hardware bench test (operator-ready):
+
+1. Przeczytaj `output/REAL_HARDWARE_BENCH_PACKET.md` — sciezka testowa krok po kroku
+2. Przejdz `output/OPERATOR_PRE_START_CHECKLIST.md` — wszystkie checkboxy zaznaczone
+3. Wykonuj testy w kolejnosci: BT-PWR -> BT-FLS -> BT-GPIO -> BT-NET -> BT-STO
+4. Wpisuj odczyty do `output/MEASUREMENT_LEDGER.md`
+5. Po zakonczeniu: przepisz wyniki do bench_test_report.md
+6. Sprawdz mapowanie na sub-gates: `output/READINESS_GATE_MAPPING.md`
+
+### Status wykonania
+
+Simulated precheck zostal uruchomiony na `SAMPLE_ESP32_BOARD_PROFILE_DEVKITC_V4.md` z wynikiem `conditional` (38 pass, 3 warn, 0 fail). Output artifacts w `output/`:
+
+- `simulated_precheck_report.md` — raport z precheck
+- `bench_test_report_TEMPLATE.md` — template bench test report (wszystkie real_hardware = PENDING)
+- `runtime_profile.json` — stub runtime profile (dry_run, simulated)
+- `pin_map.md` — pin map z board profile
+- `flash_and_recovery_runbook.md` — runbook flashowania
+
+Real hardware bench packet (zadanie 40) przygotowany. Output artifacts w `output/`:
+
+- `REAL_HARDWARE_BENCH_PACKET.md` — operator-ready bench packet z kolejnoscia testow i sciezka testowa
+- `MEASUREMENT_LEDGER.md` — template ledger z miejscem na odczyty, obserwacje i verdicty
+- `OPERATOR_PRE_START_CHECKLIST.md` — checklist operatora przed startem testu na plytce
+- `READINESS_GATE_MAPPING.md` — mapowanie wynikow bench testu na sub-gates readiness_gate
+
+**Uwaga**: Simulated precheck NIE jest bench testem na realnym hardware. Wszystkie testy `real_hardware` pozostaja PENDING. Real hardware bench packet jest gotowy do uzycia, ale nie zawiera zadnych zmyslonych pomiarow.
 
 ## Co pack powinien zrobic
 
