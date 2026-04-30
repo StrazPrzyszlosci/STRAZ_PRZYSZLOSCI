@@ -30,6 +30,10 @@ CREATE INDEX IF NOT EXISTS idx_injection_audit_chat
 --    package = physical package type (SOT-23, SOIC-8, 0805, DIP-28, etc.)
 --    This is DIFFERENT from kicad_footprint which is a KiCad library reference
 --    Datasheets table already has this column; now adding consistency
+<<<<<<< HEAD
+=======
+--    Apply this migration before deploying Worker code with inline ensureColumn fallback.
+>>>>>>> 5c4d401 (feat: security hardening, market scouting automation, and canary phase closeout)
 
 ALTER TABLE recycled_part_master ADD COLUMN package TEXT;
 

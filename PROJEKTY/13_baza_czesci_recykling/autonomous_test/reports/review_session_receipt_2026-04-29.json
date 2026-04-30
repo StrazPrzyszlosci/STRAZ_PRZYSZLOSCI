@@ -1,0 +1,81 @@
+{
+  "receipt_type": "blocker_receipt",
+  "session_date": "2026-04-29",
+  "generated_at": "2026-04-29T19:26:12Z",
+  "task_ref": "ZLECENIE_GLOWNE_41_PROJECT13_CURATION_REAL_REVIEW_SESSION_AND_LEDGER_EXECUTION",
+  "blocker_reason": "NO_REAL_REVIEWER_AVAILABLE",
+  "blocker_detail": "REVIEW_ASSIGNMENT_PACKET.md section 3 still has __DO_UZUPELNIENIA__ for primary_curation_reviewer and backup_curation_reviewer. No real human reviewer has been identified, assigned, or recorded any decision. Per task section 8 (Blokery), writing fictional approvals, test approvals, or approvals on behalf of someone is explicitly forbidden.",
+  "pending_human_approval_count": 14,
+  "deferred_count": 9,
+  "auto_approved_count": 9,
+  "auto_rejected_count": 50,
+  "human_approvals_recorded": 0,
+  "human_review_ledger_entries": 0,
+  "review_queue_status": "no_change",
+  "export_gate_result": "BLOCKED",
+  "export_gate_blockers": [
+    "14 candidates still pending_human_approval",
+    "9 deferred candidates still unresolved",
+    "No human review approval recorded"
+  ],
+  "pending_cases_by_batch": {
+    "A": {
+      "name": "Komponenty laptopowe (Lenovo + ASUS + Compal)",
+      "count": 6,
+      "candidates": [
+        {"candidate_id": "candidate-0005", "part_number": "M425R1GB4BB0-CWM0D", "device": "Lenovo Laptop"},
+        {"candidate_id": "candidate-0006", "part_number": "P28A41E", "device": "Lenovo Laptop"},
+        {"candidate_id": "candidate-0007", "part_number": "230130, 2R2, 33 25V H33", "device": "Lenovo Laptop"},
+        {"candidate_id": "candidate-0032", "part_number": "JKB1, JKB2", "device": "Compal LA-G021P"},
+        {"candidate_id": "candidate-0041", "part_number": "INTEL 08 i7-628M", "device": "ASUS K52F"},
+        {"candidate_id": "candidate-0042", "part_number": "BD82HM55 SLGZR", "device": "ASUS K52F"}
+      ]
+    },
+    "B": {
+      "name": "Komponenty z innych urzadzen",
+      "count": 5,
+      "candidates": [
+        {"candidate_id": "candidate-0015", "part_number": "K6100 1124 08.24", "device": "Samsung UE50MU6102K"},
+        {"candidate_id": "candidate-0028", "part_number": "MINIJST E DC546134603 ST", "device": "Electrolux EnergySaver"},
+        {"candidate_id": "candidate-0054", "part_number": "RM 121", "device": "Various Vintage Electronics"},
+        {"candidate_id": "candidate-0057", "part_number": "LDF-12V16W", "device": "DesignLight LDF-12V16W"},
+        {"candidate_id": "candidate-0062", "part_number": "V17081", "device": "Gigabyte Graphics Card"}
+      ]
+    },
+    "C": {
+      "name": "IC z e-waste + desktop",
+      "count": 3,
+      "candidates": [
+        {"candidate_id": "candidate-0019", "part_number": "M51413ASP", "device": "Unknown Electronic Waste"},
+        {"candidate_id": "candidate-0020", "part_number": "MT1588AE 0311-ARS HF986", "device": "Unknown Electronic Waste"},
+        {"candidate_id": "candidate-0052", "part_number": "775i65G", "device": "Generic Desktop Motherboard (Socket 939)"}
+      ]
+    }
+  },
+  "deferred_cases": [
+    {"candidate_id": "candidate-0008", "part_number": "3336220400007", "triage": "ocr_needed"},
+    {"candidate_id": "candidate-0012", "part_number": "UE50MU6102KXXH", "triage": "ocr_needed"},
+    {"candidate_id": "candidate-0018", "part_number": "1244-2", "triage": "ocr_needed"},
+    {"candidate_id": "candidate-0073", "part_number": "LF80537", "triage": "ocr_needed"},
+    {"candidate_id": "candidate-0074", "part_number": "TS8121K", "triage": "ocr_needed"},
+    {"candidate_id": "candidate-0076", "part_number": "BN44-00213A", "triage": "manual_review"},
+    {"candidate_id": "candidate-0077", "part_number": "QHAD01249", "triage": "manual_review"},
+    {"candidate_id": "candidate-0079", "part_number": "BD243C", "triage": "ocr_needed"},
+    {"candidate_id": "candidate-0080", "part_number": "QHA001249", "triage": "ocr_needed"}
+  ],
+  "statuses_unchanged": true,
+  "human_review_ledger_unchanged": true,
+  "curation_review_queue_unchanged": true,
+  "validation_commands": [
+    "python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py review-status",
+    "python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py export-gate",
+    "grep -c placeholder PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/human_review_ledger.jsonl || echo 0"
+  ],
+  "next_steps_to_unblock": [
+    "Maintainer must fill in __DO_UZUPELNIENIA__ in REVIEW_ASSIGNMENT_PACKET.md section 3",
+    "A real person must be assigned as primary_curation_reviewer or backup_curation_reviewer",
+    "Assigned reviewer must run record-review with their real identifier as --reviewed-by",
+    "After all 14 pending are resolved and 9 deferred are handled, re-run export-gate",
+    "Alternative: pivot to higher-level dossier/scouting instead of further Project 13 tunnelling"
+  ]
+}

@@ -171,6 +171,25 @@ STATUS_RESOLUTION_POLICY: dict[str, dict[str, Any]] = {
 }
 
 STATUS_RESOLUTION_PACKET_PATH = REPORTS_DIR / "status_resolution_packet.json"
+OCR_DECISION_PATTERN = re.compile(
+    r"^\s*(?:[*_`#>\-\s]*(?:ANSWER\s*:\s*)?[*_`#>\-\s]*)(YES|NO)\b",
+    re.IGNORECASE,
+)
+
+
+def parse_ocr_decision(raw_answer: str | None) -> str | None:
+    """Return normalized YES/NO from model output, including markdown wrappers."""
+    if not raw_answer:
+        return None
+    match = OCR_DECISION_PATTERN.match(raw_answer.strip())
+    if not match:
+        return None
+    token = match.group(1).upper()
+    if token == "YES":
+        return "confirmed"
+    if token == "NO":
+        return "rejected"
+    return None
 
 
 def classify_mpn_quality(part_number: str) -> dict[str, Any]:
@@ -514,11 +533,11 @@ def try_ocr_check(
                 model=model,
                 contents=prompt,
             )
-            answer = (response.text or "").strip().upper()
-            if answer.startswith("YES"):
+            decision = parse_ocr_decision(response.text)
+            if decision == "confirmed":
                 rec["verification_status"] = "confirmed"
                 rec["ocr_check"] = {"result": "confirmed", "raw": response.text}
-            elif answer.startswith("NO"):
+            elif decision == "rejected":
                 rec["verification_status"] = "rejected"
                 rec["ocr_check"] = {"result": "rejected", "raw": response.text}
             else:
@@ -718,6 +737,15 @@ def cmd_triage(args: argparse.Namespace) -> dict[str, Any]:
 
     if not disputed:
         print(" No disputed records to triage.")
+        dry_run = getattr(args, "dry_run", False)
+        triage_path = TRIAGE_REPORT_PATH
+        if dry_run:
+            triage_path = TRIAGE_REPORT_PATH.parent / (
+                TRIAGE_REPORT_PATH.name + DRY_RUN_SUFFIX
+            )
+        write_jsonl(triage_path, [])
+        write_jsonl(scored_path, candidates)
+        print(f" Triage report cleared: {triage_path}")
         return {"triaged": 0}
 
     print(f" Disputed records to triage: {len(disputed)}\n")
@@ -819,6 +847,32 @@ def cmd_resolve_status(args: argparse.Namespace) -> dict[str, Any]:
         policy = STATUS_RESOLUTION_POLICY.get(cat, STATUS_RESOLUTION_POLICY["manual_review"])
 
         old_status = rec["verification_status"]
+        ocr_check = rec.get("ocr_check", {})
+        cached_ocr_decision = parse_ocr_decision(ocr_check.get("raw"))
+        if cached_ocr_decision in {"confirmed", "rejected"}:
+            rec["verification_status"] = cached_ocr_decision
+            rec["ocr_check"] = {
+                **ocr_check,
+                "result": cached_ocr_decision,
+                "normalized_from_cached_raw": True,
+            }
+            rec["status_resolution"] = {
+                "policy": "cached_ocr_yes_no_v1",
+                "from": old_status,
+                "to": cached_ocr_decision,
+                "triage_category": cat,
+                "audit_note": "Resolved from cached OCR raw response after normalizing markdown-formatted YES/NO",
+                "resolved_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+            resolution_log.append({
+                "part_number": rec.get("part_number", ""),
+                "part_name": rec.get("part_name", ""),
+                "triage_category": cat,
+                "from": old_status,
+                "to": cached_ocr_decision,
+                "audit_note": "cached OCR raw response normalized as YES/NO",
+            })
+            continue
 
         if cat == "likely_confirmed":
             mpn_result = rec.get("_mpn_result") or classify_mpn_quality(rec.get("part_number", ""))
@@ -936,6 +990,9 @@ def cmd_resolve_status(args: argparse.Namespace) -> dict[str, Any]:
     for rec in candidates:
         s = rec.get("verification_status", "unknown")
         status_after[s] = status_after.get(s, 0) + 1
+    for status in ["confirmed", "disputed", "rejected"]:
+        status_before.setdefault(status, 0)
+        status_after.setdefault(status, 0)
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -1019,8 +1076,40 @@ def cmd_deferred_workpack(args: argparse.Namespace) -> dict[str, Any]:
     ocr_needed = resolution_packet.get("ocr_needed_remaining", [])
     manual_review = resolution_packet.get("manual_review_remaining", [])
 
+    dry_run = getattr(args, "dry_run", False)
+    workpack_json_path = DEFERRED_WORKPACK_JSON_PATH
+    workpack_md_path = DEFERRED_WORKPACK_MD_PATH
+    if dry_run:
+        workpack_json_path = DEFERRED_WORKPACK_JSON_PATH.parent / (DEFERRED_WORKPACK_JSON_PATH.name + DRY_RUN_SUFFIX)
+        workpack_md_path = DEFERRED_WORKPACK_MD_PATH.parent / (DEFERRED_WORKPACK_MD_PATH.name + DRY_RUN_SUFFIX)
+
     if not ocr_needed and not manual_review:
-        print(" No deferred cases remaining. Workpack not needed.")
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        empty_workpack = {
+            "generated_at": now,
+            "pack": "pack-project13-kaggle-verification-01",
+            "description": "No deferred verification cases remain.",
+            "total_cases": 0,
+            "ocr_needed_cases": 0,
+            "manual_review_cases": 0,
+            "ocr_needed": [],
+            "manual_review": [],
+            "provenance": {
+                "status_resolution_packet": str(resolution_path),
+                "verified_snapshot": str(VERIFIED_SNAPSHOT_PATH),
+            },
+        }
+        write_json(workpack_json_path, empty_workpack)
+        workpack_md_path.parent.mkdir(parents=True, exist_ok=True)
+        workpack_md_path.write_text(
+            "# Deferred Resolution Workpack\n\n"
+            f"Generated: {now}\n\n"
+            "No deferred verification cases remain.\n",
+            encoding="utf-8",
+        )
+        print(" No deferred cases remaining. Empty workpack written.")
+        print(f" JSON workpack: {workpack_json_path}")
+        print(f" Markdown workpack: {workpack_md_path}")
         return {"workpack": False, "ocr_needed": 0, "manual_review": 0}
 
     verified_path = VERIFIED_SNAPSHOT_PATH
@@ -1145,13 +1234,6 @@ def cmd_deferred_workpack(args: argparse.Namespace) -> dict[str, Any]:
         },
     }
 
-    dry_run = getattr(args, "dry_run", False)
-    workpack_json_path = DEFERRED_WORKPACK_JSON_PATH
-    workpack_md_path = DEFERRED_WORKPACK_MD_PATH
-    if dry_run:
-        workpack_json_path = DEFERRED_WORKPACK_JSON_PATH.parent / (DEFERRED_WORKPACK_JSON_PATH.name + DRY_RUN_SUFFIX)
-        workpack_md_path = DEFERRED_WORKPACK_MD_PATH.parent / (DEFERRED_WORKPACK_MD_PATH.name + DRY_RUN_SUFFIX)
-
     write_json(workpack_json_path, workpack_json)
 
     md_lines = [
@@ -1249,6 +1331,12 @@ def cmd_deferred_workpack(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_ocr_case_map() -> list[dict[str, Any]]:
+    if STATUS_RESOLUTION_PACKET_PATH.exists():
+        with open(STATUS_RESOLUTION_PACKET_PATH, "r", encoding="utf-8") as f:
+            resolution_packet = json.load(f)
+        if not resolution_packet.get("ocr_needed_remaining", []):
+            return []
+
     workpack_path = DEFERRED_WORKPACK_JSON_PATH
     if not workpack_path.exists():
         return []
@@ -1293,10 +1381,30 @@ def build_ocr_case_map() -> list[dict[str, Any]]:
 def cmd_ocr_selector(args: argparse.Namespace) -> dict[str, Any]:
     print("=== Verification OCR Selector: Surgical case-level OCR execution surface ===\n")
 
+    dry_run = getattr(args, "dry_run", False)
+    out_path = OCR_DEFERRED_CASE_PACKET_PATH
+    if dry_run:
+        out_path = OCR_DEFERRED_CASE_PACKET_PATH.parent / (
+            OCR_DEFERRED_CASE_PACKET_PATH.name + DRY_RUN_SUFFIX
+        )
+
     case_map = build_ocr_case_map()
     if not case_map:
-        print(" No OCR-deferred cases found. Run 'deferred-workpack' first.")
-        return {"selector": False, "cases": 0}
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        packet = {
+            "generated_at": now,
+            "pack": "pack-project13-kaggle-verification-01",
+            "description": "No OCR-deferred cases remain.",
+            "total_ocr_cases": 0,
+            "selected_cases": 0,
+            "selection_filter": "none",
+            "ocr_cases": [],
+            "video_source_groups": {},
+        }
+        write_json(out_path, packet)
+        print(" No OCR-deferred cases found. Empty OCR case packet written.")
+        print(f" OCR case packet written: {out_path}")
+        return {"selector": False, "cases": 0, "packet_path": str(out_path)}
 
     case_filter = getattr(args, "case", None)
     group_filter = getattr(args, "group", None)
@@ -1356,13 +1464,6 @@ def cmd_ocr_selector(args: argparse.Namespace) -> dict[str, Any]:
         vid = c.get("source_video", "unknown")
         video_groups.setdefault(vid, []).append(c["candidate_id"])
     packet["video_source_groups"] = video_groups
-
-    dry_run = getattr(args, "dry_run", False)
-    out_path = OCR_DEFERRED_CASE_PACKET_PATH
-    if dry_run:
-        out_path = OCR_DEFERRED_CASE_PACKET_PATH.parent / (
-            OCR_DEFERRED_CASE_PACKET_PATH.name + DRY_RUN_SUFFIX
-        )
 
     write_json(out_path, packet)
 
@@ -1560,6 +1661,7 @@ def cmd_report(args: argparse.Namespace) -> dict[str, Any]:
             )
         lines.append("")
 
+    ocr_actionable_count = 0
     if triage_records:
         triage_counts_rpt: dict[str, int] = {}
         for tr in triage_records:
@@ -1598,8 +1700,14 @@ def cmd_report(args: argparse.Namespace) -> dict[str, Any]:
         ocr_actionable_count = sum(
             1 for tr in triage_records if tr.get("ocr_actionable")
         )
-    lines.append(f"- OCR-actionable records: {ocr_actionable_count}")
-    lines.append("")
+        lines.append(f"- OCR-actionable records: {ocr_actionable_count}")
+        lines.append("")
+    else:
+        lines.append("## Disputed triage summary")
+        lines.append("")
+        lines.append("- No disputed triage records remain.")
+        lines.append(f"- Triage report: `{triage_path}`")
+        lines.append("")
 
     if resolution_packet:
         lines.append("## Status resolution summary")
@@ -1622,6 +1730,15 @@ def cmd_report(args: argparse.Namespace) -> dict[str, Any]:
         lines.append(f"- Resolution packet: `{resolution_packet_path}`")
         lines.append(f"- Policy version: {resolution_packet.get('policy_version', 'unknown')}")
         lines.append("")
+
+    ocr_remaining = len(resolution_packet.get("ocr_needed_remaining", []))
+    manual_remaining = len(resolution_packet.get("manual_review_remaining", []))
+    ocr_limitation = "- ocr_needed records remain deferred until GEMINI_API_KEY is available"
+    if resolution_packet and ocr_remaining == 0:
+        ocr_limitation = "- No ocr_needed records remain deferred in the current status resolution packet"
+    manual_limitation = "- manual_review records remain deferred until human reviewer decides"
+    if resolution_packet and manual_remaining == 0:
+        manual_limitation = "- No manual_review records remain deferred in the current status resolution packet"
 
     lines.extend(
         [
@@ -1648,8 +1765,8 @@ def cmd_report(args: argparse.Namespace) -> dict[str, Any]:
     "- Rule-based validation may produce false positives for short or ambiguous MPNs",
     "- threshold_tuning records are now rejected by improved MPN heuristics (status resolution policy v2)",
     "- likely_confirmed records are now promoted to confirmed by status resolution policy v2",
-    "- ocr_needed records remain deferred until GEMINI_API_KEY is available",
-    "- manual_review records remain deferred until human reviewer decides",
+    ocr_limitation,
+    manual_limitation,
     "- Verification is separate from curation and export (no downstream promotion)",
     "- Verification pack does NOT handle export gate; that is curation's responsibility",
     "",

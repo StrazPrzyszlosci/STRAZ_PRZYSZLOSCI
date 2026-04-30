@@ -1,0 +1,99 @@
+{
+  "schema_version": "v1",
+  "receipt_type": "blocker_receipt",
+  "receipt_id": "export_blocker_2026-04-30",
+  "task_id": 48,
+  "generated_at": "2026-04-30T00:41:00Z",
+  "gate_result": "BLOCKED",
+  "gate_checked_at": "2026-04-30T00:40:42Z",
+  "gate_checks": [
+    {
+      "check": "no_pending_approvals",
+      "pass": false,
+      "detail": "14 candidates pending human approval: M425R1GB4BB0-CWM0D, P28A41E, 230130, 2R2, 33 25V H33, K6100 1124 08.24, M51413ASP, MT1588AE 0311-ARS HF986, MINIJST E DC546134603 ST, JKB1, JKB2, INTEL 08 i7-628M, BD82HM55 SLGZR, 775i65G, RM 121, LDF-12V16W, V17081"
+    },
+    {
+      "check": "no_unresolved_deferrals",
+      "pass": true,
+      "detail": "No unresolved deferrals"
+    },
+    {
+      "check": "catalog_validation_passes",
+      "pass": true,
+      "detail": "Catalog validation passed"
+    },
+    {
+      "check": "human_review_recorded",
+      "pass": false,
+      "detail": "No human review approval recorded for pending candidates"
+    }
+  ],
+  "blockers": [
+    {
+      "id": "pending_human_approval",
+      "count": 14,
+      "description": "14 accepted candidates still pending human approval — auto-promoted from disputed (likely_confirmed) per status resolution policy v2",
+      "candidates": [
+        "candidate-0005",
+        "candidate-0006",
+        "candidate-0007",
+        "candidate-0015",
+        "candidate-0019",
+        "candidate-0020",
+        "candidate-0028",
+        "candidate-0032",
+        "candidate-0041",
+        "candidate-0042",
+        "candidate-0052",
+        "candidate-0054",
+        "candidate-0057",
+        "candidate-0062"
+      ],
+      "resolution": "Maintainer must run record-review for each pending candidate with a real reviewer name"
+    },
+    {
+      "id": "no_human_review_recorded",
+      "count": 0,
+      "description": "No human review approval recorded yet — human_review_ledger.jsonl does not exist",
+      "resolution": "At least 1 record-review with decision=approved must be recorded by a real reviewer"
+    }
+  ],
+  "what_was_NOT_done": [
+    "apply was NOT run — gate is BLOCKED",
+    "export-all was NOT run — gate is BLOCKED",
+    "No catalog files were modified",
+    "No export artifacts were generated"
+  ],
+  "prerequisite_tasks_status": {
+    "zadanie_47": "BLOCKED — no real reviewer for curation review session (14 pending_human_approval unresolved)",
+    "zadanie_41": "BLOCKED — no real reviewer for curation review session",
+    "zadanie_42": "PASS z korekta — OCR run executed, deferred resolved to 0 after cached markdown YES normalization for LF80537",
+    "zadanie_43": "BLOCKED — no real reviewer for manual review decisions (candidate-0076, candidate-0077)",
+    "zadanie_44": "BLOCKED — export gate BLOCKED, same 2 blockers as current"
+  },
+  "previous_blocker_receipt": "autonomous_test/reports/export_blocker_receipt_2026-04-29.json",
+  "review_queue_snapshot": {
+    "total_candidates": 82,
+    "auto_approved": 12,
+    "pending_human_approval": 14,
+    "deferred": 0,
+    "auto_rejected": 56,
+    "human_rejected": 0,
+    "approved_after_human_review": 0
+  },
+  "catalog_validation": {
+    "status": "pass",
+    "devices": 4,
+    "parts": 4,
+    "device_parts": 4,
+    "errors": 0,
+    "warnings": 0
+  },
+  "how_to_unblock": [
+    "1. Maintainer reviews and records decisions for 14 pending_human_approval candidates:",
+    "   python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py record-review --candidate-id <ID> --decision <approved|rejected|defer> --reviewed-by '<REVIEWER_NAME>' --note '<uzasadnienie>'",
+    "2. Ensure at least 1 approved review is recorded",
+    "3. Re-run: python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py export-gate",
+    "4. If OPEN: proceed with apply -> validate -> export-all -> validate -> release receipt"
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "generated_at": "2026-04-29T20:41:59Z",
+  "pack": "pack-project13-kaggle-verification-01",
+  "task": "Zlecenie Glowne 42",
+  "model": "gemma-4-31b-it",
+  "total_ocr_cases": 7,
+  "manual_review_also_ran": 2,
+  "results_summary": {
+    "confirmed": 3,
+    "rejected": 6,
+    "inconclusive": 0
+  },
+  "confirmed_candidates": [
+    "LF80537",
+    "BN44-00213A",
+    "BD243C"
+  ],
+  "rejected_candidates": [
+    "3336220400007",
+    "UE50MU6102KXXH",
+    "1244-2",
+    "TS8121K",
+    "QHAD01249",
+    "QHA001249"
+  ],
+  "inconclusive_candidates": [
+    
+  ],
+  "per_candidate_results": [
+    {
+      "part_number": "3336220400007",
+      "part_name": "RAM slots",
+      "device": "Dell Precision M4800",
+      "verification_status": "rejected",
+      "triage_category": "ocr_needed",
+      "ocr_result": "rejected",
+      "ocr_raw_preview": "NO. '3336220400007' is not a valid manufacturer part number for RAM slots; it does not follow industry standard numbering for memory sockets, and RAM slots are typically integrated components of a mot"
+    },
+    {
+      "part_number": "UE50MU6102KXXH",
+      "part_name": "Płyta główna (Mainboard)",
+      "device": "Samsung UE50MU6102K",
+      "verification_status": "rejected",
+      "triage_category": "ocr_needed",
+      "ocr_result": "rejected",
+      "ocr_raw_preview": "NO. UE50MU6102KXXH is the model number of the television set, not the specific manufacturer part number for the mainboard (which for Samsung typically follows a format like BN94-XXXXX)."
+    },
+    {
+      "part_number": "1244-2",
+      "part_name": "Speaker",
+      "device": "Samsung UE32EH4000",
+      "verification_status": "rejected",
+      "triage_category": "ocr_needed",
+      "ocr_result": "rejected",
+      "ocr_raw_preview": "NO. '1244-2' is not a recognized industry-standard manufacturer part number for a speaker; it appears to be an internal assembly reference or an incorrect identification."
+    },
+    {
+      "part_number": "LF80537",
+      "part_name": "Heat Sink / Heat Pipe",
+      "device": "Laptop (Generic/Unspecified)",
+      "verification_status": "confirmed",
+      "triage_category": "ocr_needed",
+      "ocr_result": "confirmed",
+      "ocr_raw_preview": "**YES**\n\n**Reason:** LF80537 is a valid manufacturer/assembly part number used to identify the specific heat sink and heat pipe cooling module for the laptop model featured in the teardown video."
+    },
+    {
+      "part_number": "TS8121K",
+      "part_name": "CPU",
+      "device": "Laptop (Generic/Unspecified)",
+      "verification_status": "rejected",
+      "triage_category": "ocr_needed",
+      "ocr_result": "rejected",
+      "ocr_raw_preview": "NO. TS8121K is not a CPU; it is typically a Power Management IC (PMIC) or a voltage regulator."
+    },
+    {
+      "part_number": "BN44-00213A",
+      "part_name": "Power Supply Board",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "verification_status": "confirmed",
+      "triage_category": "manual_review",
+      "ocr_result": "confirmed",
+      "ocr_raw_preview": "YES. BN44-00213A is a valid manufacturer part number for a Samsung TV Power Supply Board."
+    },
+    {
+      "part_number": "QHAD01249",
+      "part_name": "Transformer",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "verification_status": "rejected",
+      "triage_category": "manual_review",
+      "ocr_result": "rejected",
+      "ocr_raw_preview": "NO. 'QHAD01249' does not match the naming conventions of major electronic component manufacturers and is not found in global part databases; it is likely an internal OEM assembly number or a batch cod"
+    },
+    {
+      "part_number": "BD243C",
+      "part_name": "Transistor",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "verification_status": "confirmed",
+      "triage_category": "ocr_needed",
+      "ocr_result": "confirmed",
+      "ocr_raw_preview": "YES. BD243C is a widely used part number for an NPN silicon power transistor."
+    },
+    {
+      "part_number": "QHA001249",
+      "part_name": "Capacitor",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "verification_status": "rejected",
+      "triage_category": "ocr_needed",
+      "ocr_result": "rejected",
+      "ocr_raw_preview": "NO. 'QHA001249' is not a recognized manufacturer part number for a capacitor in standard electronic component databases; it appears to be an internal assembly or reference number."
+    }
+  ],
+  "pipeline_re_run": true,
+  "pipeline_result": {
+    "confirmed": 26,
+    "disputed": 0,
+    "rejected": 56
+  },
+  "remaining_disputed": {
+    "part_number": null,
+    "reason": null,
+    "escalation": null,
+    "note": "Audit correction: LF80537 was resolved from cached OCR raw response after parse_ocr_decision() started accepting markdown-formatted YES/NO such as **YES**."
+  },
+  "export_gate_status": "STILL_BLOCKED: 14 pending_human_approval + 0 deferred remaining + 0 human approvals",
+  "curation_dry_run_result": {
+    "accepted": 26,
+    "deferred": 0,
+    "rejected": 56,
+    "deferred_candidate": null,
+    "deferred_reason": null
+  },
+  "export_gate_after_ocr": {
+    "result": "BLOCKED",
+    "blockers": 2,
+    "deferred_remaining": 0,
+    "pending_human_approval": 14,
+    "human_approvals_recorded": 0
+  },
+  "ocr_deferred_reduction": {
+    "before": 9,
+    "after": 0,
+    "resolved_by_ocr": 9
+  },
+  "audit_correction": {
+    "corrected_at": "2026-04-29T22:45:24Z",
+    "correction": "Markdown-formatted OCR answer **YES** for LF80537 is now normalized to confirmed without another API call.",
+    "code_ref": "verify_candidates.py parse_ocr_decision() + cached OCR normalization in resolve-status"
+  }
+}

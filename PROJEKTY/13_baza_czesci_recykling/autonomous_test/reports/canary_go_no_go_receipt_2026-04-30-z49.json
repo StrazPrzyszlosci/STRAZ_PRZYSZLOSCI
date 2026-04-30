@@ -1,0 +1,86 @@
+{
+  "schema_version": "v1",
+  "receipt_type": "agent_no_go_blocker_receipt",
+  "receipt_id": "canary_go_no_go_2026-04-30-z49",
+  "task_id": 49,
+  "generated_at": "2026-04-30T01:15:00Z",
+  "decision": "NO-GO",
+  "decision_kind": "agent_operational_blocker",
+  "maintainer_signed": false,
+  "maintainer_signoff_reason": "No maintainer available to sign GO or NO-GO decision. All C-1..C-5 blockers remain OPEN. This is an operational agent receipt, not a maintainer-signed decision.",
+  "canary_run_occurred": false,
+  "retro_template_filled": false,
+  "blocker_ledger": {
+    "C-1": {
+      "name": "Checklist maintainera wypelniona",
+      "status": "OPEN",
+      "owner": "Maintainer",
+      "evidence": "PILOT_REVIEW_ASSIGNMENT_AND_APPROVAL_PATH.md sekcja 2.1 has 7 __DO_UZUPELNIENIA__ placeholders for primary_pack_reviewer, backup_reviewer, integrity_reviewer, approver, review_coordinator",
+      "next_move": "Maintainer wypelnia role i loginy GitHub w sekcji 2.1; checklist sekcji 5 zaznacza"
+    },
+    "C-2": {
+      "name": "Branch protection na upstream wlaczona",
+      "status": "OPEN",
+      "owner": "Maintainer",
+      "evidence": "BRANCH_PROTECTION_OPERATOR_PACKET.md istnieje, ale weryfikacja nie zostala wykonana; gh CLI nie dostepne lokalnie do sprawdzenia",
+      "next_move": "Maintainer wykonuje weryfikacje wg BRANCH_PROTECTION_OPERATOR_PACKET.md kroki 1-4"
+    },
+    "C-3": {
+      "name": "CODEOWNERS loginy uzupelnione",
+      "status": "OPEN",
+      "owner": "Maintainer",
+      "evidence": ".github/CODEOWNERS zawiera wyacznie @DO_UZUPELNIENIA_* placeholder loginy (primary_pack_reviewer, integrity_reviewer, approver)",
+      "next_move": "Maintainer zamienia @DO_UZUPELNIENIA_* na prawdziwe loginy GitHub"
+    },
+    "C-4": {
+      "name": "Reviewer i approver wyznaczeni i dostepni",
+      "status": "OPEN",
+      "owner": "Maintainer",
+      "evidence": "Pola w PILOT_REVIEW_ASSIGNMENT_AND_APPROVAL_PATH.md sekcja 2.1 nadal __DO_UZUPELNIENIA__; brak nazwanych osob w rolach",
+      "next_move": "Maintainer wypelnia sekcje 2.1 i potwierdza dostepnosc w oknie canary"
+    },
+    "C-5": {
+      "name": "Dostepnosc maintainera na zywo podczas canary",
+      "status": "OPEN",
+      "owner": "Maintainer",
+      "evidence": "GitHub Issues z labelka volunteer-support istnieja; kanal na zywo (Discord/Telegram) nie jest potwierdzony; maintainer nie zadeklarowal ram czasowych dostepnosci",
+      "next_move": "Maintainer deklaruje kanal komunikacji i ramy czasowe dostepnosci"
+    }
+  },
+  "additional_blockers": {
+    "curation_pipeline": {
+      "pending_human_approval": 14,
+      "human_approvals_recorded": 0,
+      "export_gate": "BLOCKED",
+      "note": "Even if C-1..C-5 close, curation pipeline remains blocked without a real reviewer for 14 pending candidates"
+    },
+    "esp_runtime": {
+      "real_hardware_bench": "NOT_EXECUTED",
+      "note": "Zadanie 46 (ESP runtime real hardware bench) also blocked on hardware availability"
+    }
+  },
+  "what_was_NOT_done": [
+    "Canary run was NOT started — all C-1..C-5 blockers OPEN",
+    "No maintainer-signed GO or NO-GO decision recorded",
+    "Retro template remains empty — no canary to retro",
+    "No volunteer was engaged for canary run",
+    "No secrets were used or exposed"
+  ],
+  "prerequisite_tasks_status": {
+    "zadanie_39": "NO-GO — same 5 blockers OPEN",
+    "zadanie_45": "NO-GO — same 5 blockers OPEN; receipt canary_go_no_go_receipt_2026-04-30.json",
+    "zadanie_47": "BLOCKED — no real reviewer for 14 pending human approvals",
+    "zadanie_48": "BLOCKED — export gate BLOCKED, same curation blockers"
+  },
+  "how_to_unblock": [
+    "1. Maintainer wypelnia __DO_UZUPELNIENIA__ w PILOT_REVIEW_ASSIGNMENT_AND_APPROVAL_PATH.md sekcja 2.1 (C-1 + C-4)",
+    "2. Maintainer wykonuje weryfikacje branch protection wg BRANCH_PROTECTION_OPERATOR_PACKET.md (C-2)",
+    "3. Maintainer uzupelnia loginy w .github/CODEOWNERS (C-3)",
+    "4. Maintainer deklaruje kanal komunikacji i ramy czasowe dostepnosci (C-5)",
+    "5. Maintainer podpisuje decyzje GO w CANARY_GO_LIVE_OPERATOR_PACKET.md",
+    "6. Maintainer lub reviewer przegladaja 14 pending candidates przez record-review",
+    "7. Po C-1..C-5 CLOSED + GO: uruchomic canary z wolontariuszem wg CANARY_PILOT_PACKET.md"
+  ],
+  "previous_receipt": "canary_go_no_go_receipt_2026-04-30.json",
+  "secrets_in_receipt": false
+}

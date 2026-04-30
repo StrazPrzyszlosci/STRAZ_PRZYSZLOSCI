@@ -83,7 +83,7 @@
     "Vendor lock-in na konkretne oprogramowanie firmware bez jawnej alternatywy."
   ],
   "target_output_kind": "pull_request",
-  "status": "real_hardware_bench_packet_ready",
+  "status": "real_hardware_bench_blocked",
   "input_contracts": {
     "design_dossier": "output z pack-project13-blueprint-design-01",
     "board_profile": "PROJEKTY/13_baza_czesci_recykling/docs/SAMPLE_ESP32_BOARD_PROFILE_DEVKITC_V4.md",
@@ -110,5 +110,6 @@
     "total_tests": 20,
     "note": "Operator-ready packet przygotowany. Wszystkie testy real_hardware sa PENDING — wymagaja fizycznej plytki. Zadne wartosci nie zostaly wpisane bez pomiaru."
   },
-  "updated_at": "2026-04-29T15:49:00Z"
+  "updated_at": "2026-04-30T01:10:00Z",
+  "zadanie_46_note": "Bench test nie zostal wykonany — brak fizycznej plytki na stanowisku roboczym. Wszystkie 20 testow real_hardware pozostaje PENDING. Blocker receipt: esp_runtime_bench_receipt_2026-04-30.json. Operator z plytka powinien wykonac bench test wg REAL_HARDWARE_BENCH_PACKET.md i wpisac odczyty do MEASUREMENT_LEDGER.md."
 }

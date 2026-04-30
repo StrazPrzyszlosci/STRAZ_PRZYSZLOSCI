@@ -12,14 +12,16 @@ Retro nie udaje, ze wszystko poslo gladko. Jesli cos bylo zle, to wlasnie jest n
 
 | Pole | Wartosc |
 |------|---------|
-| Data runu | __DO_UZUPELNIENIA__ |
-| Wolontariusz (login GitHub) | __DO_UZUPELNIENIA__ |
-| Przydzial (np. VOL-P13-01) | __DO_UZUPELNIENIA__ |
+| Data runu | BRAK — canary nie odbyl sie (NO-GO blocker receipt 2026-04-30) |
+| Wolontariusz (login GitHub) | BRAK |
+| Przydzial (np. VOL-P13-01) | BRAK |
 | Pack | pack-project13-kaggle-enrichment-01 |
-| PR (link) | __DO_UZUPELNIENIA__ |
-| Wynik pre-flight (PASS/FAIL/MANUAL counts) | __DO_UZUPELNIENIA__ |
-| Czy run zakonczony do konca? | __DO_UZUPELNIENIA__ |
-| Czy nastapil stop condition? | __DO_UZUPELNIENIA__ (jesli tak: ktory) |
+| PR (link) | BRAK |
+| Wynik pre-flight (PASS/FAIL/MANUAL counts) | BRAK |
+| Czy run zakonczony do konca? | N/A — canary nie startowal |
+| Czy nastapil stop condition? | N/A — canary nie startowal |
+
+> **Uwaga (zadanie 45, 2026-04-30):** Agent zapisal NO-GO blocker receipt, nie maintainer-signed decyzje. Wszystkie blokery C-1..C-5 w `CANARY_GO_LIVE_OPERATOR_PACKET.md` pozostaja OPEN. Retro template pozostaje pusty do wypelnienia po realnym canary. Receipt: `canary_go_no_go_receipt_2026-04-30.json`. |
 
 ---
 

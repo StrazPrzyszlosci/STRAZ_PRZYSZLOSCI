@@ -240,7 +240,7 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
  };
  }
 
- await sendTelegramReply(env, message, `🔎 Analizuję datasheet pod kątem: _"${sanitized.safeText}"_...`);
+  await sendTelegramReply(env, message, `🔎 Analizuję datasheet pod kątem: _"${sanitized.safeText}"_...`);
 
  let aiContext = "";
  let finalPdfUrl = null;

@@ -176,3 +176,37 @@ Po GO: wolontariusz wchodzi przez `docs/WOLONTARIUSZE_GOTOWE_PRZYDZIALY.md` i ro
 ## Status
 
 **NO-GO** — packet jest gotowy, ale canary nie moze zostac otwarty. Wszystkie 5 blockerow jest OPEN. Maintainer musi zamknac blokery przed podpisaniem decyzji GO.
+
+### Weryfikacja zadanie 45 (2026-04-30)
+
+Agent podwykonawczy zadania 45 zweryfikowal stan blockerow C-1..C-5:
+
+- **C-1**: OPEN — sekcja 2.1 `PILOT_REVIEW_ASSIGNMENT_AND_APPROVAL_PATH.md` nadal ma wszystkie 4 pola jako `__DO_UZUPELNIENIA__`; checklist sekcji 5 niezaznaczona
+- **C-2**: OPEN — brak potwierdzenia weryfikacji branch protection; operator packet istnieje, ale nie wykonano krokow 1-4
+- **C-3**: OPEN — `.github/CODEOWNERS` nadal zawiera wyacznie `@DO_UZUPELNIENIA_*` placeholderow; brak prawdziwych loginow GitHub
+- **C-4**: OPEN — brak nazwanych osob w rolach `primary_pack_reviewer`, `backup_reviewer`/`integrity_reviewer`, `approver`, `review_coordinator`
+- **C-5**: OPEN — maintainer nie zadeklarowal kanalu komunikacji ani ram czasowych dostepnosci
+
+Decyzja operacyjna agenta: **NO-GO blocker receipt**. Receipt: `canary_go_no_go_receipt_2026-04-30.json`.
+
+Uwaga: to nie jest podpisana decyzja maintainera w tabeli powyzej. Maintainer nadal musi wypelnic pole decyzji, jesli chce formalnie podpisac `GO` albo `NO-GO`.
+
+Canary run nie odbyl sie. Retro template nie zostal wypelniony — brak realnego canary.
+
+Dodatkowy blocker z zadania 44 po audycie 2026-04-30: export gate `BLOCKED` — 14 kandydatow czeka na human approval, 0 deferred, 0 zarejestrowanych recenzji ludzkich. Nawet po zamknieciu C-1..C-5, brak reviewera blokuje rowniez curation pipeline.
+
+### Weryfikacja zadanie 49 (2026-04-30)
+
+Agent podwykonawczy zadania 49 ponownie zweryfikowal stan blockerow C-1..C-5:
+
+- **C-1**: OPEN — `PILOT_REVIEW_ASSIGNMENT_AND_APPROVAL_PATH.md` sekcja 2.1 nadal ma 7 pol `__DO_UZUPELNIENIA__`; checklist sekcji 5 niezaznaczona
+- **C-2**: OPEN — brak potwierdzenia weryfikacji branch protection; operator packet istnieje, ale kroki 1-4 nie wykonane
+- **C-3**: OPEN — `.github/CODEOWNERS` nadal zawiera wyacznie `@DO_UZUPELNIENIA_*` placeholder loginy (primary_pack_reviewer, integrity_reviewer, approver)
+- **C-4**: OPEN — brak nazwanych osob w rolach `primary_pack_reviewer`, `backup_reviewer`/`integrity_reviewer`, `approver`, `review_coordinator`
+- **C-5**: OPEN — maintainer nie zadeklarowal kanalu komunikacji ani ram czasowych dostepnosci
+
+Decyzja operacyjna agenta: **NO-GO blocker receipt**. Receipt: `canary_go_no_go_receipt_2026-04-30-z49.json`.
+
+Zaden blocker nie zmienil statusu od zadania 45. Wszystkie 5 pozostaje OPEN. Canary run nie odbyl sie. Retro template nie zostal wypelniony.
+
+Dodatkowe blokery: zadanie 47 (curation review) i 48 (export gate) nadal zablokowane — 14 pending_human_approval, 0 human approvals, export gate BLOCKED.

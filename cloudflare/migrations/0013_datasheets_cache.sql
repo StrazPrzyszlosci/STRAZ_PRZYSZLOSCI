@@ -26,7 +26,11 @@ CREATE TABLE IF NOT EXISTS datasheets (
   power_rating TEXT,
   temperature_range TEXT,
   pinout_json TEXT,         -- JSON: {pin_number: pin_function}
+<<<<<<< HEAD
  parameters TEXT, -- JSON: all extracted InvenTree-compatible params (consistent with recycled_part_master.parameters)
+=======
+  parameters TEXT,             -- JSON: all extracted InvenTree-compatible params
+>>>>>>> 5c4d401 (feat: security hardening, market scouting automation, and canary phase closeout)
   description TEXT,
   keywords TEXT,
   kicad_symbol TEXT,

@@ -1,6 +1,6 @@
 # Verification Report
 
-Generated: 2026-04-25T13:49:30Z
+Generated: 2026-04-29T22:50:40Z
 Pack: pack-project13-kaggle-verification-01
 Execution surface: scripts/verify_candidates.py
 
@@ -14,53 +14,33 @@ Execution surface: scripts/verify_candidates.py
 
 | Status | Count |
 |--------|-------|
-| Confirmed | 23 |
-| Disputed | 9 |
-| Rejected | 50 |
+| Confirmed | 26 |
+| Disputed | 0 |
+| Rejected | 56 |
 | **Total** | 82 |
 
 ## Disagreement summary
 
-- Disputed records: 9
+- Disputed records: 0
 - Disagreement log: `/home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/verification_disagreements.jsonl`
-
-### Key disputed cases
-
-- **3336220400007** (device: Dell Precision M4800) — disagreement: 0.18, triage: ocr_needed, indicators: video_source_available_for_ocr
-- **UE50MU6102KXXH** (device: Samsung UE50MU6102K) — disagreement: 0.12, triage: ocr_needed, indicators: board_model_number, video_source_available_for_ocr
-- **1244-2** (device: Samsung UE32EH4000) — disagreement: 0.18, triage: ocr_needed, indicators: video_source_available_for_ocr
-- **LF80537** (device: Laptop (Generic/Unspecified)) — disagreement: 0.38, triage: ocr_needed, indicators: enrichment_v2_with_video_source
-- **TS8121K** (device: Laptop (Generic/Unspecified)) — disagreement: 0.38, triage: ocr_needed, indicators: enrichment_v2_with_video_source
-- **BN44-00213A** (device: Samsung Power Supply Board (BN44-00213A)) — disagreement: 0.38, triage: manual_review, indicators: board_model_number
-- **QHAD01249** (device: Samsung Power Supply Board (BN44-00213A)) — disagreement: 0.38, triage: manual_review, indicators: custom_wound_transformer_no_datasheet
-- **BD243C** (device: Samsung Power Supply Board (BN44-00213A)) — disagreement: 0.38, triage: ocr_needed, indicators: enrichment_v2_with_video_source
-- **QHA001249** (device: Samsung Power Supply Board (BN44-00213A)) — disagreement: 0.38, triage: ocr_needed, indicators: enrichment_v2_with_video_source
 
 ## Disputed triage summary
 
-| Triage category | Count | Description |
-|----------------|-------|-------------|
-| likely_confirmed | 14 | High MPN confidence, low disagreement; safe to auto-promote after review |
-| ocr_needed | 7 | OCR frame check could resolve; requires GEMINI_API_KEY |
-| manual_review | 2 | Human reviewer needed; no automated resolution path |
-| threshold_tuning | 1 | Record should be rejected or recategorized by improved MPN heuristics |
-
+- No disputed triage records remain.
 - Triage report: `/home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/verification_triage.jsonl`
-- GEMINI_API_KEY available: False
-- OCR-actionable records: 7
 
 ## Status resolution summary
 
 | Status | Before | After | Delta |
 |--------|--------|-------|-------|
-| confirmed | 9 | 23 | +14 |
-| disputed | 24 | 9 | -15 |
-| rejected | 49 | 50 | +1 |
+| confirmed | 25 | 26 | +1 |
+| disputed | 1 | 0 | -1 |
+| rejected | 56 | 56 | 0 |
 
-- Resolutions applied: 15
-- Still deferred (ocr_needed): 7
-- Still deferred (manual_review): 2
-- Blocked for clean verified snapshot: 9
+- Resolutions applied: 1
+- Still deferred (ocr_needed): 0
+- Still deferred (manual_review): 0
+- Blocked for clean verified snapshot: 0
 - Resolution packet: `/home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/status_resolution_packet.json`
 - Policy version: v2
 
@@ -87,8 +67,8 @@ Execution surface: scripts/verify_candidates.py
 - Rule-based validation may produce false positives for short or ambiguous MPNs
 - threshold_tuning records are now rejected by improved MPN heuristics (status resolution policy v2)
 - likely_confirmed records are now promoted to confirmed by status resolution policy v2
-- ocr_needed records remain deferred until GEMINI_API_KEY is available
-- manual_review records remain deferred until human reviewer decides
+- No ocr_needed records remain deferred in the current status resolution packet
+- No manual_review records remain deferred in the current status resolution packet
 - Verification is separate from curation and export (no downstream promotion)
 - Verification pack does NOT handle export gate; that is curation's responsibility
 

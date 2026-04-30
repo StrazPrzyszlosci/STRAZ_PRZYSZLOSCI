@@ -283,3 +283,14 @@ Obserwacje: [DO_UZUPELNIENIA]
 > **UWAGA**: To jest pusty measurement ledger. Wszystkie odczyty i verdicty sa [DO_UZUPELNIENIA].
 > Zadna wartosc nie zostala wpisana bez fizycznej plytki.
 > Po wypelnieniu ledger staje sie autorytatywnym zrodlem prawd dla bench_test_report.md.
+
+### Status zadanie 46 (2026-04-30)
+
+Agent podwykonawczy zadania 46 potwierdzil: **brak fizycznej plytki ESP32** na stanowisku roboczym. Wszystkie 20 testow real_hardware pozostaja PENDING. Zadna wartosc symulowana nie zostala wpisana jako realny pomiar. Bench test nie zostal wykonany. Blocker receipt: `esp_runtime_bench_receipt_2026-04-30.json`.
+
+Gdy operator z fizyczna plytka bedzie dostepny, powinien:
+1. Przejsc `OPERATOR_PRE_START_CHECKLIST.md`
+2. Wykonac bench test wg `REAL_HARDWARE_BENCH_PACKET.md`
+3. Wpisac odczyty ponizej (zastapic [DO_UZUPELNIENIA] realnymi wartosciami)
+4. Uzupelnic `bench_test_report.md` wynikami
+5. Zaktualizowac `readiness_gate.json`

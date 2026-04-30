@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-29T17:17:24Z",
+  "generated_at": "2026-04-30T18:57:19Z",
   "gate_result": "BLOCKED",
   "gate_checks": [
     {
@@ -9,8 +9,8 @@
     },
     {
       "check": "no_unresolved_deferrals",
-      "pass": false,
-      "detail": "9 deferred candidates: 3336220400007, UE50MU6102KXXH, 1244-2, LF80537, TS8121K, BN44-00213A, QHAD01249, BD243C, QHA001249"
+      "pass": true,
+      "detail": "No unresolved deferrals"
     },
     {
       "check": "catalog_validation_passes",
@@ -25,25 +25,20 @@
   ],
   "blockers": [
     "14 accepted candidates still pending human approval: M425R1GB4BB0-CWM0D, P28A41E, 230130, 2R2, 33 25V H33, K6100 1124 08.24, M51413ASP, MT1588AE 0311-ARS HF986, MINIJST E DC546134603 ST, JKB1, JKB2, INTEL 08 i7-628M, BD82HM55 SLGZR, 775i65G, RM 121, LDF-12V16W, V17081",
-    "9 deferred candidates still unresolved: 3336220400007, UE50MU6102KXXH, 1244-2, LF80537, TS8121K, BN44-00213A, QHAD01249, BD243C, QHA001249",
     "No human review approval recorded for pending candidates"
   ],
-  "warnings": [
-    "7 records still deferred by verification (ocr_needed)",
-    "2 records still deferred by verification (manual_review)"
-  ],
+  "warnings": [],
   "queue_summary": {
-    "accept": 23,
-    "defer": 9,
-    "reject": 50,
+    "accept": 26,
+    "defer": 0,
+    "reject": 56,
     "pending_human_approval": 14,
-    "auto_approved": 9
+    "auto_approved": 12
   },
   "status_resolution_ref": "/home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/status_resolution_packet.json",
   "next_steps": [
-    "Resolve 3 blocker(s) before export:",
+    "Resolve 2 blocker(s) before export:",
     "  - 14 accepted candidates still pending human approval: M425R1GB4BB0-CWM0D, P28A41E, 230130, 2R2, 33 25V H33, K6100 1124 08.24, M51413ASP, MT1588AE 0311-ARS HF986, MINIJST E DC546134603 ST, JKB1, JKB2, INTEL 08 i7-628M, BD82HM55 SLGZR, 775i65G, RM 121, LDF-12V16W, V17081",
-    "  - 9 deferred candidates still unresolved: 3336220400007, UE50MU6102KXXH, 1244-2, LF80537, TS8121K, BN44-00213A, QHAD01249, BD243C, QHA001249",
     "  - No human review approval recorded for pending candidates",
     "To approve pending candidates, use record-review command:",
     "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0005 --decision approved --reviewed-by <REVIEWER_NAME>",

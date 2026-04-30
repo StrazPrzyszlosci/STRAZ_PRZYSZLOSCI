@@ -4,21 +4,21 @@ import { callProviderWithFallback } from "./ai_providers.js";
 import { fetchTelegramFileAsBase64 } from "./history.js";
 import { getDeviceById, recordRecycledSubmission, getPartsForModel } from "./recycled_catalog.js";
 import { upsertUserSession } from "./sessions.js";
+import { buildVisionAntiInjectionPrefix } from "./input_sanitizer.js";
 
 export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
- const { buildVisionAntiInjectionPrefix } = await import("./input_sanitizer.js");
- const mediaData = [{ data: mediaBase64, mime_type: message.mime_type || "image/jpeg" }];
- const visionSystem = [
- "Jesteś ekspertem elektroniki i recyklingu.",
- "Na zdjęciu może znajdować się etykieta urządzenia, chip LUB rezystor.",
- "Jeśli to rezystor (THT/SMD), odczytaj jego wartość i zwróć JSON: { \"type\": \"resistor\", \"value\": \"... Ω\", \"value_ohm\": liczba, \"tolerance\": \"...%\", \"bands\": [\"kolor1\", ...], \"smd_code\": \"kod SMD\", \"code_format\": \"THT\" lub \"SMD\", \"confidence\": 0.9 }",
- "Dla THT wypisz kolory pasków po kolei (czarny, brązowy, czerwony, pomarańczowy, żółty, zielony, niebieski, fioletowy, szary, biały, złoty, srebrny).",
- "Jeśli to urządzenie/chip, zidentyfikuj model i zwróć: { \"type\": \"device\", \"brand\": \"...\", \"model\": \"...\", \"confidence\": 0.9 }",
- "Jeśli nie rozpoznajesz obiektu, zwróć: { \"type\": \"unknown\", \"confidence\": 0.0 }",
- "BEZWZGLĘDNIE POMIJAJ numery IMEI - to dane wrażliwe.",
- "Zwróć TYLKO wynik w formacie JSON bez Markdownu.",
- buildVisionAntiInjectionPrefix(),
- ].join(" ");
+  const mediaData = [{ data: mediaBase64, mime_type: message.mime_type || "image/jpeg" }];
+  const visionSystem = [
+    "Jesteś ekspertem elektroniki i recyklingu.",
+    "Na zdjęciu może znajdować się etykieta urządzenia, chip LUB rezystor.",
+    "Jeśli to rezystor (THT/SMD), odczytaj jego wartość i zwróć JSON: { \"type\": \"resistor\", \"value\": \"... Ω\", \"value_ohm\": liczba, \"tolerance\": \"...%\", \"bands\": [\"kolor1\", ...], \"smd_code\": \"kod SMD\", \"code_format\": \"THT\" lub \"SMD\", \"confidence\": 0.9 }",
+    "Dla THT wypisz kolory pasków po kolei (czarny, brązowy, czerwony, pomarańczowy, żółty, zielony, niebieski, fioletowy, szary, biały, złoty, srebrny).",
+    "Jeśli to urządzenie/chip, zidentyfikuj model i zwróć: { \"type\": \"device\", \"brand\": \"...\", \"model\": \"...\", \"confidence\": 0.9 }",
+    "Jeśli nie rozpoznajesz obiektu, zwróć: { \"type\": \"unknown\", \"confidence\": 0.0 }",
+    "BEZWZGLĘDNIE POMIJAJ numery IMEI - to dane wrażliwe.",
+    "Zwróć TYLKO wynik w formacie JSON bez Markdownu.",
+    buildVisionAntiInjectionPrefix(),
+  ].join(" ");
 
   let identity;
   let visionResp;
@@ -115,16 +115,15 @@ export async function recognizeDeviceAndListParts(env, message, mediaBase64) {
 }
 
 export async function recognizePartAndRecord(env, message, mediaBase64, session, ctx = null) {
- const { buildVisionAntiInjectionPrefix } = await import("./input_sanitizer.js");
- const mediaData = [{ data: mediaBase64, mime_type: message.mime_type || "image/jpeg" }];
- const visionSystem = [
- "Jesteś ekspertem od elektroniki i części zamiennych.",
- "Zidentyfikuj część ze zdjęcia (odczytaj numery z etykiety, układów scalonych, chipu PCB itp.).",
- "BEZWZGLĘDNIE POMIJAJ numery IMEI.",
- "Zwróć wynik TYLKO w formacie JSON podając typ i numery, bez Markdownu z kodem. Oczekiwany format: { \"part_name\": \"krótka nazwa np. Płyta główna, Pamięć RAM, Bateria\", \"part_number\": \"zidentyfikowane oznaczenia\", \"confidence\": 0.9 }",
- "Jeśli część całkowicie nie nadaje się do identyfikacji, zwróć { \"error\": \"not_recognized\" }.",
- buildVisionAntiInjectionPrefix(),
- ].join(" ");
+  const mediaData = [{ data: mediaBase64, mime_type: message.mime_type || "image/jpeg" }];
+  const visionSystem = [
+    "Jesteś ekspertem od elektroniki i części zamiennych.",
+    "Zidentyfikuj część ze zdjęcia (odczytaj numery z etykiety, układów scalonych, chipu PCB itp.).",
+    "BEZWZGLĘDNIE POMIJAJ numery IMEI.",
+    "Zwróć wynik TYLKO w formacie JSON podając typ i numery, bez Markdownu z kodem. Oczekiwany format: { \"part_name\": \"krótka nazwa np. Płyta główna, Pamięć RAM, Bateria\", \"part_number\": \"zidentyfikowane oznaczenia\", \"confidence\": 0.9 }",
+    "Jeśli część całkowicie nie nadaje się do identyfikacji, zwróć { \"error\": \"not_recognized\" }.",
+    buildVisionAntiInjectionPrefix(),
+  ].join(" ");
   
   const visionResp = await callProviderWithFallback(env, buildPromptPayload(visionSystem, "Zidentyfikuj tę część i odczytaj wszystkie przydatne numery serwisowe/part numbers z widocznych naklejek.", env, {
     media: mediaData, responseMimeType: "application/json", maxTokens: 400

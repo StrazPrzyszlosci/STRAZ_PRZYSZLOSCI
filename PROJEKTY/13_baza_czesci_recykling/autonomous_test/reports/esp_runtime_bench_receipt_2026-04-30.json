@@ -1,0 +1,84 @@
+{
+  "schema_version": "v1",
+  "receipt_type": "esp_runtime_bench_blocker_receipt",
+  "receipt_id": "esp_runtime_bench_blocker_2026-04-30",
+  "task_id": 46,
+  "generated_at": "2026-04-30T01:10:00Z",
+  "bench_test_performed": false,
+  "blocker_reason": "No physical ESP32 board available. Agent podwykonawczy operates on a software workstation without access to: ESP32-DevKitC-V4 board (board_id=recovered-esp-devkitc-v4-01), multimeter, USB cable, test AP Wi-Fi, MQTT broker, or firmware .bin files.",
+  "blockers": [
+    {
+      "id": "no_physical_board",
+      "description": "ESP32-DevKitC-V4 (recovered-esp-devkitc-v4-01) not physically present at workstation",
+      "blocks": ["BT-PWR-01..05", "BT-FLS-01..03", "BT-GPIO-01", "BT-GPIO-03..05", "BT-NET-01..04", "BT-STO-01..02"],
+      "resolution": "Maintainer or operator with physical board must run bench test using REAL_HARDWARE_BENCH_PACKET.md and MEASUREMENT_LEDGER.md"
+    },
+    {
+      "id": "no_multimeter",
+      "description": "No multimeter available for voltage and current measurements (BT-PWR-01..04)",
+      "blocks": ["BT-PWR-01", "BT-PWR-02", "BT-PWR-03", "BT-PWR-04"],
+      "resolution": "Operator needs multimeter for DC voltage and current measurement"
+    },
+    {
+      "id": "no_firmware_bin",
+      "description": "No firmware .bin file available for flash testing",
+      "blocks": ["BT-FLS-01", "BT-FLS-03"],
+      "resolution": "Firmware must be built or provided before bench test"
+    },
+    {
+      "id": "no_test_wifi_ap",
+      "description": "No test Wi-Fi AP with known credentials for Wi-Fi connectivity tests",
+      "blocks": ["BT-NET-01", "BT-NET-02", "BT-NET-04"],
+      "resolution": "Operator needs 2.4GHz test AP; credentials go in .env only, not in repo"
+    },
+    {
+      "id": "no_mqtt_broker",
+      "description": "No MQTT broker available for publish test",
+      "blocks": ["BT-NET-03"],
+      "resolution": "Operator needs test MQTT broker; credentials go in .env only, not in repo"
+    }
+  ],
+  "tests_status": {
+    "BT-PWR-01": "PENDING",
+    "BT-PWR-02": "PENDING",
+    "BT-PWR-03": "PENDING",
+    "BT-PWR-04": "PENDING",
+    "BT-PWR-05": "PENDING",
+    "BT-FLS-01": "PENDING",
+    "BT-FLS-02": "PENDING",
+    "BT-FLS-03": "PENDING",
+    "BT-FLS-04": "PENDING",
+    "BT-GPIO-01": "PENDING",
+    "BT-GPIO-02": "PENDING",
+    "BT-GPIO-03": "PENDING",
+    "BT-GPIO-04": "PENDING",
+    "BT-GPIO-05": "PENDING",
+    "BT-NET-01": "PENDING",
+    "BT-NET-02": "PENDING",
+    "BT-NET-03": "PENDING",
+    "BT-NET-04": "PENDING",
+    "BT-STO-01": "PENDING",
+    "BT-STO-02": "PENDING"
+  },
+  "gate_impact": {
+    "bench_test_real_hardware_pass": "remains PENDING — no test passed on real hardware",
+    "review_ready": "remains PENDING — no filled bench_test_report.md with real measurements",
+    "integrity_ready": "remains PENDING — depends on bench_test_real_hardware_pass"
+  },
+  "what_was_NOT_done": [
+    "No physical measurements were taken",
+    "No firmware was flashed",
+    "No GPIO tests performed",
+    "No Wi-Fi or MQTT tests performed",
+    "No simulated values were entered as real hardware measurements",
+    "No gate status was changed to pass"
+  ],
+  "what_is_ready_for_operator": [
+    "REAL_HARDWARE_BENCH_PACKET.md — step-by-step operator instructions",
+    "MEASUREMENT_LEDGER.md — template with all fields ready to fill",
+    "OPERATOR_PRE_START_CHECKLIST.md — pre-start checklist",
+    "READINESS_GATE_MAPPING.md — test-to-sub-gate mapping",
+    "bench_test_report_TEMPLATE.md — report template to fill after test"
+  ],
+  "no_secrets_present": true
+}

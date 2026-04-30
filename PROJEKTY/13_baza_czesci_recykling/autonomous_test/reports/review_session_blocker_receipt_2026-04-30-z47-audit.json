@@ -1,0 +1,34 @@
+{
+  "schema_version": "v1",
+  "receipt_type": "curation_human_review_blocker_receipt",
+  "receipt_id": "review_session_blocker_2026-04-30_z47_audit",
+  "task_id": 47,
+  "generated_at": "2026-04-30T19:02:27Z",
+  "review_performed": false,
+  "blocker_code": "NO_REAL_REVIEWER_AVAILABLE",
+  "blocker_reason": "No named human reviewer was available in this agent session. The task explicitly forbids placeholder reviewed_by values and manual JSONL edits.",
+  "current_state": {
+    "pending_human_approval": 14,
+    "human_approvals_recorded": 0,
+    "human_review_ledger_exists": false,
+    "export_gate": "BLOCKED"
+  },
+  "validation_commands": [
+    "python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py list-pending",
+    "python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py review-status",
+    "python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py export-gate"
+  ],
+  "pending_batches": {
+    "batch_a_laptop_components": 6,
+    "batch_b_other_devices": 5,
+    "batch_c_ic_and_desktop": 3
+  },
+  "next_move": [
+    "Maintainer assigns a real reviewer in REVIEW_ASSIGNMENT_PACKET.md.",
+    "Reviewer records all 14 decisions with curate_candidates.py record-review and a real --reviewed-by value.",
+    "Re-run review-status and export-gate after the ledger exists."
+  ],
+  "no_placeholder_reviews_written": true,
+  "no_manual_jsonl_edits": true,
+  "no_secrets_present": true
+}

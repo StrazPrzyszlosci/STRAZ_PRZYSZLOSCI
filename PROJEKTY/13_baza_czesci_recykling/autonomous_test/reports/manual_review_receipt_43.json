@@ -1,0 +1,76 @@
+{
+  "receipt_type": "blocker_receipt",
+  "task_id": 43,
+  "generated_at": "2026-04-29T21:10:00Z",
+  "blocker": "NO_HUMAN_REVIEWER_AVAILABLE",
+  "description": "Zadanie 43 wymaga prawdziwego reviewera do podjecia decyzji approved/rejected/defer dla candidate-0076 (BN44-00213A) i candidate-0077 (QHAD01249). Zadanie 43 sekcja 8 wprost stwierdza: brak reviewera z prawem podjecia decyzji blokuje zadanie; nie wolno zastapic reviewera agentowa opinia.",
+  "cases_pending_manual_review": [
+    {
+      "candidate_id": "candidate-0076",
+      "part_number": "BN44-00213A",
+      "part_name": "Power Supply Board",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "triage_indicator": "board_model_number",
+      "current_review_status": "auto_approved",
+      "current_curation_decision": "accept",
+      "ocr_result_from_zadanie42": "confirmed",
+      "key_question": "Czy cale plyty zasilajace sa w scope katalogu recyklingowego jako wymienna jednostka?",
+      "rubric_accept_if": "Plyty PSU sa realnie demontowane i sprzedawane jako czesc; BN44-00213A jest katalogowym part number uzywany w serwisie",
+      "rubric_reject_if": "Katalog obejmuje tylko komponenty na plycie, nie cale plyty; BN44-00213A jest identyfikatorem urzadzenia-zrodla",
+      "rubric_defer_if": "Reviewer potrzebuje konsensusu co do scope katalogu (cale plyty vs komponenty)",
+      "decision": null,
+      "reviewed_by": null,
+      "note": null
+    },
+    {
+      "candidate_id": "candidate-0077",
+      "part_number": "QHAD01249",
+      "part_name": "Transformer",
+      "device": "Samsung Power Supply Board (BN44-00213A)",
+      "triage_indicator": "custom_wound_transformer_no_datasheet",
+      "current_review_status": "auto_rejected",
+      "current_curation_decision": "reject",
+      "ocr_result_from_zadanie42": "rejected",
+      "key_question": "Czy custom transformer bez datasheetu i parametrow jest uytecznym wpisem katalogowym?",
+      "rubric_accept_if": "Transformer jest realnie odzyskiwany i wymieniany caloscia; QHAD01249 jest unikalnym identyfikatorem Samsung; wpis bez pelnych parametrow jest lepszy niz brak wpisu",
+      "rubric_reject_if": "Bez datasheetu nie da sie okreslic parametrow elektrycznych; custom transformer nie jest uniwersalnie zamienny; wpis bez specyfikacji jest gorszy niz brak wpisu",
+      "rubric_defer_if": "Reviewer potrzebuje dodatkowej weryfikacji (sprzedawcy, polityka katalogu dla brakujacych datasheetow)",
+      "decision": null,
+      "reviewed_by": null,
+      "note": null
+    }
+  ],
+  "what_was_done": [
+    "Przeczytano caly kontekst: HANDOFF, MINI_HANDOFF_ZADANIE_37, MANUAL_REVIEW_RUBRIC_AND_DECISION_PACKET.md, manual_review_decision_packet.json, HUMAN_APPROVAL_LEDGER.md, curation_review_queue.jsonl",
+    "Przeanalizowano rubric dla obu przypadkow",
+    "Potwierdzono ze oba cases wymagaja decyzji prawdziwego reviewera — nie agenta",
+    "Utworzono blocker receipt zamiast fikcyjnych decyzji"
+  ],
+  "what_was_NOT_done": [
+    "Nie wpisano decyzji do human_review_ledger.jsonl — brak reviewera",
+    "Nie uruchomiono record-review — brak osoby do --reviewed-by",
+    "Nie otwarto export gate — to zalezy od wynikow review",
+    "Nie zmieniono statusow candidate-0076 ani candidate-0077"
+  ],
+  "how_to_unblock": [
+    "Maintainer (krzysiek) musi podjac decyzje jako reviewer i uruchomic:",
+    "  python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py record-review --candidate-id candidate-0076 --decision <approved|rejected|defer> --reviewed-by 'krzysiek' --note '<uzasadnienie>'",
+    "  python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py record-review --candidate-id candidate-0077 --decision <approved|rejected|defer> --reviewed-by 'krzysiek' --note '<uzasadnienie>'",
+    "Po obu decyzjach: python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py review-status",
+    "Potem: python3 PROJEKTY/13_baza_czesci_recykling/scripts/curate_candidates.py export-gate"
+  ],
+  "additional_context_from_zadanie42": {
+    "note": "Po OCR run z zadania 42, candidate-0076 (BN44-00213A) zostal confirmed przez OCR, a candidate-0077 (QHAD01249) zostal rejected przez OCR. Jednak zadanie 43 wprost wymaga manual review decision dla obu — OCR nie zastepuje ludzkiej decyzji, szczegolnie dla scope katalogu.",
+    "candidate_0076_ocr": "confirmed — OCR potwierdzil tekst BN44-00213A na plycie",
+    "candidate_0077_ocr": "rejected — OCR nie potwierdzil QHAD01249 (model nie rozpoznal tekstu transformera)"
+  ],
+  "impact_on_export_gate": {
+    "current_status": "BLOCKED",
+    "blockers": [
+      "14 candidates pending_human_approval",
+      "1 deferred candidate (candidate-0073, LF80537)",
+      "0 human approvals recorded"
+    ],
+    "after_zadanie43_unblocked": "Decyzje dla candidate-0076 i candidate-0077 nie zmniejsza liczby pending_human_approval (oba sa auto_approved/auto_rejected, nie pending). Decyzje wplynaja natomiast na spojnosc katalogu i scope."
+  }
+}
