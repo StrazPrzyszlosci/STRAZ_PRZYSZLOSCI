@@ -9,26 +9,39 @@ W "Straży Przyszłości" sieć Mesh służy jako **Nerw Gospodarczy**, przesył
 
 ## Filary Technologiczne i Gotowy Kod
 
-### 1. Meshtastic – Gotowe Moduły Sterowania (Ekosystem Open-Source)
-Wykorzystujemy wbudowane funkcjonalności Meshtastic, które eliminują potrzebę pisania oprogramowania układowego od zera:
-- **[Remote Hardware Module](https://meshtastic.org/docs/configuration/modules/remote-hardware/):** Kluczowy moduł pozwalający na zdalne sterowanie pinami GPIO (przekaźnikami) przez sieć Mesh.
-    - **Zastosowanie:** Zdalne włączanie pomp nawadniających (Projekt 01/08) lub otwieranie bram wirtualnych ogrodzeń (Projekt 02).
-- **[Telemetry Module](https://meshtastic.org/docs/configuration/modules/telemetry/):** Automatyczne przesyłanie danych z czujników środowiskowych (temperatura, wilgotność gleby, ciśnienie).
-    - **Zastosowanie:** Węzły monitorujące stan upraw i parametry w oborach (Projekt 09).
-- **Integracja Python:** Wykorzystanie [Meshtastic Python API](https://github.com/meshtastic/python) do budowy automatyzacji (np. "jeśli wilgotność gleby < X, wyślij komendę do przekaźnika pompy").
+### 1. Reticulum Network Stack (RNS) – Suwerenny Stos Sieciowy
+Reticulum to najbardziej elastyczny i odporny stos sieciowy dla zdecentralizowanej komunikacji, zaprojektowany dla warunków wysokich opóźnień i niskiej przepustowości.
+- **[Sideband](https://github.com/markqvist/Sideband):** Gotowy komunikator graficzny do bezpiecznej wymiany raportów technicznych i logistycznych.
+- **RNode:** Wykorzystujemy firmware RNode dla modułów LoRa, co pozwala na budowę sieci o zasięgu od kilometrów do tysięcy kilometrów (przez bramki).
+- **LXMF:** Protokół wiadomości (end-to-end encrypted) dla komunikacji maszyna-maszyna i człowiek-człowiek.
+- **Zastosowanie:** Bezpieczny "pipe" dla danych SCADA i nadzorowania magazynów energii (Projekt 05) w miejscach bez zasięgu komórkowego.
 
-### 2. Reticulum Network Stack (RNS) – Bezpieczny "Pipe" dla SCADA
-Mimo że RNS jest ogólnego przeznaczenia, służy jako doskonały "tunel" dla danych sterowniczych w trudnych warunkach:
-- **[Sideband](https://github.com/markqvist/Sideband):** Gotowy komunikator graficzny do bezpiecznej wymiany raportów technicznych i logistycznych między pracownikami dużych gospodarstw i zakładów.
-- **Implementacja Transportowa:** Możliwość tunelowania protokołów przemysłowych (np. Modbus over Reticulum) w celu nadzorowania pracy magazynów energii (Projekt 05) w miejscach bez zasięgu komórkowego.
+### 2. p2panda (Panda) – Synchronizacja P2P Offline-First
+Nowoczesny protokół P2P, będący alternatywą dla SSB, z lepszym wsparciem dla wielu urządzeń jednego użytkownika.
+- **Charakterystyka:** Wykorzystuje logi (append-only logs) i mechanizmy przyczynowości (causality).
+- **Zalety:** Idealny do budowania aplikacji, które synchronizują się same, gdy tylko urządzenia znajdą się w zasięgu.
+- **Zastosowanie:** Zdecentralizowane bazy danych, kolaboratywne aplikacje rolnicze i synchronizacja danych IoT w rozproszonych węzłach.
 
-### 3. Łączność Hybrydowa: Smartfon jako "Brama Intelektualna"
-Wykorzystujemy pełen stos komunikacyjny wbudowany w smartfony:
-- **GSM/LTE/4G (Wbudowane):** Smartfon służy jako brama (Gateway), która zbiera dane z lokalnej sieci Mesh (Wi-Fi/BT/LoRa) i przesyła je do centralnych systemów analitycznych NSI przez sieć komórkową, gdy ta jest dostępna.
-- **[Briar](https://github.com/briar/briar) & P2P Protocols:** Wykorzystanie Bluetooth i Wi-Fi do tworzenia lokalnych, darmowych sieci bez dostępu do Internetu. Pozwala to na darmową wymianę danych sensorowych i wiadomości w obrębie gospodarstwa.
-- **Wi-Fi Aware / Wi-Fi Direct:** Tworzenie dynamicznych sieci "telefon-do-telefonu" przez natywne funkcje Androida, co pozwala na przekazywanie informacji (np. z Projektu 09) przez kolejne urządzenia aż do punktu z zasięgiem LTE lub LoRa.
-- **[MeshCore Firmware](https://github.com/meshcore-dev/MeshCore):** Energooszczędne zarządzanie modułami radiowymi w celu wydłużenia pracy węzła.
-- **[Deadmesh](https://github.com/gnarzilla/deadmesh):** Praktyczny most Internet-over-LoRa, który pozwala urządzeniom w sieci Meshtastic na dostęp do standardowych usług internetowych (HTTP, DNS, Email). Umożliwia bezpośredni kontrolny nadzór przez duży model AI nad pracą automatyzacji opartej na małym modelu lokalnym, działającym na brzegu sieci (Edge).
+### 3. vossbol / tinySSB – "Plotkowa" Replikacja Danych
+Specjalnie okrojona wersja protokołu **Secure Scuttlebutt (SSB)** pod niską przepustowość LoRa.
+- **[vossbol](https://github.com/tschudin/vossbol):** Implementacja umożliwiająca replikację danych (gossip protocol) nawet przy minimalnej przepustowości.
+- **Zalety:** Każdy użytkownik ma swój dziennik zdarzeń, który jest replikowany między znajomymi; system jest ekstremalnie odporny na brak stałego połączenia.
+- **Zastosowanie:** Rozproszona replikacja danych sensorowych i głosowych w izolowanych lokalizacjach.
+
+### 4. Meshtastic – Gotowe Moduły Sterowania i Telemetrii
+Najpopularniejsza platforma LoRa Mesh, oferująca gotowe funkcjonalności bez potrzeby pisania kodu od zera:
+- **[Remote Hardware Module](https://meshtastic.org/docs/configuration/modules/remote-hardware/):** Zdalne sterowanie pinami GPIO (np. pompy nawadniające w Projekcie 01/08).
+- **[Telemetry Module](https://meshtastic.org/docs/configuration/modules/telemetry/):** Automatyczne przesyłanie danych z czujników środowiskowych (Projekt 09).
+- **Integracja Python:** Wykorzystanie [Meshtastic Python API](https://github.com/meshtastic/python) do zaawansowanej automatyzacji.
+
+### 5. Łączność Hybrydowa i Bramki (Deadmesh & Disaster Radio)
+Wykorzystujemy pełen stos komunikacyjny smartfonów oraz dedykowane mosty:
+- **[Deadmesh](https://github.com/gnarzilla/deadmesh):** Pomost Internet-over-LoRa. Pozwala urządzeniom w sieci Meshtastic na dostęp do usług internetowych (HTTP, DNS, Email) przez bramkę. Umożliwia to nadzór dużych modeli AI (Cloud) nad lokalnymi automatyzacjami (Edge).
+- **[Disaster Radio](https://github.com/sudomesh/disaster-radio):** Wykorzystuje protokół **LoRaLayer2** dla komunikacji w sytuacjach kryzysowych.
+- **GSM/LTE/4G + Wi-Fi Aware:** Smartfon z odzysku służy jako brama (Gateway), zbierająca dane z lokalnej sieci Mesh i przesyłająca je dalej, gdy tylko pojawi się zasięg komórkowy.
+- **[Briar](https://github.com/briar/briar):** Bezpieczna komunikacja P2P przez Bluetooth i Wi-Fi.
+- **[MeshCore Firmware](https://github.com/meshcore-dev/MeshCore):** Energooszczędne zarządzanie modułami radiowymi.
+
 
 ## Implementacja Gospodarcza (Scenariusze PoC)
 
