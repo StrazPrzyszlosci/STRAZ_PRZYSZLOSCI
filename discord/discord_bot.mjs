@@ -1,6 +1,12 @@
 import { Client, GatewayIntentBits, Events } from "discord.js";
 import http from "http";
 import { sendDiscordReply } from "./discord_utils.mjs";
+import {
+  checkRateLimit,
+  sanitizeDiscordInput,
+  isAllowedMimeType,
+  mapAttachmentToPayload,
+} from "./discord_security.mjs";
 
 const WORKER_URL = process.env.WORKER_URL;
 const DISCORD_BOT_SECRET = process.env.DISCORD_BOT_SECRET;
@@ -11,13 +17,7 @@ if (!WORKER_URL || !DISCORD_BOT_SECRET || !DISCORD_BOT_TOKEN) {
   process.exit(1);
 }
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ],
-});
+const MAX_ATTACHMENT_BYTES = parseInt(process.env.DISCORD_MAX_ATTACHMENT_BYTES || "8388608", 10); // 8MB default
 
 async function forwardToWorker(payload) {
   const resp = await fetch(`${WORKER_URL}/integrations/discord/webhook`, {
@@ -37,13 +37,13 @@ async function forwardToWorker(payload) {
   return await resp.json();
 }
 
-function mapAttachmentToPayload(attachment) {
-  return {
-    url: attachment.url,
-    name: attachment.name || null,
-    contentType: attachment.contentType || null,
-  };
-}
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
 
 client.on(Events.ClientReady, () => {
   console.log(`Discord bot logged in as ${client.user.tag}`);
@@ -53,13 +53,32 @@ client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
   try {
+    const rateLimit = checkRateLimit(message.author.id);
+    if (!rateLimit.allowed) {
+      console.warn(`Rate limited user ${message.author.id}, retry after ${rateLimit.retry_after_seconds}s`);
+      await message.reply({ content: `⏳ Zbyt wiele wiadomości. Spróbuj ponownie za ${rateLimit.retry_after_seconds} s.`, allowedMentions: { repliedUser: false } });
+      return;
+    }
+
+    const attachments = [...message.attachments.values()];
+    for (const att of attachments) {
+      if (att.size > MAX_ATTACHMENT_BYTES) {
+        await message.reply({ content: `📦 Załącznik ${att.name || ""} jest za duży. Maksymalny rozmiar to ${MAX_ATTACHMENT_BYTES} bajtów.`, allowedMentions: { repliedUser: false } });
+        return;
+      }
+      if (!isAllowedMimeType(att.contentType, att.name)) {
+        await message.reply({ content: `🚫 Typ pliku ${att.contentType || att.name || "nieznany"} nie jest dozwolony.`, allowedMentions: { repliedUser: false } });
+        return;
+      }
+    }
+
     const payload = {
       chat_id: message.channelId,
       user_id: message.author.id,
       message_id: message.id,
-      text: message.content || "",
+      text: sanitizeDiscordInput(message.content || ""),
       username: message.author.username,
-      attachments: [...message.attachments.values()].map(mapAttachmentToPayload),
+      attachments: attachments.map(mapAttachmentToPayload),
       type: "message",
     };
 

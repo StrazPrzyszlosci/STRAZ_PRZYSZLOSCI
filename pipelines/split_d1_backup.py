@@ -3,7 +3,6 @@ import os
 import re
 
 def split_sql(input_file, public_output, private_output):
-    # Tabele, które mają trafić do publicznego repozytorium (wiedza o częściach)
     PUBLIC_TABLES = {
         'recycled_devices',
         'recycled_parts',
@@ -12,32 +11,43 @@ def split_sql(input_file, public_output, private_output):
         'recycled_part_aliases',
         'recycled_device_submissions',
         'schema_migrations',
-        '_cf_KV' # Metadane Cloudflare (opcjonalnie)
+        '_cf_KV'
     }
 
-    # Tabele, które mają trafić do prywatnego repozytorium (dane użytkowników i rozmów)
     PRIVATE_TABLES = {
         'telegram_chat_messages',
         'user_sessions'
     }
 
+    TABLE_MATCH_PATTERN = re.compile(
+        r'(?:CREATE\s+TABLE|INSERT\s+INTO|CREATE\s+INDEX|DROP\s+TABLE|'
+        r'DELETE\s+FROM|ALTER\s+TABLE)\s+"?([a-zA-Z0-9_]+)"?',
+        re.IGNORECASE
+    )
+
+    PRAGMA_PATTERN = re.compile(r'^\s*PRAGMA\s+', re.IGNORECASE)
+    TRANSACTION_PATTERN = re.compile(r'^\s*(BEGIN|COMMIT|ROLLBACK)\s', re.IGNORECASE)
+
     public_lines = []
     private_lines = []
-    
+
     current_table = None
-    
+
     with open(input_file, 'r', encoding='utf-8') as f:
         for line in f:
-            # Szukamy początku definicji tabeli lub insertów
-            # Format w D1 export: CREATE TABLE "name" ... lub INSERT INTO "name" ...
-            table_match = re.search(r'(?:CREATE TABLE|INSERT INTO|CREATE INDEX|DROP TABLE|DELETE FROM) "?([a-zA-Z0-9_]+)"?', line)
-            
+            table_match = TABLE_MATCH_PATTERN.search(line)
             if table_match:
                 current_table = table_match.group(1)
-            
-            # Jeśli linia nie pasuje do żadnej tabeli (np. komentarze, PRAGMA), 
-            # dodajemy ją do obu plików dla zachowania struktury SQL
-            if not current_table or (current_table not in PUBLIC_TABLES and current_table not in PRIVATE_TABLES):
+
+            transaction_match = TRANSACTION_PATTERN.match(line)
+            pragma_match = PRAGMA_PATTERN.match(line)
+
+            is_meta = bool(transaction_match or pragma_match)
+
+            if is_meta or not current_table or (
+                current_table not in PUBLIC_TABLES and
+                current_table not in PRIVATE_TABLES
+            ):
                 public_lines.append(line)
                 private_lines.append(line)
                 continue
@@ -47,11 +57,14 @@ def split_sql(input_file, public_output, private_output):
             elif current_table in PRIVATE_TABLES:
                 private_lines.append(line)
 
+    public_sql = "PRAGMA foreign_keys = OFF;\nBEGIN TRANSACTION;\n" + "".join(public_lines) + "COMMIT;\n"
+    private_sql = "PRAGMA foreign_keys = OFF;\nBEGIN TRANSACTION;\n" + "".join(private_lines) + "COMMIT;\n"
+
     with open(public_output, 'w', encoding='utf-8') as f:
-        f.writelines(public_lines)
-        
+        f.write(public_sql)
+
     with open(private_output, 'w', encoding='utf-8') as f:
-        f.writelines(private_lines)
+        f.write(private_sql)
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:

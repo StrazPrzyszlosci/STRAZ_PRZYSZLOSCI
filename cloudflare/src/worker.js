@@ -23,6 +23,10 @@ function jsonResponse(payload, status = 200) {
       "access-control-allow-methods": "GET,POST,OPTIONS",
       "access-control-allow-headers":
         "content-type,x-provider-token,x-hub-signature-256,x-telegram-bot-api-secret-token,x-discord-bot-secret",
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin",
     },
   });
 }

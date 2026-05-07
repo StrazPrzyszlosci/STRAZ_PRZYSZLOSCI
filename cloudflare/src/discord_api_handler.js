@@ -41,8 +41,23 @@ import {
   runResistorVerification,
   validateManualEntry,
 } from "./telegram_ai.js";
+import { fetchWithTimeout } from "./base_utils.js";
 
 const DISCORD_PLATFORM = "discord";
+
+function timingSafeEqualString(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const aLen = a.length;
+  const bLen = b.length;
+  let result = aLen === bLen ? 0 : 1;
+  const maxLen = Math.max(aLen, bLen);
+  for (let i = 0; i < maxLen; i++) {
+    const aChar = i < aLen ? a.charCodeAt(i) : 0;
+    const bChar = i < bLen ? b.charCodeAt(i) : 0;
+    result |= aChar ^ bChar;
+  }
+  return result === 0;
+}
 
 function jsonReply(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -419,7 +434,7 @@ async function checkTelegramIssueThrottle(env, message, windowSeconds) {
 
 async function fetchDiscordAttachmentBase64(url) {
   try {
-    const resp = await fetch(url);
+    const resp = await fetchWithTimeout(url, {}, 30000);
     if (!resp.ok) return null;
     const arrayBuffer = await resp.arrayBuffer();
     const uint8 = new Uint8Array(arrayBuffer);
@@ -443,16 +458,16 @@ async function createGitHubIssue(env, title, body, classification, labels = []) 
   }
 
   try {
-    const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
-      method: "POST",
-      headers: {
-        accept: "application/vnd.github+json",
-        authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-        "x-github-api-version": "2022-11-28",
-      },
-      body: JSON.stringify({ title, body, labels }),
-    });
+      const resp = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+        method: "POST",
+        headers: {
+          accept: "application/vnd.github+json",
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+          "x-github-api-version": "2022-11-28",
+        },
+        body: JSON.stringify({ title, body, labels }),
+      }, 15000);
 
     const data = await resp.json();
     if (resp.ok && data.html_url) {
@@ -887,7 +902,57 @@ async function handleActiveDiscordSessions(env, message) {
   return null;
 }
 
+async function verifyDiscordSignature(request, rawBody, env) {
+  const publicKey = (env.DISCORD_PUBLIC_KEY || "").trim();
+  if (!publicKey) {
+    return null;
+  }
+
+  const signature = request.headers.get("X-Signature-Ed25519");
+  const timestamp = request.headers.get("X-Signature-Timestamp");
+  if (!signature || !timestamp) {
+    return "Missing Ed25519 signature headers";
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const keyData = Uint8Array.from(atob(publicKey), c => c.charCodeAt(0));
+    const sigData = Uint8Array.from(atob(signature), c => c.charCodeAt(0));
+
+    const key = await crypto.subtle.importKey(
+      "raw", keyData, { name: "NODE-ED25519", namedCurve: "NODE-ED25519" },
+      false, ["verify"]
+    );
+
+    const isValid = await crypto.subtle.verify(
+      "NODE-ED25519", key, sigData,
+      encoder.encode(timestamp + rawBody)
+    );
+
+    return isValid ? null : "Ed25519 signature verification failed";
+  } catch (_e) {
+    return "Ed25519 verification error: " + (_e.message || "internal error");
+  }
+}
+
 export async function handleDiscordWebhook(request, env) {
+  // Content-Length check: reject oversized payloads
+  const contentLength = request.headers.get("Content-Length");
+  const maxBodyBytes = parseInt(env.DISCORD_MAX_WEBHOOK_BODY_BYTES || env.MAX_WEBHOOK_BODY_BYTES || "5242880", 10);
+  if (contentLength && Number.isFinite(maxBodyBytes) && maxBodyBytes > 0 && parseInt(contentLength, 10) > maxBodyBytes) {
+    return jsonReply({ error: "Payload Too Large", max_bytes: maxBodyBytes }, 413);
+  }
+
+  // Verify Discord Ed25519 signature if public key is configured
+  if (env.DISCORD_PUBLIC_KEY) {
+    const rawBody = await request.clone().text();
+    const sigError = await verifyDiscordSignature(request, rawBody, env);
+    if (sigError) {
+      return jsonReply({ error: "Unauthorized", detail: sigError }, 401);
+    }
+  }
+
+  // Verify custom bot secret (always required)
   const secret = request.headers.get("X-Discord-Bot-Secret");
   const expected = env.DISCORD_BOT_SECRET;
 
@@ -895,7 +960,7 @@ export async function handleDiscordWebhook(request, env) {
     return jsonReply({ error: "Discord integration not configured on server." }, 503);
   }
 
-  if (!secret || secret !== expected) {
+  if (!secret || !timingSafeEqualString(secret, expected)) {
     return jsonReply({ error: "Unauthorized" }, 401);
   }
 
@@ -904,6 +969,11 @@ export async function handleDiscordWebhook(request, env) {
     body = await request.json();
   } catch (_e) {
     return jsonReply({ error: "Invalid JSON body" }, 400);
+  }
+
+  // Input validation: reject payloads with empty/null required fields
+  if (!body.chat_id && !body.user_id && !body.callback_data) {
+    return jsonReply({ error: "Missing required fields: chat_id, user_id, or callback_data" }, 400);
   }
 
   const message = parseDiscordBody(body);

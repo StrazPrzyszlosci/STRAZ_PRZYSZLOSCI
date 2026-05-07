@@ -483,7 +483,7 @@ export function isTelegramWebhookRequest(url, env) {
   return url.pathname === getExpectedTelegramWebhookPath(env);
 }
 
-function verifyTelegramSecretToken(request, env) {
+async function verifyTelegramSecretToken(request, env) {
   const expected = (env.TELEGRAM_WEBHOOK_SECRET_TOKEN || "").trim();
   if (!expected) {
     return true;
@@ -492,7 +492,23 @@ function verifyTelegramSecretToken(request, env) {
   const received =
     request.headers.get("X-Telegram-Bot-Api-Secret-Token") ||
     request.headers.get("x-telegram-bot-api-secret-token");
-  return received === expected;
+  if (!received || received.length !== expected.length) {
+    return false;
+  }
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    try {
+      const a = new TextEncoder().encode(received);
+      const b = new TextEncoder().encode(expected);
+      return crypto.subtle.timingSafeEqual(a, b);
+    } catch (_e) {
+      // Fallback to constant-time comparison
+    }
+  }
+  let result = 0;
+  for (let i = 0; i < received.length; i++) {
+    result |= received.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return result === 0;
 }
 
 function buildIssueReplyText(kind, payload = {}) {
@@ -1944,8 +1960,15 @@ export async function handleTelegramWebhook(request, env, ctx = null) {
     );
   }
 
-  if (!verifyTelegramSecretToken(request, env)) {
+  if (!(await verifyTelegramSecretToken(request, env))) {
     return jsonResponse({ error: "Nieprawidłowy sekret webhooka Telegram." }, 403);
+  }
+
+  // Content-Length check to prevent oversized payload attacks
+  const maxBodyBytes = parseInt(env.TELEGRAM_MAX_WEBHOOK_BODY_BYTES || env.MAX_WEBHOOK_BODY_BYTES || "5242880", 10); // 5MB default
+  const contentLength = request.headers.get("Content-Length");
+  if (contentLength && parseInt(contentLength, 10) > maxBodyBytes) {
+    return jsonResponse({ error: `Request body too large. Max: ${maxBodyBytes} bytes.` }, 413);
   }
 
   let payload;

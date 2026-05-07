@@ -1,5 +1,7 @@
 const DEFAULT_MAX_REPLY_CHARS = 3200;
 
+import { fetchWithTimeout } from "./base_utils.js";
+
 export function redactSensitiveContent(text) {
   let sanitized = String(text || "");
   const patterns = [
@@ -53,25 +55,27 @@ export async function sendTelegramReply(env, message, text, replyMarkup = null) 
     parse_mode: "Markdown",
   };
 
-  let response = await fetch(
+  let response = await fetchWithTimeout(
     `https://api.telegram.org/bot${botToken}/sendMessage`,
     {
       method: "POST",
       headers: { "content-type": "application/json; charset=utf-8" },
       body: JSON.stringify(payload),
-    }
+    },
+    10000
   );
 
   if (!response.ok) {
     // Próba wysłania bez Markdown (na wypadek błędów parsowania AI)
     delete payload.parse_mode;
-    response = await fetch(
+    response = await fetchWithTimeout(
       `https://api.telegram.org/bot${botToken}/sendMessage`,
       {
         method: "POST",
         headers: { "content-type": "application/json; charset=utf-8" },
         body: JSON.stringify(payload),
-      }
+      },
+      10000
     );
   }
 

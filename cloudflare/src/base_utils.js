@@ -102,3 +102,27 @@ export function buildPartLookupReply(queryText, matches) {
   const lines = [`Wyniki dla: ${queryText}`, "", ...matches.map(m => `- ${m.part_name} -> ${formatDeviceName(m.device)}`)];
   return { text: lines.join("\n"), reply_markup: { inline_keyboard: [[{ text: "📄 Datasheet", callback_data: `datasheet_start_search:${queryText}` }]] } };
 }
+
+/**
+ * fetch with AbortController timeout.
+ * Returns the Response or throws on timeout/network error.
+ */
+export async function fetchWithTimeout(resource, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error(`Fetch timeout after ${timeoutMs}ms: ${resource}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}

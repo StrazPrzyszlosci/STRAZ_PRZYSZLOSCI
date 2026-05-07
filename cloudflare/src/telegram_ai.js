@@ -1,5 +1,6 @@
 import { knowledgeBundle } from "./generated_knowledge_bundle.js";
 import { sendTelegramReply, getMainMenuKeyboard } from "./telegram_utils.js";
+import { fetchWithTimeout } from "./base_utils.js";
 import {
   buildAntiInjectionSystemPrefix,
   buildPdfHiddenContentWarning,
@@ -2018,14 +2019,14 @@ export async function fetchTelegramFileAsBase64(env, fileId) {
   const botToken = env.TELEGRAM_BOT_TOKEN;
   if (!botToken || !fileId) return null;
   try {
-    const fileInfoResp = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+    const fileInfoResp = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`, {}, 10000);
     const fileInfo = await fileInfoResp.json();
     if (!fileInfo.ok || !fileInfo.result.file_path) {
       console.error("[fetchTelegramFileAsBase64] getFile failed:", JSON.stringify(fileInfo));
       return null;
     }
     const filePath = fileInfo.result.file_path;
-    const fileContentResp = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
+    const fileContentResp = await fetchWithTimeout(`https://api.telegram.org/file/bot${botToken}/${filePath}`, {}, 30000);
     if (!fileContentResp.ok) {
       console.error("[fetchTelegramFileAsBase64] file download failed, status:", fileContentResp.status);
       return null;
