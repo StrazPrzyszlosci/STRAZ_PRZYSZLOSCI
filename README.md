@@ -28,7 +28,7 @@ Aby realnie odpowiedzieć na najpilniejsze problemy gospodarcze i społeczne, na
    *   *Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md).
 4. **Optymalizacja zużycia zasobów strategicznych:** Racjonalne, poparte zaawansowaną analizą danych, zarządzanie wodą, surowcami i ziemią, eliminujące gospodarkę rabunkową.
    *   *Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md), [Upcykling LED TV](PROJEKTY/04_lampa_z_recyklingu_tv.md), [Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md), [Autonomiczne PCB ze śmieci](PROJEKTY/12_autonomiczne_pcb_ze_smieci.md).
-5. **Logistyka i transport:** Wykorzystanie AI do inteligentnego zarządzania łańcuchami dostaw. Wdrażamy system rekomendacji do nawigacji, który sugeruje odbiór potrzebnych przedmiotów na trasie (w wyznaczonym promieniu odstępstwa). Darmowa pomoc w transporcie odblokowuje bonusy w aplikacji, jednocześnie drastycznie oszczędzając paliwo dzięki wykorzystaniu tras, które i tak są realizowane.
+5. **Logistyka i transport:** Wykorzystanie AI do inteligentnego zarządzania łańcuchami dostaw. Wdrażamy system rekomendacji do nawigacji, który sugeruje odbiór potrzebnych przedmiotów na trasie. Ekonomia Współdzielenia: Kierowcy realizujący transport "przy okazji" budują swój status w społeczności Straży Przyszłości, odblokowując **bonusy w systemach automatyzacji oraz priorytet dostępu** do wspólnych zasobów lub darmowych usług serwisowych AI, jednocześnie drastycznie oszczędzając paliwo dzięki wykorzystaniu tras, które i tak są realizowane.
    *   *Inspiracje:* [Automatyzacja Transportu i Logistyki](PROJEKTY/18_automatyzacja_transportu_i_logistyki.md), [Smartfony jako Sterowniki Edge Computing](PROJEKTY/06_smartfony_jako_sterowniki.md), [Analiza Social Media dla Recyklingu](PROJEKTY/15_analiza_social_media_recykling.md).
 6. **Finanse (Fundusze):** Pozyskiwanie środków strategicznych, inteligentny wybór programów grantowych i inwestycji dla nowo powstających projektów.
 7. **Planowanie Przestrzenne i Rozwój:** Wykorzystanie danych geoprzestrzennych do optymalnego lokowania automatyzacji.
@@ -57,6 +57,8 @@ W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiąza
 *   **[15. Analiza Social Media dla Recyklingu](PROJEKTY/15_analiza_social_media_recykling.md)** – AI skanujące polskie grupy i portale aukcyjne w celu łączenia darmowych ofert z zapotrzebowaniem użytkowników.
 *   **[16. Geoportal i Potencjał Rozwoju](PROJEKTY/16_geoportal_potencjal_rozwoju.md)** – Analiza danych geoprzestrzennych dla nowoczesnego planowania automatyzacji AI.
 *   **[18. Automatyzacja Transportu i Logistyki](PROJEKTY/18_automatyzacja_transportu_i_logistyki.md)** – Inteligentna nawigacja sugerująca odbiór przedmiotów na trasie oraz system łączenia kierowców z zapotrzebowaniem społeczności (BlablaCar dla rzeczy).
+*   **[19. Społeczna Baza Przedmiotów "Zero Waste"](PROJEKTY/19_spoleczna_baza_przedmiotow.md)** – AI-driven marketplace dla przedmiotów darmowych: automatyczna identyfikacja ze zdjęcia, błyskawiczne wystawianie ofert i system powiadomień o zapotrzebowaniu, aby rzeczy nie lądowały na PSZOK.
+*   **[20. Logistyka Sąsiedzka i Optymalizacja Tras](PROJEKTY/20_logistyka_sasiadzka_nawigacja.md)** – Dodatek do nawigacji samochodowej rekomendujący odbiór paczek i przedmiotów na trasie przejazdu, maksymalizujący wykorzystanie paliwa i budujący lokalną sieć wzajemnej pomocy.
 
 
 **Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**
@@ -79,9 +81,9 @@ Informacja to potęga. Kto kontroluje dane, kontroluje przyszłość. Dlatego w 
 
 Niestety jako społeczeństwo często nie mamy dostępu do baz danych zawierających kluczowe informacje o naszych własnych potrzebach i możliwościach — są one gromadzone i monetyzowane przez zagraniczne korporacje. Chcemy to zmienić:
 
-*   **Budujemy Polską Bazę Danych:** Tworzymy suwerenny zasób informacji, który będzie służyć polskiemu społeczeństwu, a nie zagranicznym interesom.
-*   **Twoje dane to nasza wspólna moc:** Chodzi o nasze dane, które tworzą bazę. To właśnie na ich podstawie sztuczna inteligencja może precyzyjnie analizować i rekomendować najlepsze rozwiązania dla każdego obywatela.
-*   **AI ma pracować dla Ciebie:** Zamiast tracić godziny na samodzielne poszukiwanie ofert i informacji — pozwól sztucznej inteligencji robić to za Ciebie. Dążymy do tego, aby technologia uwalniała ludzki potencjał, a nie stawała się kolejnym narzędziem kontroli.
+*   **Budujemy Polską Bazę Danych:** Tworzymy suwerenny zasób informacji o zasobach, potrzebach i logistyce, który będzie służyć polskiemu społeczeństwu, a nie zagranicznym interesom. Chodzi o to, aby bazy danych służące wspólnemu dobru (jak baza darmowych przedmiotów) należały bezpośrednio do społeczności.
+*   **Twoje dane to nasza wspólna moc:** Chodzi o nasze dane, które tworzą bazę. To właśnie na ich podstawie sztuczna inteligencja może precyzyjnie analizować i rekomendować najlepsze rozwiązania dla każdego obywatela – od znalezienia potrzebnej części po optymalizację trasy przejazdu.
+*   **AI ma pracować dla Ciebie:** Zamiast tracić godziny na samodzielne poszukiwanie ofert i informacji lub żmudne opisywanie przedmiotów na sprzedaż — pozwól sztucznej inteligencji robić to za Ciebie. Dążymy do tego, aby technologia uwalniała ludzki potencjał, a nie stawała się kolejnym narzędziem kontroli.
 
 Wesprzyj budowę pierwszej cegiełki tego systemu — nasze narzędzia na Telegramie i Discordzie już działają i realnie służą społeczności.
 

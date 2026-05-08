@@ -1379,6 +1379,9 @@ async function handleActiveSessions(env, message, ctx) {
   // --- SESJA DATASHEET (PYTANIE) ---
   const questionSession = await getUserSession(env, message.chat_id, message.user_id, "datasheet_wait_question");
   if (questionSession) {
+    if (message.text && message.text.startsWith("/")) {
+      return null;
+    }
     if (message.file_id && message.mime_type === "application/pdf") {
       const ingest = await attachPdfToDatasheetSession(env, message, questionSession);
       return {
