@@ -382,13 +382,24 @@ function collectInboundMessages(payload) {
     if (!item) continue;
 
     const rawText = item.text || item.caption; // Handle captions for photos
- const text = rawText ? sanitizeUserInput(rawText) : null;
+    const chatId = item.chat?.id !== undefined ? String(item.chat.id) : null;
+    const userId = item.from?.id !== undefined ? String(item.from.id) : null;
+    const messageId = item.message_id || null;
+    const sanitizedInput = rawText
+      ? sanitizeUserInput(rawText, {
+          chat_id: chatId,
+          user_id: userId,
+          message_id: messageId,
+        })
+      : null;
+    const text = sanitizedInput ? sanitizedInput.safeText : null;
+    const inputBlocked = Boolean(sanitizedInput?.wasBlocked);
     const photo = item.photo; // Array of PhotoSize
     const document = item.document;
     const voice = item.voice;
     const audio = item.audio;
 
-    if (typeof text !== "string" && !photo && !document && !voice && !audio) {
+    if (typeof text !== "string" && !inputBlocked && !photo && !document && !voice && !audio) {
       continue;
     }
 
@@ -415,16 +426,18 @@ function collectInboundMessages(payload) {
 
     result.push({
       update_id: payload.update_id || null,
-      message_id: item.message_id || null,
+      message_id: messageId,
       text: text || null,
+      input_blocked: inputBlocked,
+      input_blocked_reply: sanitizedInput?.wrappedText || null,
       file_id: fileId,
       file_name: fileName,
       mime_type: mimeType,
       is_audio: Boolean(voice || audio),
       date: item.date || null,
-      chat_id: item.chat?.id !== undefined ? String(item.chat.id) : null,
+      chat_id: chatId,
       chat_type: item.chat?.type || null,
-      user_id: item.from?.id !== undefined ? String(item.from.id) : null,
+      user_id: userId,
       username: item.from?.username || null,
       first_name: item.from?.first_name || null,
     });
@@ -2004,6 +2017,21 @@ export async function handleTelegramWebhook(request, env, ctx = null) {
         update_id: message.update_id,
         message_id: message.message_id,
         status: "ignored_chat_not_allowed",
+      });
+      continue;
+    }
+    if (message.input_blocked) {
+      const notificationSent = await sendTelegramReply(
+        env,
+        message,
+        message.input_blocked_reply || "Nie mogę przetworzyć tej wiadomości w obecnej formie.",
+        getMainMenuKeyboard()
+      );
+      results.push({
+        update_id: message.update_id,
+        message_id: message.message_id,
+        status: "input_blocked",
+        notification_sent: notificationSent,
       });
       continue;
     }

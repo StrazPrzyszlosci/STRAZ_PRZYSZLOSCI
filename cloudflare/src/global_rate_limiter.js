@@ -30,9 +30,62 @@ function getProject(env) {
   return env.DEPLOYMENT_ENVIRONMENT || "default";
 }
 
+async function runSql(db, sql) {
+  const stmt = await db.prepare(sql);
+  return await stmt.run();
+}
+
+async function getTableColumns(db, tableName) {
+  const result = await db.prepare(`PRAGMA table_info(${tableName})`).all();
+  return new Set((result?.results || []).map((row) => row.name));
+}
+
+async function ensureColumn(db, tableName, columnName, columnDefinition) {
+  const columns = await getTableColumns(db, tableName);
+  if (!columns.has(columnName)) {
+    await runSql(db, `ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition}`);
+  }
+}
+
+export async function ensureGlobalRateLimitSchema(db) {
+  await runSql(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS telegram_chat_limits (
+      limit_key TEXT PRIMARY KEY,
+      bucket_name TEXT NOT NULL,
+      window_started_at TEXT NOT NULL,
+      request_count INTEGER NOT NULL DEFAULT 0,
+      last_request_at TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'telegram'
+    )
+    `
+  );
+  await ensureColumn(db, "telegram_chat_limits", "bucket_name", "bucket_name TEXT");
+  await ensureColumn(db, "telegram_chat_limits", "window_started_at", "window_started_at TEXT");
+  await ensureColumn(db, "telegram_chat_limits", "request_count", "request_count INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn(db, "telegram_chat_limits", "last_request_at", "last_request_at TEXT");
+  await ensureColumn(db, "telegram_chat_limits", "platform", "platform TEXT NOT NULL DEFAULT 'telegram'");
+}
+
 export async function checkGlobalRateLimit(request, env) {
   const db = env.DB;
   if (!db) return { allowed: true, reason: "no_db" };
+
+  try {
+    return await checkGlobalRateLimitWithDb(request, env, db);
+  } catch (error) {
+    console.error("[global_rate_limiter] D1 check failed; allowing request:", error);
+    return {
+      allowed: true,
+      reason: "db_error",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function checkGlobalRateLimitWithDb(request, env, db) {
+  await ensureGlobalRateLimitSchema(db);
 
   const now = Date.now();
   const nowIso = new Date(now).toISOString();

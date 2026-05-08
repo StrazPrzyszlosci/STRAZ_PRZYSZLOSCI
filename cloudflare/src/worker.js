@@ -18,6 +18,8 @@ class ConflictError extends Error { }
 class NotFoundError extends Error { }
 class ForbiddenError extends Error { }
 
+let startupMigrationPromise = null;
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -377,6 +379,36 @@ async function readJson(request) {
   }
 }
 
+async function applyStartupMigrations(env) {
+  if (!env?.DB) {
+    return { success: false, reason: "no_db" };
+  }
+  if (!startupMigrationPromise) {
+    startupMigrationPromise = applyMigrations(env.DB)
+      .then((result) => {
+        if (!result?.success) {
+          startupMigrationPromise = null;
+        }
+        return result;
+      })
+      .catch((error) => {
+        startupMigrationPromise = null;
+        throw error;
+      });
+  }
+  return await startupMigrationPromise;
+}
+
+function shouldApplyGlobalRateLimit(request, url, env) {
+  if (request.method === "OPTIONS" || url.pathname === "/health") {
+    return false;
+  }
+  if (request.method === "POST" && isTelegramWebhookRequest(url, env)) {
+    return false;
+  }
+  return true;
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
@@ -385,18 +417,27 @@ export default {
 
     const url = new URL(request.url);
 
-    // Apply D1 schema migrations on startup (Z86)
+    // Apply lightweight D1 schema guards once per isolate.
     try {
-      await applyMigrations(env.DB);
+      const migrationResult = await applyStartupMigrations(env);
+      if (migrationResult?.success === false) {
+        console.error("[startup] D1 schema migration did not complete:", migrationResult);
+      }
     } catch (err) {
       console.error("[startup] D1 schema migration failed:", err);
-      // Continue serving requests despite migration failure — app is degraded but functional
+      // Continue serving requests despite migration failure. Runtime paths also fail open where possible.
     }
 
-    // Global API rate limit check (Z85)
-    const globalRateLimit = await checkGlobalRateLimit(request, env);
-    if (!globalRateLimit.allowed) {
-      return jsonResponse({ error: "Too Many Requests", reason: globalRateLimit.reason }, 429);
+    // Global API rate limit check (Z85). Telegram webhooks have chat-level throttling below.
+    try {
+      if (shouldApplyGlobalRateLimit(request, url, env)) {
+        const globalRateLimit = await checkGlobalRateLimit(request, env);
+        if (!globalRateLimit.allowed) {
+          return jsonResponse({ error: "Too Many Requests", reason: globalRateLimit.reason }, 429);
+        }
+      }
+    } catch (err) {
+      console.error("[global-rate-limit] Failed open:", err);
     }
 
     try {

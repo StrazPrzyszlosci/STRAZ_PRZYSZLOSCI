@@ -6,7 +6,11 @@ on:
       - main
     paths:
       - 'cloudflare/**'
+      - '.github/workflows/deploy_worker.yml'
   workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
@@ -19,6 +23,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+
+      - name: Apply D1 migrations to production
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: 'cloudflare'
+          wranglerVersion: '3'
+          command: d1 migrations apply DB --remote --env prod
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3

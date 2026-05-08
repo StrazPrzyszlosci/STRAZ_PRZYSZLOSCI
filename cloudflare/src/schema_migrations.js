@@ -47,10 +47,13 @@ export const MIGRATIONS = [
     sql: `CREATE TABLE IF NOT EXISTS telegram_chat_messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       chat_key TEXT NOT NULL,
-      role TEXT,
-      intent TEXT,
-      message_text TEXT,
-      created_at TEXT
+      chat_id TEXT,
+      user_id TEXT,
+      role TEXT NOT NULL,
+      intent TEXT NOT NULL,
+      message_text TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'telegram'
     );`,
   },
   {
@@ -76,25 +79,156 @@ export const MIGRATIONS = [
     name: "Ensure telegram_issue_throttle table exists (legacy compat)",
     sql: `CREATE TABLE IF NOT EXISTS telegram_issue_throttle (
       throttle_key TEXT PRIMARY KEY,
-      platform TEXT NOT NULL DEFAULT 'telegram',
-      last_accepted_at TEXT
+      last_accepted_at TEXT NOT NULL,
+      last_message_id TEXT,
+      last_update_id TEXT,
+      message_count INTEGER NOT NULL DEFAULT 0,
+      platform TEXT NOT NULL DEFAULT 'telegram'
     );`,
   },
   {
     version: "20240508180005-telegram-chat-sessions",
-    name: "Ensure telegram_chat_sessions table exists (legacy compat)",
-    sql: `CREATE TABLE IF NOT EXISTS telegram_chat_sessions (
+    name: "Ensure telegram_user_sessions table exists (legacy compat)",
+    sql: `CREATE TABLE IF NOT EXISTS telegram_user_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       chat_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
       session_type TEXT NOT NULL,
+      active_device_id INTEGER,
       active_device_name TEXT,
-      active_device_json TEXT,
-      created_at TEXT,
-      updated_at TEXT,
-      PRIMARY KEY (chat_id, user_id, session_type)
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'telegram',
+      UNIQUE(chat_id, user_id, session_type)
     );`,
   },
 ];
+
+async function runSql(db, sql) {
+  const stmt = await db.prepare(sql);
+  return await stmt.run();
+}
+
+async function getTableColumns(db, tableName) {
+  const result = await db.prepare(`PRAGMA table_info(${tableName})`).all();
+  return new Set((result?.results || []).map((row) => row.name));
+}
+
+async function ensureColumn(db, tableName, columnName, columnDefinition) {
+  const columns = await getTableColumns(db, tableName);
+  if (!columns.has(columnName)) {
+    await runSql(db, `ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition}`);
+  }
+}
+
+export async function ensureRuntimeCompatibilitySchema(db) {
+  if (!db) {
+    return { success: false, reason: "no_db" };
+  }
+
+  await runSql(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS telegram_chat_limits (
+      limit_key TEXT PRIMARY KEY,
+      bucket_name TEXT NOT NULL,
+      window_started_at TEXT NOT NULL,
+      request_count INTEGER NOT NULL DEFAULT 0,
+      last_request_at TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'telegram'
+    )
+    `
+  );
+  await ensureColumn(db, "telegram_chat_limits", "bucket_name", "bucket_name TEXT");
+  await ensureColumn(db, "telegram_chat_limits", "window_started_at", "window_started_at TEXT");
+  await ensureColumn(db, "telegram_chat_limits", "request_count", "request_count INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn(db, "telegram_chat_limits", "last_request_at", "last_request_at TEXT");
+  await ensureColumn(db, "telegram_chat_limits", "platform", "platform TEXT NOT NULL DEFAULT 'telegram'");
+
+  await runSql(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS telegram_chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_key TEXT NOT NULL,
+      chat_id TEXT,
+      user_id TEXT,
+      role TEXT NOT NULL,
+      intent TEXT NOT NULL,
+      message_text TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'telegram'
+    )
+    `
+  );
+  await ensureColumn(db, "telegram_chat_messages", "chat_id", "chat_id TEXT");
+  await ensureColumn(db, "telegram_chat_messages", "user_id", "user_id TEXT");
+  await ensureColumn(db, "telegram_chat_messages", "platform", "platform TEXT NOT NULL DEFAULT 'telegram'");
+
+  await runSql(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS telegram_issue_throttle (
+      throttle_key TEXT PRIMARY KEY,
+      last_accepted_at TEXT NOT NULL,
+      last_message_id TEXT,
+      last_update_id TEXT,
+      message_count INTEGER NOT NULL DEFAULT 0,
+      platform TEXT NOT NULL DEFAULT 'telegram'
+    )
+    `
+  );
+  await ensureColumn(db, "telegram_issue_throttle", "last_message_id", "last_message_id TEXT");
+  await ensureColumn(db, "telegram_issue_throttle", "last_update_id", "last_update_id TEXT");
+  await ensureColumn(db, "telegram_issue_throttle", "message_count", "message_count INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn(db, "telegram_issue_throttle", "platform", "platform TEXT NOT NULL DEFAULT 'telegram'");
+
+  await runSql(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS telegram_issue_moderation_audit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id TEXT,
+      user_id TEXT,
+      message_id TEXT,
+      issue_kind TEXT,
+      original_text TEXT NOT NULL,
+      decision TEXT NOT NULL,
+      reason_code TEXT NOT NULL,
+      reason_text TEXT NOT NULL,
+      provider_name TEXT,
+      model_name TEXT,
+      created_at TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'telegram'
+    )
+    `
+  );
+  await ensureColumn(db, "telegram_issue_moderation_audit", "platform", "platform TEXT NOT NULL DEFAULT 'telegram'");
+
+  await runSql(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS telegram_user_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      session_type TEXT NOT NULL,
+      active_device_id INTEGER,
+      active_device_name TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'telegram',
+      UNIQUE(chat_id, user_id, session_type)
+    )
+    `
+  );
+  await ensureColumn(db, "telegram_user_sessions", "active_device_name", "active_device_name TEXT");
+  await ensureColumn(db, "telegram_user_sessions", "platform", "platform TEXT NOT NULL DEFAULT 'telegram'");
+
+  return { success: true };
+}
 
 /**
  * Apply all pending migrations to the given D1 database.
@@ -125,6 +259,12 @@ export async function applyMigrations(db) {
   const pending = MIGRATIONS.filter((m) => !appliedVersions.has(m.version));
 
   if (pending.length === 0) {
+    try {
+      await ensureRuntimeCompatibilitySchema(db);
+    } catch (err) {
+      console.error(`[applyMigrations] Runtime compatibility schema failed:`, err);
+      return { success: false, reason: "compat_failed", error: err.message };
+    }
     return { success: true, reason: "no_migrations", applied: 0 };
   }
 
@@ -133,8 +273,7 @@ export async function applyMigrations(db) {
 
   for (const migration of pending) {
     try {
-      const stmt1 = await db.prepare(migration.sql);
-      await stmt1.run();
+      await runSql(db, migration.sql);
       const stmt2 = await db
         .prepare(`INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)`);
       await stmt2.bind(migration.version, migration.name, nowIso)
@@ -144,6 +283,13 @@ export async function applyMigrations(db) {
       console.error(`[applyMigrations] Migration ${migration.version} failed:`, err);
       return { success: false, reason: "migration_failed", version: migration.version, error: err.message };
     }
+  }
+
+  try {
+    await ensureRuntimeCompatibilitySchema(db);
+  } catch (err) {
+    console.error(`[applyMigrations] Runtime compatibility schema failed:`, err);
+    return { success: false, reason: "compat_failed", error: err.message };
   }
 
   return { success: true, applied: appliedCount };
