@@ -4731,10 +4731,12 @@ export async function handleFinalDatasheetRag(env, message, session, deviceModel
       ? `✅ Zapisałem powiązanie: część *${partQuery}* -> elektrośmieć *${normalizedDeviceModel}*.`
       : `ℹ️ Kontynuuję bez znanego modelu elektrośmiecia. Część i tak pozostaje zapisana w bazie.`,
     "",
-    currentPart
-      ? `Mogę już rozmawiać o tej części na podstawie lokalnej bazy.${pdfUrl ? " Jeśli chcesz, otwórz też PDF lub wyślij go tutaj." : ""}`
-      : `Nie mam jeszcze pełnego opisu tej części w bazie.${pdfUrl ? " Znalazłem za to link do PDF." : ""}`,
-    pdfUrl ? `📄 Wyślij mi PDF, a zeskanuję go do bazy i odpowiem na pytania na podstawie dokumentu.` : "",
+    payload.pdf_file_id
+      ? `Mam już przesłany PDF i użyję go do odpowiedzi na pytania.`
+      : currentPart
+        ? `Mogę już rozmawiać o tej części na podstawie lokalnej bazy.${pdfUrl ? " Jeśli chcesz, otwórz też PDF albo wyślij go tutaj." : ""}`
+        : `Nie mam jeszcze pełnego opisu tej części w bazie.${pdfUrl ? " Znalazłem za to link do PDF." : ""}`,
+    !payload.pdf_file_id && pdfUrl ? `📄 Możesz wysłać PDF tutaj, a zeskanuję go do bazy i odpowiem na podstawie dokumentu.` : "",
     "",
     `💬 O co chcesz zapytać?`,
   ].filter(Boolean);
@@ -4775,7 +4777,8 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
     });
   }
 
-  await sendTelegramReply(env, message, `🔎 Analizuję pytanie o *${partQuery}*...`);
+  const progressText = `🔎 Analizuję pytanie o *${partQuery}*...`;
+  await sendTelegramReply(env, message, progressText);
 
   const ragSystem = [
     "Jesteś inżynierem elektronikiem i odpowiadasz precyzyjnie po polsku.",
@@ -4807,6 +4810,7 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
     }
   }
 
+  const runAnalysis = async () => {
   try {
     let aiContext = "";
     let pdfAttemptFailed = false;
@@ -4949,6 +4953,34 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
       error
     );
   }
+  };
+
+  if (ctx && typeof ctx.waitUntil === "function") {
+    const backgroundTask = runAnalysis()
+      .then(async (reply) => {
+        if (reply?.reply_text) {
+          await sendTelegramReply(env, message, reply.reply_text, reply.reply_markup);
+        }
+      })
+      .catch(async (error) => {
+        console.error("[handleFinalDatasheetRagFinal/background]", error instanceof Error ? error.message : String(error));
+        const reply = buildAiChainErrorReply(
+          "DS-AI-CHAIN-UNAVAILABLE",
+          `Nie udało się przeanalizować datasheetu dla części ${partQuery}.`,
+          error
+        );
+        await sendTelegramReply(env, message, reply.reply_text, reply.reply_markup);
+      });
+    ctx.waitUntil(backgroundTask);
+    return {
+      reply_text: progressText,
+      skip_reply: true,
+      provider_name: "local",
+      model_name: "background-datasheet",
+    };
+  }
+
+  return await runAnalysis();
 }
 
 

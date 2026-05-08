@@ -162,10 +162,68 @@ function getBatchCollectKeyboard() {
   ]);
 }
 
+function getDatasheetModelKeyboard() {
+  return withMenuRow([
+    [{ text: "🤷‍♂️ Nie znam modelu", callback_data: "datasheet_no_model" }],
+    [{ text: "❌ Anuluj analizę", callback_data: "cancel_session:datasheet_wait_model" }],
+  ]);
+}
+
 function getPartQuestionKeyboard(partId) {
   return withMenuRow([
     [{ text: "💬 Zapytaj o tę część", callback_data: `part_question_start:${partId}` }],
   ]);
+}
+
+function parseJsonSafeLocal(value, fallback = null) {
+  if (value == null || value === "") {
+    return fallback;
+  }
+  if (typeof value === "object") {
+    return value;
+  }
+  try {
+    return JSON.parse(String(value));
+  } catch {
+    return fallback;
+  }
+}
+
+function buildDatasheetQuestionPayload(partQuery, session = null, overrides = {}) {
+  const parsed = parseJsonSafeLocal(session?.active_device_name, null);
+  if (parsed && typeof parsed === "object" && parsed.version === 2) {
+    return {
+      version: 2,
+      part_number: parsed.part_number || partQuery,
+      master_part_id: parsed.master_part_id || null,
+      donor_device_model: parsed.donor_device_model || "",
+      donor_device_id: parsed.donor_device_id || null,
+      pdf_url: parsed.pdf_url || "",
+      pdf_file_id: parsed.pdf_file_id || "",
+      db_hit: Boolean(parsed.db_hit),
+      source: overrides.source || parsed.source || "",
+      file_name: parsed.file_name || "",
+      scan_summary: parsed.scan_summary || "",
+      ...overrides,
+    };
+  }
+
+  const legacyParts = String(session?.active_device_name || "").split("|");
+  const legacyPdfUrl = legacyParts.find((item) => /^https?:\/\//i.test(item)) || "";
+  return {
+    version: 2,
+    part_number: partQuery || legacyParts[0] || "",
+    master_part_id: null,
+    donor_device_model: legacyParts.length > 2 ? legacyParts.slice(2).filter((item) => !/^https?:\/\//i.test(item)).join(" | ") : "",
+    donor_device_id: null,
+    pdf_url: legacyPdfUrl,
+    pdf_file_id: "",
+    db_hit: false,
+    source: overrides.source || "callback_legacy",
+    file_name: "",
+    scan_summary: "",
+    ...overrides,
+  };
 }
 
 function parseManualPartEntry(text) {
@@ -1251,8 +1309,8 @@ async function handleActiveSessions(env, message, ctx) {
     }
     if (message.file_id && message.mime_type === "application/pdf") {
       return {
-        reply_text: "Na tym etapie potrzebuję jeszcze *modelu elektrośmiecia*, z którego pochodzi część. Jeśli go nie znasz, kliknij *Nie znam modelu*, a PDF możesz wysłać w następnym kroku.",
-        reply_markup: getMainMenuKeyboard(),
+        reply_text: "Na tym etapie potrzebuję jeszcze *modelu elektrośmiecia*, z którego pochodzi część. Jeśli go nie znasz, kliknij *Nie znam modelu*, a przejdziemy do pytania o dokument.",
+        reply_markup: getDatasheetModelKeyboard(),
       };
     }
     
@@ -1852,22 +1910,17 @@ const CALLBACK_HANDLERS = {
   await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, editMsg, {
     inline_keyboard: [[{ text: "📖 Legenda kolorów", callback_data: "resistor_legend" }], [{ text: "❌ Anuluj", callback_data: "cancel_session:resistor_edit_bands" }]]
   });
-},
+  },
   "datasheet_ask": async (env, id, chat_id, user_id, message, data) => {
     const partQuery = data.substring("datasheet_ask:".length);
-    await upsertUserSession(env, chat_id, user_id, "datasheet_wait_question", null, JSON.stringify({
-      version: 2,
-      part_number: partQuery,
-      master_part_id: null,
-      donor_device_model: "",
-      donor_device_id: null,
-      pdf_url: "",
-      pdf_file_id: "",
-      db_hit: false,
+    const activeSession =
+      (await getUserSession(env, chat_id, user_id, "datasheet_wait_model")) ||
+      (await getUserSession(env, chat_id, user_id, "datasheet_wait_question"));
+    const payload = buildDatasheetQuestionPayload(partQuery, activeSession, {
       source: "callback_ask",
-      file_name: "",
-      scan_summary: "",
-    }));
+    });
+    await closeUserSession(env, chat_id, user_id, "datasheet_wait_model");
+    await upsertUserSession(env, chat_id, user_id, "datasheet_wait_question", null, JSON.stringify(payload));
     await answerCallbackQuery(env, id, "Zadaj pytanie.");
     await sendTelegramReply(env, { chat_id, message_id: message?.message_id }, `💡 Analiza datasheet dla *${partQuery}*. Wpisz pytanie (np. "Jaki jest pinout?", "Podaj napięcie zasilania"):`, getMainMenuKeyboard());
   },
@@ -1882,18 +1935,19 @@ const CALLBACK_HANDLERS = {
       ORDER BY created_at DESC LIMIT 1
     `).bind(chat_id, user_id, partQuery, partQuery).first();
 
+    const lastPayload = parseJsonSafeLocal(lastSub?.raw_payload_json, {}) || {};
     const metadata = {
       version: 2,
       part_number: partQuery,
       master_part_id: lastSub?.master_part_id || null,
       donor_device_model: lastSub?.query_text || "",
       donor_device_id: null,
-      pdf_url: (lastSub?.raw_payload_json ? JSON.parse(lastSub.raw_payload_json).pdf_url : "") || "",
+      pdf_url: lastPayload.pdf_url || "",
       pdf_file_id: lastSub?.attachment_file_id || "",
       db_hit: Boolean(lastSub?.master_part_id),
       source: "callback_continue",
       file_name: "",
-      scan_summary: "",
+      scan_summary: lastPayload.scan_summary || "",
     };
 
     await upsertUserSession(env, chat_id, user_id, "datasheet_wait_question", null, JSON.stringify(metadata));

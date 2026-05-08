@@ -1789,6 +1789,129 @@ test("handleFinalDatasheetRagFinal falls back when PDF multimodal provider retur
   });
 });
 
+test("handleFinalDatasheetRagFinal sends final PDF answer from waitUntil", async () => {
+  const db = createScanFlowDbMock();
+  const sentMessages = [];
+  const waitUntilTasks = [];
+  const env = {
+    DB: db,
+    TELEGRAM_BOT_TOKEN: "telegram-token",
+    TELEGRAM_AI_PRIMARY_PROVIDER: "google",
+    TELEGRAM_AI_FALLBACK_PROVIDER: "google",
+    TELEGRAM_AI_GOOGLE_MODEL: "gemini-3.1-flash-lite-preview",
+    TELEGRAM_AI_TIMEOUT_MS: "20000",
+    GEMINI_API_KEY: "google-key",
+  };
+
+  await withMockedFetch(async (url, init = {}) => {
+    const urlString = String(url);
+    if (urlString.includes("api.telegram.org/bottelegram-token/sendMessage")) {
+      sentMessages.push(JSON.parse(init.body));
+      return jsonResponse({ ok: true });
+    }
+    if (urlString.includes("api.telegram.org/bottelegram-token/getFile")) {
+      return jsonResponse({ ok: true, result: { file_path: "datasheet.pdf" } });
+    }
+    if (urlString.includes("api.telegram.org/file/bottelegram-token/datasheet.pdf")) {
+      return new Response(Uint8Array.from([37, 80, 68, 70, 45, 49, 46, 55]), { status: 200 });
+    }
+    if (urlString.includes("generativelanguage.googleapis.com")) {
+      return jsonResponse({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: "Pinout jest opisany w PDF: wejścia audio są na pinach IN+ i IN-." }],
+            },
+          },
+        ],
+      });
+    }
+    throw new Error(`Unexpected URL: ${urlString}`);
+  }, async () => {
+    const session = {
+      chat_id: "4",
+      user_id: "3",
+      active_device_name: JSON.stringify({
+        version: 2,
+        part_number: "TDA7294",
+        master_part_id: 1,
+        donor_device_model: "Wzmacniacz testowy",
+        donor_device_id: null,
+        pdf_url: "",
+        pdf_file_id: "telegram-pdf-1",
+        db_hit: true,
+        source: "uploaded_pdf",
+        file_name: "tda7294.pdf",
+        scan_summary: "",
+      }),
+    };
+    const ctx = {
+      waitUntil(promise) {
+        waitUntilTasks.push(Promise.resolve(promise));
+      },
+    };
+
+    const reply = await handleFinalDatasheetRagFinal(
+      env,
+      { chat_id: "4", user_id: "3", message_id: "99" },
+      session,
+      "Jaki jest pinout?",
+      ctx
+    );
+
+    assert.equal(reply.skip_reply, true);
+    assert.match(reply.reply_text, /Analizuję pytanie/);
+    assert.equal(sentMessages.length, 1);
+    assert.match(sentMessages[0].text, /Analizuję pytanie/);
+
+    await Promise.all(waitUntilTasks);
+
+    assert.equal(sentMessages.length, 2);
+    assert.match(sentMessages[1].text, /Analiza zakończona/);
+    assert.match(sentMessages[1].text, /Pinout jest opisany w PDF/);
+  });
+});
+
+test("datasheet model step keeps no-model button when another PDF is sent", async () => {
+  const harness = createTelegramFlowHarness();
+
+  await withMockedFetch(harness.fetchImpl, async () => {
+    await harness.sendWebhook({
+      update_id: 101,
+      message: {
+        message_id: 10,
+        date: 1,
+        chat: { id: 4, type: "private" },
+        from: { id: 3, first_name: "Tester" },
+        document: {
+          file_id: "pdf-one",
+          file_name: "tda7294.pdf",
+          mime_type: "application/pdf",
+        },
+      },
+    });
+
+    await harness.sendWebhook({
+      update_id: 102,
+      message: {
+        message_id: 11,
+        date: 2,
+        chat: { id: 4, type: "private" },
+        from: { id: 3, first_name: "Tester" },
+        document: {
+          file_id: "pdf-two",
+          file_name: "tda7294-again.pdf",
+          mime_type: "application/pdf",
+        },
+      },
+    });
+
+    const lastMessage = harness.sentMessages.at(-1);
+    assert.match(lastMessage.text, /Na tym etapie potrzebuję jeszcze/);
+    assert.match(JSON.stringify(lastMessage.reply_markup), /datasheet_no_model/);
+  });
+});
+
 test("recycled_add_parts callback reuses new batch flow", async () => {
   const harness = createTelegramFlowHarness();
 
