@@ -80,41 +80,13 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(record.chat_id || null, record.user_id || null, record.message_id || null, record.issue_kind || null, record.original_text || "", record.decision || "reject_off_topic", record.reason_code || "unknown", record.reason_text || "Brak powodu.", record.provider_name || null, record.model_name || null, toIsoNow()).run();
 }
 
-export async function fetchTelegramFileAsBase64(env, fileId) {
-  const botToken = env.TELEGRAM_BOT_TOKEN;
-  if (!botToken || !fileId) return null;
-  try {
-    const fileInfoResp = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`, {}, 10000);
-    const fileInfo = await fileInfoResp.json();
-    if (!fileInfo.ok || !fileInfo.result.file_path) {
-      console.error("[fetchTelegramFileAsBase64] getFile failed:", JSON.stringify(fileInfo));
-      return null;
-    }
-    const filePath = fileInfo.result.file_path;
-    const fileContentResp = await fetchWithTimeout(`https://api.telegram.org/file/bot${botToken}/${filePath}`, {}, 30000);
-    if (!fileContentResp.ok) {
-      console.error("[fetchTelegramFileAsBase64] file download failed, status:", fileContentResp.status);
-      return null;
-    }
-    const arrayBuffer = await fileContentResp.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    let binary = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-      binary += String.fromCharCode.apply(null, chunk);
-    }
-    return btoa(binary);
-  } catch (error) {
-    console.error("[fetchTelegramFileAsBase64] error:", error instanceof Error ? error.message : String(error));
-    return null;
-  }
-}
+import { fetchTelegramFileAsBase64 as _fetchTelegramFileAsBase64 } from "./base_utils.js";
+export { _fetchTelegramFileAsBase64 as fetchTelegramFileAsBase64 };
 
 export async function fetchDiscordAttachmentAsBase64(attachmentUrl) {
   if (!attachmentUrl) return null;
   try {
-    const response = await fetch(attachmentUrl);
+    const response = await fetchWithTimeout(attachmentUrl, {}, 30000);
     if (!response.ok) {
       console.error("[fetchDiscordAttachmentAsBase64] download failed, status:", response.status);
       return null;

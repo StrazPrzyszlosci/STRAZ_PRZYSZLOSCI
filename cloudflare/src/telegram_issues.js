@@ -17,7 +17,6 @@ import {
   recommendOnboardingPath,
   routeTelegramIntent,
   saveTelegramConversation,
-  fetchTelegramFileAsBase64,
   handleRecycledKnowledgeLookup,
   recognizeDeviceAndListParts,
   recognizePartAndRecord,
@@ -50,6 +49,7 @@ runResistorVerification,
 import { buildVerificationResultReply } from "./vision.js";
 import { sanitizeUserInput } from "./input_sanitizer.js";
 import { sanitizeTelegramReply, sendTelegramReply, getMainMenuKeyboard } from "./telegram_utils.js";
+import { fetchWithTimeout, fetchTelegramFileAsBase64 } from "./base_utils.js";
 
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -445,7 +445,7 @@ async function createGitHubIssue(env, draft) {
     throw new Error("Brak sekretu GITHUB_TOKEN dla integracji Telegram.");
   }
 
-  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+  const response = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/issues`, {
     method: "POST",
     headers: {
       accept: "application/vnd.github+json",
@@ -459,7 +459,7 @@ async function createGitHubIssue(env, draft) {
       body: draft.body,
       labels: draft.labels,
     }),
-  });
+  }, 15000);
 
   const payload = await response.json();
   if (!response.ok) {
@@ -1922,21 +1922,21 @@ async function handleTelegramCallback(env, callback, ctx = null) {
 
 async function answerCallbackQuery(env, callbackQueryId, text) {
   const botToken = env.TELEGRAM_BOT_TOKEN;
-  await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+  await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       callback_query_id: callbackQueryId,
       text: text
     })
-  });
+  }, 10000);
 }
 
 async function removeInlineKeyboard(env, chat_id, message_id) {
   const botToken = env.TELEGRAM_BOT_TOKEN;
   if (!botToken || !chat_id || !message_id) return;
 
-  await fetch(`https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`, {
+  await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -1946,7 +1946,7 @@ async function removeInlineKeyboard(env, chat_id, message_id) {
         inline_keyboard: []
       }
     })
-  });
+  }, 10000);
 }
 
 export async function handleTelegramWebhook(request, env, ctx = null) {

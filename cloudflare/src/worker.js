@@ -1,4 +1,5 @@
 import { generateRecommendation } from "./recommendation.js";
+import { fetchWithTimeout } from "./base_utils.js";
 import {
   handleWhatsAppVerification,
   handleWhatsAppWebhook,
@@ -405,14 +406,14 @@ export default {
 
       if (request.method === "GET" && url.pathname === "/integrations/telegram/webhook-info") {
         const botToken = env.TELEGRAM_BOT_TOKEN;
-        const resp = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
+        const resp = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/getWebhookInfo`, {}, 15000);
         return jsonResponse(await resp.json(), 200);
       }
 
       if (request.method === "GET" && url.pathname === "/integrations/telegram/webhook-reset") {
         const botToken = env.TELEGRAM_BOT_TOKEN;
         // First get current info to preserve url
-        const infoResp = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
+        const infoResp = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/getWebhookInfo`, {}, 15000);
         const info = await infoResp.json();
         const currentUrl = info?.result?.url || "https://fish-pond-api-v1-prod.liderpasdom.workers.dev/integrations/telegram/webhook";
 
@@ -425,11 +426,11 @@ export default {
           resetBody.secret_token = env.TELEGRAM_WEBHOOK_SECRET_TOKEN;
         }
 
-        const setResp = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+        const setResp = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/setWebhook`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(resetBody)
-        });
+        }, 15000);
         return jsonResponse(await setResp.json(), 200);
       }
 

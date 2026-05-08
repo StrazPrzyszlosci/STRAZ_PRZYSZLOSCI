@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "./base_utils.js";
+
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -225,7 +227,7 @@ async function createGitHubIssue(env, draft) {
     throw new Error("Brak sekretu GITHUB_TOKEN dla integracji WhatsApp.");
   }
 
-  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+  const response = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/issues`, {
     method: "POST",
     headers: {
       accept: "application/vnd.github+json",
@@ -239,7 +241,7 @@ async function createGitHubIssue(env, draft) {
       body: draft.body,
       labels: draft.labels,
     }),
-  });
+  }, 15000);
 
   const payload = await response.json();
   if (!response.ok) {

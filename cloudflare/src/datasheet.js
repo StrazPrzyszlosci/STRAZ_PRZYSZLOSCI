@@ -3,7 +3,7 @@ import { sendTelegramReply } from "./telegram_utils.js";
 import { upsertUserSession, closeUserSession } from "./sessions.js";
 import { recordRecycledSubmission } from "./recycled_catalog.js";
 import { callProviderWithFallback } from "./ai_providers.js";
-import { buildPromptPayload } from "./base_utils.js";
+import { buildPromptPayload, fetchWithTimeout } from "./base_utils.js";
 
 const PDF_SEARCH_SOURCES = [
   { name: "LCSC", url: "https://www.lcsc.com/search?keyword=", parse: "lcsc" },
@@ -72,10 +72,10 @@ async function searchDatasheetUrl(partName, options = {}) {
   for (const source of PDF_SEARCH_SOURCES) {
     try {
       const searchUrl = source.url + encodeURIComponent(normalizedPart);
-      const resp = await fetch(searchUrl, {
+      const resp = await fetchWithTimeout(searchUrl, {
         headers: PDF_FETCH_HEADERS,
         redirect: "follow",
-      });
+      }, 15000);
       if (resp.ok) {
         const text = await resp.text();
         const pdfLink = extractPdfLink(text, source.parse, resp.url);
@@ -146,12 +146,10 @@ function extractPdfLink(html, sourceType, baseUrl) {
 
 async function searchDuckDuckGoPdf(partName) {
   try {
-    const query = `${partName} datasheet filetype:pdf`;
-    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    const resp = await fetch(searchUrl, {
+    const resp = await fetchWithTimeout(searchUrl, {
       headers: PDF_FETCH_HEADERS,
       redirect: "follow",
-    });
+    }, 15000);
     if (!resp.ok) return null;
     const html = await resp.text();
     const pdfLink = extractPdfLink(html, "duckduckgo", resp.url);
@@ -171,11 +169,11 @@ function isPdfResponse(contentType, uint8) {
 
 async function canFetchPdf(pdfUrl) {
   try {
-    const resp = await fetch(pdfUrl, {
+    const resp = await fetchWithTimeout(pdfUrl, {
       method: "HEAD",
       headers: PDF_FETCH_HEADERS,
       redirect: "follow",
-    });
+    }, 10000);
     const ct = resp.headers.get("content-type");
     return resp.ok && isPdfResponse(ct, null);
   } catch {
@@ -185,10 +183,10 @@ async function canFetchPdf(pdfUrl) {
 
 async function downloadPdfAsBase64(pdfUrl) {
   try {
-    const resp = await fetch(pdfUrl, {
+    const resp = await fetchWithTimeout(pdfUrl, {
       headers: PDF_FETCH_HEADERS,
       redirect: "follow",
-    });
+    }, 30000);
     if (!resp.ok) {
       return null;
     }

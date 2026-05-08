@@ -1,6 +1,6 @@
 import { knowledgeBundle } from "./generated_knowledge_bundle.js";
 import { sendTelegramReply, getMainMenuKeyboard } from "./telegram_utils.js";
-import { fetchWithTimeout } from "./base_utils.js";
+import { fetchWithTimeout, fetchTelegramFileAsBase64 } from "./base_utils.js";
 import {
   buildAntiInjectionSystemPrefix,
   buildPdfHiddenContentWarning,
@@ -2015,37 +2015,6 @@ export function buildChatThrottleReply(retryAfterSeconds) {
   return "Wysyłasz zbyt dużo wiadomości w krótkim czasie. Spróbuj ponownie za chwilę.";
 }
 
-export async function fetchTelegramFileAsBase64(env, fileId) {
-  const botToken = env.TELEGRAM_BOT_TOKEN;
-  if (!botToken || !fileId) return null;
-  try {
-    const fileInfoResp = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`, {}, 10000);
-    const fileInfo = await fileInfoResp.json();
-    if (!fileInfo.ok || !fileInfo.result.file_path) {
-      console.error("[fetchTelegramFileAsBase64] getFile failed:", JSON.stringify(fileInfo));
-      return null;
-    }
-    const filePath = fileInfo.result.file_path;
-    const fileContentResp = await fetchWithTimeout(`https://api.telegram.org/file/bot${botToken}/${filePath}`, {}, 30000);
-    if (!fileContentResp.ok) {
-      console.error("[fetchTelegramFileAsBase64] file download failed, status:", fileContentResp.status);
-      return null;
-    }
-    const arrayBuffer = await fileContentResp.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    let binary = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-      binary += String.fromCharCode.apply(null, chunk);
-    }
-    return btoa(binary);
-  } catch (error) {
-    console.error("[fetchTelegramFileAsBase64] error:", error instanceof Error ? error.message : String(error));
-    return null;
-  }
-}
-
 async function getTableColumns(db, tableName) {
   const result = await db.prepare(`PRAGMA table_info(${tableName})`).all();
   return new Set((result?.results || []).map((row) => row.name));
@@ -3527,7 +3496,7 @@ export async function recordRecycledSubmission(env, payload) {
     const repo = env.GITHUB_REPO_NAME;
     const token = env.GITHUB_TOKEN;
     if (owner && repo && token) {
-      await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
+      await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
         method: "POST",
         headers: {
           accept: "application/vnd.github+json",
@@ -3540,7 +3509,7 @@ export async function recordRecycledSubmission(env, payload) {
           event_type: "trigger-backup",
           client_payload: { submission_id: newId },
         }),
-      }).catch(() => {}); // Ignoruj błąd - backup jest opcjonalny
+      }, 5000).catch(() => {}); // Ignoruj błąd - backup jest opcjonalny
     }
   }
 
@@ -5326,13 +5295,13 @@ async function searchGoogleForPdf(part) {
         const query = `${part} datasheet filetype:pdf`;
         const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&num=10`;
         
-        const resp = await fetch(url, {
+        const resp = await fetchWithTimeout(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9,pl;q=0.8',
             }
-        });
+        }, 15000);
         
         if (!resp.ok) return null;
         const html = await resp.text();
@@ -5348,10 +5317,10 @@ async function searchGoogleForPdf(part) {
             
             // Weryfikujemy czy link działa i jest PDFem
             try {
-                const check = await fetch(pdfUrl, { 
+                const check = await fetchWithTimeout(pdfUrl, { 
                     method: 'HEAD', 
                     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' }
-                });
+                }, 15000);
                 const ct = (check.headers.get('content-type') || '').toLowerCase();
                 if (check.ok && ct.includes('pdf')) return pdfUrl;
             } catch(e) {}
@@ -5370,7 +5339,7 @@ async function searchGoogleForPdf(part) {
 async function fetchExternalPdfAsBase64(url) {
     const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB
     try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
             redirect: 'follow',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -5385,7 +5354,7 @@ async function fetchExternalPdfAsBase64(url) {
                 'Sec-Fetch-User': '?1',
                 'Upgrade-Insecure-Requests': '1',
             }
-        });
+        }, 30000);
         if (!response.ok) {
             console.error(`PDF fetch failed: ${response.status} ${response.statusText} for ${url}`);
             return null;

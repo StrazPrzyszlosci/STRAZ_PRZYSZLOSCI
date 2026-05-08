@@ -126,3 +126,48 @@ export async function fetchWithTimeout(resource, options = {}, timeoutMs = 15000
     clearTimeout(timer);
   }
 }
+
+export async function fetchTelegramFileAsBase64(env, fileId) {
+  const botToken = env.TELEGRAM_BOT_TOKEN;
+  if (!botToken || !fileId) return null;
+  try {
+    const fileInfoResp = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`, {}, 10000);
+    const fileInfo = await fileInfoResp.json();
+    if (!fileInfo.ok || !fileInfo.result.file_path) {
+      console.error("[fetchTelegramFileAsBase64] getFile failed:", JSON.stringify(fileInfo));
+      return null;
+    }
+    const filePath = fileInfo.result.file_path;
+    const fileContentResp = await fetchWithTimeout(`https://api.telegram.org/file/bot${botToken}/${filePath}`, {}, 30000);
+    if (!fileContentResp.ok) {
+      console.error("[fetchTelegramFileAsBase64] file download failed, status:", fileContentResp.status);
+      return null;
+    }
+    const arrayBuffer = await fileContentResp.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+  } catch (error) {
+    console.error("[fetchTelegramFileAsBase64] error:", error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
+export function timingSafeEqualString(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const aLen = a.length;
+  const bLen = b.length;
+  let result = aLen === bLen ? 0 : 1;
+  const maxLen = Math.max(aLen, bLen);
+  for (let i = 0; i < maxLen; i++) {
+    const aChar = i < aLen ? a.charCodeAt(i) : 0;
+    const bChar = i < bLen ? b.charCodeAt(i) : 0;
+    result |= aChar ^ bChar;
+  }
+  return result === 0;
+}

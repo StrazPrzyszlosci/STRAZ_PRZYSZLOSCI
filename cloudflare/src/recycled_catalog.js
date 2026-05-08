@@ -1,4 +1,4 @@
-import { normalizeWhitespace, toIsoNow, formatDeviceName, buildDeviceCatalogReply, buildPartLookupReply, getMessageText } from "./base_utils.js";
+import { normalizeWhitespace, toIsoNow, formatDeviceName, buildDeviceCatalogReply, buildPartLookupReply, getMessageText, fetchWithTimeout } from "./base_utils.js";
 
 export async function getDeviceById(env, deviceId) {
   const db = env.DB;
@@ -42,7 +42,7 @@ export async function recordRecycledSubmission(env, payload) {
     const repo = env.GITHUB_REPO_NAME;
     const token = env.GITHUB_TOKEN;
     if (owner && repo && token) {
-      await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
+      await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
         method: "POST",
         headers: {
           accept: "application/vnd.github+json",
@@ -55,7 +55,7 @@ export async function recordRecycledSubmission(env, payload) {
           event_type: "trigger-backup",
           client_payload: { submission_id: newId },
         }),
-      }).catch(() => {});
+      }, 5000).catch(() => {});
     }
   }
 

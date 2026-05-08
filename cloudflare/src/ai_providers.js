@@ -1,4 +1,5 @@
 import { AiProviderError, parsePositiveInteger, parseNumber } from "./base_utils.js";
+import { checkModelRateLimit, recordModelUsage } from "./ai_model_limits.js";
 
 const DEFAULT_TIMEOUT_MS = 20000;
 
@@ -45,17 +46,17 @@ async function runFetchWithTimeout(fetchImpl, url, init, timeoutMs) {
 function buildGoogleGenerateContentBody(promptPayload, model, options = {}) {
   const isGemma = (model || "").toLowerCase().includes("gemma");
   const inlineSystemInstruction = options.inlineSystemInstruction === true || isGemma;
-  
+
   const userParts = [];
-  
+
   if (inlineSystemInstruction && promptPayload.systemInstruction) {
     userParts.push({ text: promptPayload.systemInstruction + "\n\n" });
   }
-  
+
   if (promptPayload.userPrompt) {
     userParts.push({ text: promptPayload.userPrompt });
   }
-  
+
   if (promptPayload.media && promptPayload.media.length > 0) {
     for (const mediaItem of promptPayload.media) {
       userParts.push({
@@ -111,6 +112,17 @@ function shouldRetryGoogleWithoutDeveloperInstruction(response, payload) {
 }
 
 export async function callGoogleProvider(env, promptPayload, options = {}) {
+  // Per-model rate limit check
+  if (env.DB) {
+    const model = (env.TELEGRAM_AI_GOOGLE_MODEL || "gemini-3.1-flash-lite-preview").trim();
+    const modelLimitResult = await checkModelRateLimit(env, env.DB, model, "google");
+    if (!modelLimitResult.allowed) {
+      throw new AiProviderError(`Rate limit Google model (${modelLimitResult.bucket}): try after ${modelLimitResult.retry_after_seconds}s.`, {
+        retriable: true,
+      });
+    }
+  }
+
   const apiKey = (env.GEMINI_API_KEY || "").trim();
   if (!apiKey) {
     throw new AiProviderError("Brak GEMINI_API_KEY.", {
@@ -171,6 +183,10 @@ export async function callGoogleProvider(env, promptPayload, options = {}) {
     });
   }
 
+  if (env.DB) {
+    await recordModelUsage(env, env.DB, model, "google").catch(() => {});
+  }
+
   return {
     text: extractTextFromGoogle(payload),
     provider_name: "google",
@@ -179,6 +195,17 @@ export async function callGoogleProvider(env, promptPayload, options = {}) {
 }
 
 export async function callNvidiaProvider(env, promptPayload, options = {}) {
+  // Per-model rate limit check
+  if (env.DB) {
+    const model = (env.TELEGRAM_AI_NVIDIA_MODEL || "google/gemma-4-31b-it").trim();
+    const modelLimitResult = await checkModelRateLimit(env, env.DB, model, "nvidia");
+    if (!modelLimitResult.allowed) {
+      throw new AiProviderError(`Rate limit NVIDIA model (${modelLimitResult.bucket}): try after ${modelLimitResult.retry_after_seconds}s.`, {
+        retriable: true,
+      });
+    }
+  }
+
   const apiKey = (env.NVIDIA_API_KEY || "").trim();
   if (!apiKey) {
     throw new AiProviderError("Brak NVIDIA_API_KEY.", {
@@ -228,6 +255,10 @@ export async function callNvidiaProvider(env, promptPayload, options = {}) {
       model,
       retriable: response.status === 429 || response.status >= 500,
     });
+  }
+
+  if (env.DB) {
+    await recordModelUsage(env, env.DB, model, "nvidia").catch(() => {});
   }
 
   return {

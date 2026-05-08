@@ -41,23 +41,9 @@ import {
   runResistorVerification,
   validateManualEntry,
 } from "./telegram_ai.js";
-import { fetchWithTimeout } from "./base_utils.js";
+import { fetchWithTimeout, timingSafeEqualString } from "./base_utils.js";
 
 const DISCORD_PLATFORM = "discord";
-
-function timingSafeEqualString(a, b) {
-  if (typeof a !== "string" || typeof b !== "string") return false;
-  const aLen = a.length;
-  const bLen = b.length;
-  let result = aLen === bLen ? 0 : 1;
-  const maxLen = Math.max(aLen, bLen);
-  for (let i = 0; i < maxLen; i++) {
-    const aChar = i < aLen ? a.charCodeAt(i) : 0;
-    const bChar = i < bLen ? b.charCodeAt(i) : 0;
-    result |= aChar ^ bChar;
-  }
-  return result === 0;
-}
 
 function jsonReply(data, status = 200) {
   return new Response(JSON.stringify(data), {

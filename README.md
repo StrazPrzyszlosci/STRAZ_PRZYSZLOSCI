@@ -36,6 +36,31 @@ Aby realnie odpowiedzieć na najpilniejsze problemy gospodarcze i społeczne, na
 
 System ten ma służyć jako potężne wsparcie dla tradycyjnej gospodarki państwowej, w całości się z nią przeplatając i wspomagając jej procesy, jednak w taki sposób, aby nie generować dla niej niepotrzebnej konkurencji. Naszym celem jest synergia, a nie rywalizacja.
 
+## Projekty Pilotażowe i Inspiracje
+
+W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiązań, które mogą zostać wdrożone w modelu Open-Source przez Narodowe Siły Intelektualne:
+
+*   **[01. Inteligentna Akwakultura](PROJEKTY/01_inteligentna_akwakultura.md)** – Autonomiczne węzły produkcji ryb oparte na IoT i AI.
+*   **[02. Wirtualne Ogrodzenia](PROJEKTY/02_wirtualne_ogrodzenia.md)** – Cyfrowy wypas zwierząt bez fizycznej infrastruktury.
+*   **[03. Edge AI w Pasterstwie](PROJEKTY/03_ai_monitoring_porodow.md)** – Lokalna analityka obrazu wspierająca hodowców w trudnych warunkach.
+*   **[04. Solarne Okna z Recyklingu TV](PROJEKTY/04_lampa_z_recyklingu_tv.md)** – Upcykling elektrośmieci jako źródło darmowego światła i kapitału.
+*   **[05. Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md)** – Zaawansowany odzysk ogniw krzemowych przy użyciu technologii CNC.
+*   **[06. Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md)** – Wykorzystanie starej elektroniki jako potężnych węzłów sterujących (Edge Computing). Zobacz również: [08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md).
+*   **[07. Uniwersalna Platforma Sterowania](PROJEKTY/07_uniwersalna_platforma_sterowania.md)** – Przykład pozyskiwania zaawansowanego kodu (PhoneUAV) jako strategicznego zasobu intelektualnego NSI.
+*   **[08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md)** – Smartfon jako mózg robota AI: nawigacja w czasie rzeczywistym i autonomia maszyn.
+*   **[09. Monitoring IoT i Akcelerometria](PROJEKTY/09_monitoring_iot_livestock.md)** – Inteligentna obroża AI (Smart Health Tracker) z wykorzystaniem czujników smartfona.
+*   **[10. Łączność Mesh i LoRa](PROJEKTY/10_lacznosc_mesh_lora.md)** – Suwerenna sieć komunikacyjna Mesh (Meshtastic, Reticulum) do monitorowania zasobów gospodarczych.
+*   **[11. Autonomiczne Systemy R+D](PROJEKTY/11_autonomiczne_systemy_rd.md)** – Omijanie paradygmatu "czystych" technologii na rzecz brudnej, śmiałej automatyzacji.
+*   **[12. Autonomiczne PCB ze śmieci](PROJEKTY/12_autonomiczne_pcb_ze_smieci.md)** – Połączenie Ai i recyklingu e-odpadów w celu budowy suwerennej elektroniki bez kapitału.
+*   **[13. GitHub-first baza części z recyklingu](PROJEKTY/13_baza_czesci_recykling/README.md)** – Kanoniczny katalog urządzeń-dawców i części (JSONL). Projekt wykorzystuje autonomicznego "Łowcę Części" AI (**[Notatnik Kaggle](PROJEKTY/13_baza_czesci_recykling/youtube-databaseparts.ipynb)**), który codziennie analizuje filmy z napraw elektroniki, budując testową baza komponentów w pliku **[test_db.jsonl](PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/test_db.jsonl)**. Docelowo system będzie tworzył otwarty zasób wiedzy dostępny dla każdego. Funkcja budowania i przeszukiwania bazy jest już zintegrowana z naszym botem na Telegramie.
+*   **[14. Autonomiczne Projektowanie 3D i CAD (MCP)](PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md)** – Kolejny łańcuch automatyzacji R+D: wykorzystanie AI oraz protokołu MCP do iteracyjnego projektowania brył 3D we FreeCAD i docelowej generacji G-code.
+*   **[15. Analiza Social Media dla Recyklingu](PROJEKTY/15_analiza_social_media_recykling.md)** – AI skanujące polskie grupy i portale aukcyjne w celu łączenia darmowych ofert z zapotrzebowaniem użytkowników.
+*   **[16. Geoportal i Potencjał Rozwoju](PROJEKTY/16_geoportal_potencjal_rozwoju.md)** – Analiza danych geoprzestrzennych dla nowoczesnego planowania automatyzacji AI.
+*   **[18. Automatyzacja Transportu i Logistyki](PROJEKTY/18_automatyzacja_transportu_i_logistyki.md)** – Inteligentna nawigacja sugerująca odbiór przedmiotów na trasie oraz system łączenia kierowców z zapotrzebowaniem społeczności (BlablaCar dla rzeczy).
+
+
+**Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**
+
 ## Dlaczego powstał ten projekt? (Nasza motywacja)
 
 Głównym powodem powstania **NARODOWYCH SIŁ INTELEKTUALNYCH** jest zagrożenie wynikające z rozproszenia i czysto komercyjnego wykorzystania sztucznej inteligencji. 
@@ -139,30 +164,6 @@ Uruchomiliśmy zrzutkę na dokończenie i skalowanie naszego systemu **Trash-to-
 
 5. **Opiekunowie Projektu (Nobilitacja)** – w miarę rozwoju inicjatywy, do jej struktury będą wybierani opiekunowie poszczególnych składowych lub całych wyodrębnionych projektów. Będą oni wyłaniani wyłącznie spośród najbardziej zaangażowanych twórców, którzy mogą wykazać się największą pracą i realnymi dokonaniami na rzecz repozytorium. Zarówno wybór na tę funkcję, jak i samo jej pełnienie, będzie dla powierzonych osób najwyższym wyrazem uznania i nobilitacją. Wspólnie tworzymy przestrzeń, w której liczą się wyłącznie dokonania, kompetencje i idea, a bycie liderem to zaszczyt.
 
-## Projekty Pilotażowe i Inspiracje
-
-W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiązań, które mogą zostać wdrożone w modelu Open-Source przez Narodowe Siły Intelektualne:
-
-*   **[01. Inteligentna Akwakultura](PROJEKTY/01_inteligentna_akwakultura.md)** – Autonomiczne węzły produkcji ryb oparte na IoT i AI.
-*   **[02. Wirtualne Ogrodzenia](PROJEKTY/02_wirtualne_ogrodzenia.md)** – Cyfrowy wypas zwierząt bez fizycznej infrastruktury.
-*   **[03. Edge AI w Pasterstwie](PROJEKTY/03_ai_monitoring_porodow.md)** – Lokalna analityka obrazu wspierająca hodowców w trudnych warunkach.
-*   **[04. Solarne Okna z Recyklingu TV](PROJEKTY/04_lampa_z_recyklingu_tv.md)** – Upcykling elektrośmieci jako źródło darmowego światła i kapitału.
-*   **[05. Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md)** – Zaawansowany odzysk ogniw krzemowych przy użyciu technologii CNC.
-*   **[06. Smartfony jako Sterowniki](PROJEKTY/06_smartfony_jako_sterowniki.md)** – Wykorzystanie starej elektroniki jako potężnych węzłów sterujących (Edge Computing). Zobacz również: [08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md).
-*   **[07. Uniwersalna Platforma Sterowania](PROJEKTY/07_uniwersalna_platforma_sterowania.md)** – Przykład pozyskiwania zaawansowanego kodu (PhoneUAV) jako strategicznego zasobu intelektualnego NSI.
-*   **[08. Autonomiczne Maszyny Rolnicze (OpenBot)](PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md)** – Smartfon jako mózg robota AI: nawigacja w czasie rzeczywistym i autonomia maszyn.
-*   **[09. Monitoring IoT i Akcelerometria](PROJEKTY/09_monitoring_iot_livestock.md)** – Inteligentna obroża AI (Smart Health Tracker) z wykorzystaniem czujników smartfona.
-*   **[10. Łączność Mesh i LoRa](PROJEKTY/10_lacznosc_mesh_lora.md)** – Suwerenna sieć komunikacyjna Mesh (Meshtastic, Reticulum) do monitorowania zasobów gospodarczych.
-*   **[11. Autonomiczne Systemy R+D](PROJEKTY/11_autonomiczne_systemy_rd.md)** – Omijanie paradygmatu "czystych" technologii na rzecz brudnej, śmiałej automatyzacji.
-*   **[12. Autonomiczne PCB ze śmieci](PROJEKTY/12_autonomiczne_pcb_ze_smieci.md)** – Połączenie Ai i recyklingu e-odpadów w celu budowy suwerennej elektroniki bez kapitału.
-*   **[13. GitHub-first baza części z recyklingu](PROJEKTY/13_baza_czesci_recykling/README.md)** – Kanoniczny katalog urządzeń-dawców i części (JSONL). Projekt wykorzystuje autonomicznego "Łowcę Części" AI (**[Notatnik Kaggle](PROJEKTY/13_baza_czesci_recykling/youtube-databaseparts.ipynb)**), który codziennie analizuje filmy z napraw elektroniki, budując testową baza komponentów w pliku **[test_db.jsonl](PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/test_db.jsonl)**. Docelowo system będzie tworzył otwarty zasób wiedzy dostępny dla każdego. Funkcja budowania i przeszukiwania bazy jest już zintegrowana z naszym botem na Telegramie.
-*   **[14. Autonomiczne Projektowanie 3D i CAD (MCP)](PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md)** – Kolejny łańcuch automatyzacji R+D: wykorzystanie AI oraz protokołu MCP do iteracyjnego projektowania brył 3D we FreeCAD i docelowej generacji G-code.
-*   **[15. Analiza Social Media dla Recyklingu](PROJEKTY/15_analiza_social_media_recykling.md)** – AI skanujące polskie grupy i portale aukcyjne w celu łączenia darmowych ofert z zapotrzebowaniem użytkowników.
-*   **[16. Geoportal i Potencjał Rozwoju](PROJEKTY/16_geoportal_potencjal_rozwoju.md)** – Analiza danych geoprzestrzennych dla nowoczesnego planowania automatyzacji AI.
-*   **[18. Automatyzacja Transportu i Logistyki](PROJEKTY/18_automatyzacja_transportu_i_logistyki.md)** – Inteligentna nawigacja sugerująca odbiór przedmiotów na trasie oraz system łączenia kierowców z zapotrzebowaniem społeczności (BlablaCar dla rzeczy).
-
-
-**Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**
 
 ## Zapotrzebowanie marketingowe i promocyjne
 

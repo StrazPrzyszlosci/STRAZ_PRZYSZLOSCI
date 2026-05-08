@@ -1,0 +1,57 @@
+{
+  "schema_version": "v1",
+  "receipt_id": "export-release-2026-05-07-z66",
+  "export_type": "catalog_export_revalidation",
+  "generated_at": "2026-05-07T11:41:05Z",
+  "operator": {
+    "operator_kind": "agent_z66",
+    "operator_id": "kilo-agent",
+    "branch_name": "main"
+  },
+  "export_gate_snapshot": {
+    "gate_result": "OPEN",
+    "gate_checked_at": "2026-05-07T11:25:24Z",
+    "gate_packet_path": "autonomous_test/reports/export_gate_packet.json"
+  },
+  "review_queue_snapshot": {
+    "total_candidates": 82,
+    "auto_approved": 12,
+    "approved_after_human_review": 5,
+    "auto_rejected": 65,
+    "pending_human_approval": 0,
+    "review_queue_path": "autonomous_test/reports/curation_review_queue.jsonl",
+    "human_review_ledger_path": "autonomous_test/reports/human_review_ledger.jsonl"
+  },
+  "export_artifacts": {
+    "inventory_csv": {
+      "path": "data/inventory.csv",
+      "row_count": 30,
+      "sha256": "321f74f881fb2acc82059fd2593996528cc21f85b648e826dd29d4586a3ea0c8"
+    },
+    "seed_sql": {
+      "path": "data/recycled_parts_seed.sql",
+      "row_count": 214,
+      "sha256": "e0de0c1904eb26de470b35eb0eeb6ead5377e0f79d41df4af8f8bd841eed6d44"
+    },
+    "mcp_catalog": {
+      "path": "data/mcp_reuse_catalog.json",
+      "entry_count": 8,
+      "sha256": "ccd0d14550531cea78abd29d628f4ac9b011de96e81c50c252b5f1985190c438"
+    },
+    "inventree_import": {
+      "path": "data/inventree_import.jsonl",
+      "entry_count": 29,
+      "sha256": "dda4db2ef76745d768b5846724bda7260d35462bfe412a427c2e64b031c72b69"
+    }
+  },
+  "validation_results": {
+    "catalog_validate_passed": true,
+    "export_validate_passed": true,
+    "validate_run_at": "2026-05-07T11:41:05Z"
+  },
+  "integrity_notes": {
+    "sha256_matches_previous_export": true,
+    "no_pending_approvals": true,
+    "export_gate_open": true
+  }
+}
