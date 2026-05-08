@@ -1,6 +1,7 @@
 import { generateRecommendation } from "./recommendation.js";
 import { fetchWithTimeout } from "./base_utils.js";
 import { getCorsAllowOrigin, jsonResponse } from "./security_headers.js";
+import { checkGlobalRateLimit } from "./global_rate_limiter.js";
 import {
   handleWhatsAppVerification,
   handleWhatsAppWebhook,
@@ -382,6 +383,12 @@ export default {
     }
 
     const url = new URL(request.url);
+
+    // Global API rate limit check (Z85)
+    const globalRateLimit = await checkGlobalRateLimit(request, env);
+    if (!globalRateLimit.allowed) {
+      return jsonResponse({ error: "Too Many Requests", reason: globalRateLimit.reason }, 429);
+    }
 
     try {
       if (request.method === "POST" && isTelegramWebhookRequest(url, env)) {
