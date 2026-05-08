@@ -1960,6 +1960,91 @@ test("handleFinalDatasheetRagFinal uses short callback data for long PDF part na
   });
 });
 
+test("handleFinalDatasheetRagFinal timeout closes active PDF question session", async () => {
+  const db = createScanFlowDbMock();
+  const sentMessages = [];
+  const waitUntilTasks = [];
+  const sessionPayload = {
+    version: 2,
+    part_number: "LM3886",
+    master_part_id: null,
+    donor_device_model: "Nieznany model",
+    donor_device_id: null,
+    pdf_url: "",
+    pdf_file_id: "telegram-pdf-timeout",
+    db_hit: true,
+    source: "uploaded_pdf",
+    file_name: "lm3886.pdf",
+    scan_summary: "",
+  };
+  db.state.sessions.set("4:3:datasheet_wait_question", {
+    chat_id: "4",
+    user_id: "3",
+    session_type: "datasheet_wait_question",
+    active_device_id: null,
+    active_device_name: JSON.stringify(sessionPayload),
+    status: "active",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  const env = {
+    DB: db,
+    TELEGRAM_BOT_TOKEN: "telegram-token",
+    TELEGRAM_AI_PRIMARY_PROVIDER: "google",
+    TELEGRAM_AI_FALLBACK_PROVIDER: "google",
+    TELEGRAM_AI_GOOGLE_MODEL: "gemini-3.1-flash-lite-preview",
+    TELEGRAM_AI_TIMEOUT_MS: "20000",
+    TELEGRAM_DATASHEET_BACKGROUND_TIMEOUT_MS: "1",
+    TELEGRAM_DATASHEET_PDF_TIMEOUT_MS: "5",
+    TELEGRAM_DATASHEET_TEXT_TIMEOUT_MS: "5",
+    GEMINI_API_KEY: "google-key",
+  };
+
+  await withMockedFetch(async (url, init = {}) => {
+    const urlString = String(url);
+    if (urlString.includes("api.telegram.org/bottelegram-token/sendMessage")) {
+      sentMessages.push(JSON.parse(init.body));
+      return jsonResponse({ ok: true });
+    }
+    if (urlString.includes("api.telegram.org/bottelegram-token/getFile")) {
+      return jsonResponse({ ok: true, result: { file_path: "timeout-datasheet.pdf" } });
+    }
+    if (urlString.includes("api.telegram.org/file/bottelegram-token/timeout-datasheet.pdf")) {
+      return new Response(Uint8Array.from([37, 80, 68, 70, 45, 49, 46, 55]), { status: 200 });
+    }
+    if (urlString.includes("generativelanguage.googleapis.com")) {
+      return new Promise((resolve, reject) => {
+        init.signal?.addEventListener("abort", () => {
+          const error = new Error("Aborted");
+          error.name = "AbortError";
+          reject(error);
+        });
+      });
+    }
+    throw new Error(`Unexpected URL: ${urlString}`);
+  }, async () => {
+    const ctx = {
+      waitUntil(promise) {
+        waitUntilTasks.push(Promise.resolve(promise));
+      },
+    };
+    const reply = await handleFinalDatasheetRagFinal(
+      env,
+      { chat_id: "4", user_id: "3", message_id: "99" },
+      db.state.sessions.get("4:3:datasheet_wait_question"),
+      "Jaki jest pinout?",
+      ctx
+    );
+
+    assert.equal(reply.skip_reply, true);
+    await Promise.all(waitUntilTasks);
+
+    assert.equal(db.state.sessions.get("4:3:datasheet_wait_question")?.status, "closed");
+    assert.match(sentMessages.at(-1).text, /trybem awaryjnym/);
+  });
+});
+
 test("sendTelegramReply falls back to text without keyboard when Telegram rejects buttons", async () => {
   const attempts = [];
   await withMockedFetch(async (url, init = {}) => {
@@ -2022,6 +2107,43 @@ test("datasheet model step keeps no-model button when another PDF is sent", asyn
     const lastMessage = harness.sentMessages.at(-1);
     assert.match(lastMessage.text, /Na tym etapie potrzebuję jeszcze/);
     assert.match(JSON.stringify(lastMessage.reply_markup), /datasheet_no_model/);
+  });
+});
+
+test("plain reset closes stuck datasheet session", async () => {
+  const harness = createTelegramFlowHarness();
+
+  await withMockedFetch(harness.fetchImpl, async () => {
+    await harness.sendWebhook({
+      update_id: 201,
+      message: {
+        message_id: 20,
+        date: 1,
+        chat: { id: 4, type: "private" },
+        from: { id: 3, first_name: "Tester" },
+        document: {
+          file_id: "pdf-stuck",
+          file_name: "lm3886.pdf",
+          mime_type: "application/pdf",
+        },
+      },
+    });
+
+    assert.equal(harness.db.state.sessions.get("4:3:datasheet_wait_model")?.status, "active");
+
+    await harness.sendWebhook({
+      update_id: 202,
+      message: {
+        message_id: 21,
+        date: 2,
+        chat: { id: 4, type: "private" },
+        from: { id: 3, first_name: "Tester" },
+        text: "reset",
+      },
+    });
+
+    assert.equal(harness.db.state.sessions.get("4:3:datasheet_wait_model")?.status, "closed");
+    assert.match(harness.sentMessages.at(-1).text, /Zresetowałem całą historię i aktywne sesje/);
   });
 });
 

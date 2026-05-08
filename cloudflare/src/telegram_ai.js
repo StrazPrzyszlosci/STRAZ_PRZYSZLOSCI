@@ -4996,6 +4996,7 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
     });
   } catch (error) {
     console.error("[handleFinalDatasheetRagFinal]", error instanceof Error ? error.message : String(error));
+    await closeUserSession(env, message?.chat_id, message?.user_id, "datasheet_wait_question");
     return buildAiChainErrorReply(
       "DS-AI-CHAIN-UNAVAILABLE",
       `Nie udało się przeanalizować datasheetu dla części ${partQuery}.`,
@@ -5023,6 +5024,7 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
     };
     const timeoutTask = new Promise((resolve) => {
       timeoutId = setTimeout(async () => {
+        await closeUserSession(env, message?.chat_id, message?.user_id, "datasheet_wait_question");
         const timeoutReply = withMainMenuReply({
           reply_text: `✅ *Analiza zakończona trybem awaryjnym.*\n\n${buildDatasheetBackgroundTimeoutAnswer({
             partRecord,

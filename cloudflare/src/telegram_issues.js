@@ -169,6 +169,21 @@ function getDatasheetModelKeyboard() {
   ]);
 }
 
+function getPlainCommandAlias(text) {
+  const normalized = String(text || "").trim().toLowerCase();
+  const aliases = {
+    reset: "reset",
+    restart: "reset",
+    wyczysc: "reset",
+    "wyczyść": "reset",
+    stop: "stop",
+    anuluj: "stop",
+    przerwij: "stop",
+    koniec: "stop",
+  };
+  return aliases[normalized] || null;
+}
+
 function getPartQuestionKeyboard(partId) {
   return withMenuRow([
     [{ text: "💬 Zapytaj o tę część", callback_data: `part_question_start:${partId}` }],
@@ -1406,6 +1421,11 @@ async function handleActiveSessions(env, message, ctx) {
 }
 
 async function processConversationMessage(env, message, intent, ctx = null) {
+  const plainCommand = getPlainCommandAlias(message.text);
+  if (plainCommand) {
+    return await processCommandMessage(env, message, plainCommand);
+  }
+
   if (message.text && (message.text.toLowerCase().trim() === "menu" || message.text.toLowerCase().trim() === "pomoc" || message.text.toLowerCase().trim() === "start")) {
     return await processCommandMessage(env, message, "help");
   }
