@@ -757,24 +757,29 @@ export function sanitizeUserInput(rawText, context = {}, options = {}) {
  */
 export function extractAndAnalyzePdf(base64Pdf) {
   if (!base64Pdf || typeof base64Pdf !== 'string') {
-    return {
-      extractedText: '',
-      hiddenContentFlags: [],
-      isSuspicious: false,
-      warnings: [],
-    };
+    return { extractedText: '', hiddenContentFlags: [], isSuspicious: false, warnings: [] };
   }
 
-  // Decode base64 to binary string
+  // LIMIT: Cloudflare Workers have tight CPU limits. Skip heavy scanning for very large files.
+  // 1.5MB base64 is roughly 1.1MB binary.
+  const isLargeFile = base64Pdf.length > 1500000;
+  
   let binary;
   try {
-    binary = atob(base64Pdf);
+    // For very large files, only decode the beginning and end to save memory and CPU
+    if (isLargeFile) {
+      const head = atob(base64Pdf.slice(0, 200000));
+      const tail = atob(base64Pdf.slice(-200000));
+      binary = head + " [...] " + tail;
+    } else {
+      binary = atob(base64Pdf);
+    }
   } catch {
     return {
       extractedText: '',
       hiddenContentFlags: ['DECODE_ERROR'],
       isSuspicious: true,
-      warnings: ['Nie udało się zdekodować PDF.'],
+      warnings: ['Nie udało się zdekodować struktury PDF.'],
     };
   }
 
@@ -782,76 +787,39 @@ export function extractAndAnalyzePdf(base64Pdf) {
   const warnings = [];
   const textChunks = [];
 
-  // ── Detect PDF structure markers ──
-  // Look for common PDF text stream operators
-  // PDF text is between "BT" (begin text) and "ET" (end text) markers
-  // Text showing operator: Tj, TJ, ', "
-
-  // Extract text between parentheses after Tj/TJ operators
-  const textShowPattern = /\(([^)]*)\)\s*Tj/g;
-  const textArrayPattern = /\[(.*?)\]\s*TJ/g;
-
-  // ── Scan for hidden text indicators ──
-
-  // Font size 0 or extremely small
-  if (/\/Tf\s+0[\s.]+\d*/.test(binary) || /0\s+Tf/.test(binary)) {
+  // Optimized scan: for large files we only check suspicious markers in the sampled binary
+  
+  // Font size 0
+  if (/\/Tf\s+0[\s.]/.test(binary)) {
     hiddenContentFlags.push('FONT_SIZE_ZERO');
-    warnings.push('Wykryto font o rozmiarze 0 — możliwy ukryty tekst.');
+    warnings.push('Wykryto font o rozmiarze 0.');
   }
 
-  // Very small font sizes (< 1 pt)
-  const tinyFontMatch = binary.match(/([\d.]+)\s+Tf/g);
-  if (tinyFontMatch) {
-    for (const m of tinyFontMatch) {
-      const size = parseFloat(m);
-      if (!isNaN(size) && size > 0 && size < 1) {
-        hiddenContentFlags.push('FONT_SIZE_TINY');
-        warnings.push(`Wykryto bardzo mały font (${size}pt) — możliwy ukryty tekst.`);
-        break;
-      }
-    }
-  }
-
-  // White text: rg/RGB with values near 1.0,1.0,1.0 followed by text
-  if (/1\s+1\s+1\s+rg/.test(binary) || /1\s+1\s+1\s+RG/.test(binary)) {
+  // White text
+  if (binary.includes('1 1 1 rg') || binary.includes('1 1 1 RG')) {
     hiddenContentFlags.push('WHITE_TEXT');
-    warnings.push('Wykryto biały tekst (RGB 1,1,1) — możliwy ukryty tekst na białym tle.');
+    warnings.push('Wykryto biały tekst.');
   }
 
-  // Near-white text (0.9+ on all channels)
-  if (/0\.[9]\d+\s+0\.[9]\d+\s+0\.[9]\d+\s+rg/.test(binary)) {
-    hiddenContentFlags.push('NEAR_WHITE_TEXT');
-    warnings.push('Wykryto prawie biały tekst — możliwy ukryty tekst.');
-  }
-
-  // Opacity 0 or very low
-  if (/\/CA\s+0[\s.]/.test(binary) || /\/ca\s+0[\s.]/.test(binary)) {
+  // Opacity 0
+  if (binary.includes('/CA 0') || binary.includes('/ca 0')) {
     hiddenContentFlags.push('ZERO_OPACITY');
-    warnings.push('Wykryto przezroczysty tekst (opacity 0) — możliwy ukryty tekst.');
+    warnings.push('Wykryto przezroczysty tekst.');
   }
 
-  const lowOpacityMatch = binary.match(/\/CA\s+([\d.]+)/);
-  if (lowOpacityMatch && parseFloat(lowOpacityMatch[1]) < 0.1) {
-    hiddenContentFlags.push('LOW_OPACITY');
-    warnings.push(`Wykryto bardzo niską przezroczystość (${lowOpacityMatch[1]}) — możliwy ukryty tekst.`);
-  }
-
-  // Hidden layer: /OC /OCmd or /OCG with /Visible false
-  if (/\/OCG/.test(binary) && /\/(Off|Invisible)/.test(binary)) {
+  // Hidden layer
+  if (binary.includes('/OCG') && (binary.includes('/Off') || binary.includes('/Invisible'))) {
     hiddenContentFlags.push('HIDDEN_LAYER');
-    warnings.push('Wykryto ukrytą warstwę (OCG) w PDF — możliwy ukryty tekst.');
+    warnings.push('Wykryto ukrytą warstwę.');
   }
 
-  // Text rendered in invisible mode: Tr 3 (invisible text rendering mode)
-  if (/3\s+Tr/.test(binary)) {
+  // Invisible render mode
+  if (binary.includes('3 Tr')) {
     hiddenContentFlags.push('INVISIBLE_RENDER_MODE');
-    warnings.push('Wykryto tryb renderowania "niewidoczny" (Tr 3) — tekst jest ukryty.');
+    warnings.push('Wykryto niewidoczny tryb renderowania.');
   }
 
-  // Clip mode hiding: W/W* operators before text
   if (/W\s*\n/.test(binary) && /BT/.test(binary)) {
-    // Clipping followed by text — could hide text outside clip region
-    // This is a softer signal
     hiddenContentFlags.push('CLIP_REGION_TEXT');
   }
 

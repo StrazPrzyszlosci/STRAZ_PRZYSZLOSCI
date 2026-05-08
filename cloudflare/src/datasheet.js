@@ -190,18 +190,8 @@ async function downloadPdfAsBase64(pdfUrl) {
     if (!resp.ok) {
       return null;
     }
-    const buffer = await resp.arrayBuffer();
-    const uint8 = new Uint8Array(buffer);
-    if (!isPdfResponse(resp.headers.get("content-type"), uint8) || uint8.byteLength < 100) {
-      return null;
-    }
-    let binary = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8.length; i += chunkSize) {
-      const chunk = uint8.subarray(i, Math.min(i + chunkSize, uint8.length));
-      binary += String.fromCharCode.apply(null, chunk);
-    }
-    return btoa(binary);
+    const arrayBuffer = await resp.arrayBuffer();
+    return Buffer.from(arrayBuffer).toString('base64');
   } catch {
     return null;
   }

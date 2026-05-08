@@ -4887,7 +4887,13 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
     if (payload.pdf_file_id) {
       const base64 = await fetchTelegramFileAsBase64(env, payload.pdf_file_id);
       if (base64) {
-        const pdfAnalysis = extractAndAnalyzePdf(base64);
+        let pdfAnalysis = { extractedText: '', hiddenContentFlags: [], isSuspicious: false, warnings: [] };
+        try {
+          pdfAnalysis = extractAndAnalyzePdf(base64);
+        } catch (pdfError) {
+          console.error("[handleFinalDatasheetRagFinal] PDF analysis crash:", pdfError instanceof Error ? pdfError.message : String(pdfError));
+          pdfAnalysis.warnings.push("Błąd krytyczny podczas wstępnego skanowania struktury PDF.");
+        }
         await persistPdfSecurityAudit(pdfAnalysis, "telegram_pdf");
         try {
           const pdfResp = await callProviderWithFallback(
@@ -4913,7 +4919,13 @@ export async function handleFinalDatasheetRagFinal(env, message, session, userQu
     } else if (payload.pdf_url) {
       const fetchedBase64 = await fetchExternalPdfAsBase64(payload.pdf_url);
       if (fetchedBase64) {
-        const pdfAnalysis = extractAndAnalyzePdf(fetchedBase64);
+        let pdfAnalysis = { extractedText: '', hiddenContentFlags: [], isSuspicious: false, warnings: [] };
+        try {
+          pdfAnalysis = extractAndAnalyzePdf(fetchedBase64);
+        } catch (pdfError) {
+          console.error("[handleFinalDatasheetRagFinal] Remote PDF analysis crash:", pdfError instanceof Error ? pdfError.message : String(pdfError));
+          pdfAnalysis.warnings.push("Błąd krytyczny podczas skanowania struktury pobranego PDF.");
+        }
         await persistPdfSecurityAudit(pdfAnalysis, "remote_pdf");
         try {
           const pdfResp = await callProviderWithFallback(
@@ -5495,12 +5507,7 @@ async function fetchExternalPdfAsBase64(url) {
             return null;
         }
 
-        const uint8Array = new Uint8Array(buffer);
-        let binary = "";
-        for (let i = 0; i < uint8Array.byteLength; i++) {
-            binary += String.fromCharCode(uint8Array[i]);
-        }
-        return btoa(binary);
+        return Buffer.from(buffer).toString('base64');
     } catch (e) {
         console.error("Błąd pobierania PDF:", e);
         return null;

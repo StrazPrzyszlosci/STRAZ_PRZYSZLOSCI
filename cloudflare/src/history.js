@@ -92,14 +92,7 @@ export async function fetchDiscordAttachmentAsBase64(attachmentUrl) {
       return null;
     }
     const arrayBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    let binary = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-      binary += String.fromCharCode.apply(null, chunk);
-    }
-    return btoa(binary);
+    return Buffer.from(arrayBuffer).toString('base64');
   } catch (error) {
     console.error("[fetchDiscordAttachmentAsBase64] error:", error instanceof Error ? error.message : String(error));
     return null;
