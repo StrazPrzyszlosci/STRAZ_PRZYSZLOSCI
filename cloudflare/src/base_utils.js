@@ -164,3 +164,17 @@ export function timingSafeEqualString(a, b) {
   }
   return result === 0;
 }
+export async function fetchUrlAsBase64(url) {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.error(`[fetchUrlAsBase64] fetch failed for ${url}, status: ${resp.status}`);
+      return null;
+    }
+    const buffer = await resp.arrayBuffer();
+    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  } catch (error) {
+    console.error(`[fetchUrlAsBase64] error for ${url}:`, error);
+    return null;
+  }
+}

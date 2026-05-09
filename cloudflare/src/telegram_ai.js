@@ -1,6 +1,6 @@
 import { knowledgeBundle } from "./generated_knowledge_bundle.js";
 import { sendTelegramReply, getMainMenuKeyboard } from "./telegram_utils.js";
-import { fetchWithTimeout, fetchTelegramFileAsBase64 } from "./base_utils.js";
+import { fetchWithTimeout, fetchTelegramFileAsBase64, fetchUrlAsBase64 } from "./base_utils.js";
 import {
   buildAntiInjectionSystemPrefix,
   buildPdfHiddenContentWarning,
@@ -4231,14 +4231,25 @@ export async function answerPartLookupQuestion(env, session, userQuestion) {
     .map((item) => `- ${formatDeviceName(item.device)}${item.designator ? ` | ${item.designator}` : ""}`)
     .join("\n");
 
+  let pdfContext = "";
+  if (partRecord.datasheet_url && isValidPdfUrl(partRecord.datasheet_url)) {
+    const base64Pdf = await fetchUrlAsBase64(partRecord.datasheet_url);
+    if (base64Pdf) {
+      const pdfAnalysis = extractAndAnalyzePdf(base64Pdf);
+      if (pdfAnalysis && pdfAnalysis.text) {
+        pdfContext = `\n\nTREŚĆ DOKUMENTACJI PDF:\n${pdfAnalysis.text.substring(0, 8000)}`;
+      }
+    }
+  }
+
   try {
     const response = await callProviderWithFallback(
       env,
       buildPromptPayload(
         [
-          "Jesteś asystentem elektronika i odpowiadasz wyłącznie na podstawie lokalnej bazy części reuse.",
+          "Jesteś asystentem elektronika i odpowiadasz na podstawie lokalnej bazy części oraz dołączonej dokumentacji PDF.",
+          "Jeśli masz dostęp do treści PDF, traktuj ją jako główne źródło prawdy o parametrach części.",
           "Jeśli danych brakuje, powiedz to wprost zamiast zgadywać.",
-          "Oddziel informacje o części od listy urządzeń-dawców.",
         ].join(" "),
         [
           `Część: ${partRecord.part_name}`,
@@ -4247,6 +4258,7 @@ export async function answerPartLookupQuestion(env, session, userQuestion) {
           partRecord.description ? `Opis: ${partRecord.description}` : "",
           parameterPairs ? `Parametry: ${parameterPairs}` : "",
           partRecord.datasheet_url ? `Datasheet URL: ${partRecord.datasheet_url}` : "",
+          pdfContext,
           "",
           donorLines ? `Znani dawcy:\n${donorLines}` : "Znani dawcy: brak danych",
           "",
