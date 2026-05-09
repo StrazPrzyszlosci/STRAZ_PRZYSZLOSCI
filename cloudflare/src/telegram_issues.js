@@ -1576,9 +1576,9 @@ async function processCommandMessage(env, message, command) {
   // Każda komenda przerywa aktywne sesje
   await closeAllUserSessions(env, message.chat_id, message.user_id);
 
-  if (command === "reset") {
+  if (command === "reset" || command === "restart") {
     await clearTelegramChatHistory(env, message);
-    await sendTelegramReply(env, message, "Zresetowałem całą historię i aktywne sesje.", getMainMenuKeyboard());
+    await sendTelegramReply(env, message, "Zresetowałem całą historię i aktywne sesje. Możesz zacząć od nowa.", getMainMenuKeyboard());
     return { status: "reset_complete" };
   } else if (command === "start" || command === "help" || command === "menu") {
     // Sesje zamknięte wyżej
