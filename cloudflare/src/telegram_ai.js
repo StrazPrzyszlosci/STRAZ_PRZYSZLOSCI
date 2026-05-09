@@ -4021,13 +4021,20 @@ export async function handleRecycledKnowledgeLookup(env, message) {
     }));
 
     const inline_keyboard = [];
+    let pdfStatusText = "";
+
     if (bestPart.datasheet_url) {
+      pdfStatusText = "\n\n📄 **Dokumentacja PDF jest dostępna w bazie.** Możesz teraz zadać pytanie o szczegóły techniczne zawarte w tym dokumencie.";
       inline_keyboard.push([{ text: "📄 Pobierz Datasheet", url: bestPart.datasheet_url }]);
+    } else {
+      pdfStatusText = "\n\n⚠️ **Brak dokumentacji PDF w bazie.** Aby ją dodać, pobierz plik od producenta i prześlij go do mnie, korzystając z przycisku 'Analiza Datasheet' w menu głównym.";
+      // Przycisk kierujący do analizy datasheet (możemy zasymulować kliknięcie lub po prostu dać info)
+      inline_keyboard.push([{ text: "📂 Prześlij PDF do analizy", callback_data: "menu_datasheet" }]);
     }
     
     return withMainMenuReply({
-      reply_text: `${replyText}\n\n💬 Co chcesz wiedzieć o tej części?`,
-      reply_markup: inline_keyboard.length ? { inline_keyboard: [...inline_keyboard, [{ text: "🏠 Menu główne", callback_data: "command_start" }]] } : null,
+      reply_text: `${replyText}${pdfStatusText}\n\n💬 Co chcesz wiedzieć o tej części?`,
+      reply_markup: { inline_keyboard: [...inline_keyboard, [{ text: "🏠 Menu główne", callback_data: "command_start" }]] },
       provider_name: "local",
       model_name: "d1",
     });
