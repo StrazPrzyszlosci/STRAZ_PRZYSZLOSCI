@@ -4027,9 +4027,11 @@ export async function handleRecycledKnowledgeLookup(env, message) {
       pdfStatusText = "\n\n📄 **Dokumentacja PDF jest dostępna w bazie.** Możesz teraz zadać pytanie o szczegóły techniczne zawarte w tym dokumencie.";
       inline_keyboard.push([{ text: "📄 Pobierz Datasheet", url: bestPart.datasheet_url }]);
     } else {
-      pdfStatusText = "\n\n⚠️ **Brak dokumentacji PDF w bazie.** Aby ją dodać, pobierz plik od producenta i prześlij go do mnie, korzystając z przycisku 'Analiza Datasheet' w menu głównym.";
-      // Przycisk kierujący do analizy datasheet (możemy zasymulować kliknięcie lub po prostu dać info)
-      inline_keyboard.push([{ text: "📂 Prześlij PDF do analizy", callback_data: "menu_datasheet" }]);
+      pdfStatusText = "\n\n⚠️ **Brak dokumentacji PDF w bazie.** Kliknij przycisk poniżej, aby uruchomić aktywne poszukiwanie i analizę dokumentacji.";
+      inline_keyboard.push([{ 
+        text: "🔍 Znajdź i Analizuj Datasheet", 
+        callback_data: `datasheet_start_search:${bestPart.part_number || queryText}` 
+      }]);
     }
     
     return withMainMenuReply({
