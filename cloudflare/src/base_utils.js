@@ -172,7 +172,7 @@ export async function fetchUrlAsBase64(url) {
       return null;
     }
     const buffer = await resp.arrayBuffer();
-    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    return Buffer.from(buffer).toString('base64');
   } catch (error) {
     console.error(`[fetchUrlAsBase64] error for ${url}:`, error);
     return null;
