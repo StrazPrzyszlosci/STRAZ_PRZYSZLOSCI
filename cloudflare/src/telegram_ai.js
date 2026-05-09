@@ -683,12 +683,6 @@ export function routeTelegramIntent(message) {
   }
 
   if (isDeviceLookupQuery(messageText)) {
-    const tokens = messageText.split(/\s+/).filter(Boolean);
-    // Jeśli to pojedyncze oznaczenie (np. LM3886), wolimy wzbogacony czat AI (który ma teraz dostęp do D1), 
-    // bo daje on pełniejszą odpowiedź niż sztywny lookup urządzeń.
-    if (tokens.length === 1 && looksLikeStructuredCatalogToken(tokens[0])) {
-      return { intent: "chat" };
-    }
     return { intent: "device_lookup" };
   }
 
@@ -3206,6 +3200,39 @@ function buildPartLookupReply(queryText, matches) {
   return { text: lines.join("\n"), reply_markup: replyMarkup };
 }
 
+function buildPartMasterDetailReply(part) {
+  let params = {};
+  try {
+    params = typeof part.parameters === 'string' ? JSON.parse(part.parameters || '{}') : (part.parameters || {});
+  } catch (e) {
+    console.error("Error parsing part parameters:", e);
+  }
+  
+  const paramLines = Object.entries(params).map(([k, v]) => `- ${k}: ${v}`).join("\n");
+  
+  const lines = [
+    `📦 Komponent: ${part.part_number}`,
+    `Nazwa: ${part.part_name || 'Brak'}`,
+    `Kategoria: ${part.category || 'Nieokreślona'}`,
+    `Gatunek: ${part.species || 'Brak'}`,
+    `Montaż: ${part.mounting || 'Brak'}`,
+    `Obudowa: ${part.package || 'Brak'}`,
+    "",
+    `📝 Opis: ${part.description || 'Brak opisu w bazie.'}`,
+  ];
+
+  if (paramLines) {
+    lines.push("\n⚙️ Parametry:");
+    lines.push(paramLines);
+  }
+
+  if (part.donor_count > 0) {
+    lines.push(`\n♻️ Znaleziono w ${part.donor_count} zrecyklingowanych urządzeniach.`);
+  }
+
+  return lines.join("\n");
+}
+
 function buildDeterministicDatasheetFallbackAnswer(options = {}) {
   const partRecord = options.partRecord || null;
   const partQuery = options.partQuery || "Nieznana część";
@@ -3980,6 +4007,33 @@ export async function handleRecycledKnowledgeLookup(env, message) {
     });
   }
 
+  // 1. Najpierw szukamy w Master Part (najdokładniejsze dane)
+  const masterMatches = await findPartMasterMatches(env, queryText);
+  if (masterMatches && masterMatches.length > 0) {
+    const bestPart = masterMatches[0];
+    const replyText = buildPartMasterDetailReply(bestPart);
+    
+    // Sesja AI do pytań o tę część
+    await upsertUserSession(env, message.chat_id, message.user_id, "part_lookup_question", bestPart.id, JSON.stringify({
+      version: 1,
+      part_id: bestPart.id,
+      part_number: bestPart.part_number
+    }));
+
+    const inline_keyboard = [];
+    if (bestPart.datasheet_url) {
+      inline_keyboard.push([{ text: "📄 Pobierz Datasheet", url: bestPart.datasheet_url }]);
+    }
+    
+    return withMainMenuReply({
+      reply_text: `${replyText}\n\n💬 Co chcesz wiedzieć o tej części?`,
+      reply_markup: inline_keyboard.length ? { inline_keyboard: [...inline_keyboard, [{ text: "🏠 Menu główne", callback_data: "command_start" }]] } : null,
+      provider_name: "local",
+      model_name: "d1",
+    });
+  }
+
+  // 2. Potem szukamy urządzeń
   const deviceResult = await getPartsForModel(env, queryText);
   if (deviceResult) {
     await recordRecycledSubmission(env, {
