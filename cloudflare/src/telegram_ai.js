@@ -1,6 +1,7 @@
 import { knowledgeBundle } from "./generated_knowledge_bundle.js";
 import { sendTelegramReply, getMainMenuKeyboard } from "./telegram_utils.js";
 import { fetchWithTimeout, fetchTelegramFileAsBase64, fetchUrlAsBase64 } from "./base_utils.js";
+import { findKicadLookupMatches, buildKicadLookupReply } from "./kicad_lookup.js";
 import {
   buildAntiInjectionSystemPrefix,
   buildPdfHiddenContentWarning,
@@ -4025,7 +4026,15 @@ export async function handleRecycledKnowledgeLookup(env, message) {
   const masterMatches = await findPartMasterMatches(env, queryText);
   if (masterMatches && masterMatches.length > 0) {
     const bestPart = masterMatches[0];
-    const replyText = buildPartMasterDetailReply(bestPart);
+    let replyText = buildPartMasterDetailReply(bestPart);
+    if (!bestPart.kicad_symbol || !bestPart.kicad_footprint) {
+      const kicadLookup = await findKicadLookupMatches(env, bestPart.part_number || queryText, { limit: 3 });
+      if (kicadLookup.matches.length) {
+        replyText = `${replyText}
+
+${buildKicadLookupReply(kicadLookup)}`;
+      }
+    }
     
     // Sesja AI do pytań o tę część
     await upsertUserSession(env, message.chat_id, message.user_id, "part_lookup_question", null, JSON.stringify({
@@ -4056,7 +4065,26 @@ export async function handleRecycledKnowledgeLookup(env, message) {
     });
   }
 
-  // 2. Potem szukamy urządzeń
+  // 2. Jeśli nie ma master record, sprawdzamy staging KiCad/CERN
+  const kicadLookup = await findKicadLookupMatches(env, queryText, { limit: 5 });
+  if (kicadLookup.matches.length) {
+    await recordRecycledSubmission(env, {
+      chat_id: message?.chat_id,
+      user_id: message?.user_id,
+      message_id: message?.message_id,
+      lookup_kind: "kicad_lookup",
+      query_text: queryText,
+      status: "matched_kicad_staging",
+      raw_payload_json: { query_text: queryText, matches: kicadLookup.matches.slice(0, 3) },
+    });
+    return withMainMenuReply({
+      reply_text: buildKicadLookupReply(kicadLookup),
+      provider_name: "local",
+      model_name: "d1+kicad",
+    });
+  }
+
+  // 3. Potem szukamy urządzeń
   const deviceResult = await getPartsForModel(env, queryText);
   if (deviceResult) {
     await recordRecycledSubmission(env, {

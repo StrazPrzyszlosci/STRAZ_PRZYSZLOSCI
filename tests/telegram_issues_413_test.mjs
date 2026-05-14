@@ -1,21 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-function jsonResponse(payload, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  });
-}
-
-function checkTelegramPayloadSize(request, env) {
-  const maxBodyBytes = parseInt(env.TELEGRAM_MAX_WEBHOOK_BODY_BYTES || env.MAX_WEBHOOK_BODY_BYTES || "5242880", 10);
-  const contentLength = request.headers.get("Content-Length");
-  if (contentLength && parseInt(contentLength, 10) > maxBodyBytes) {
-    return jsonResponse({ error: `Request body too large. Max: ${maxBodyBytes} bytes.` }, 413);
-  }
-  return null;
-}
+import { checkTelegramPayloadSize } from "../cloudflare/src/telegram_issues.js";
 
 function createMockRequest(contentLength) {
   return {

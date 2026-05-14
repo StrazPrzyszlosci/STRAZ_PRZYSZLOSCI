@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { jsonResponse, getCorsAllowOrigin } from "../cloudflare/src/security_headers.js";
 
-describe("Security Headers Regression Tests (Z84)", () => {
+describe("Security Headers Regression Tests (Z84/Z81/Z82)", () => {
   // Helper
   async function assertSecurityHeaders(response, expectedCors) {
     const headers = response.headers;
@@ -11,6 +11,8 @@ describe("Security Headers Regression Tests (Z84)", () => {
     assert.equal(headers.get("x-content-type-options"), "nosniff");
     assert.equal(headers.get("x-frame-options"), "DENY");
     assert.equal(headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+    assert.equal(headers.get("content-security-policy"), "default-src 'none'; frame-ancestors 'none'");
+    assert.equal(headers.get("permissions-policy"), "geolocation=(), camera=(), microphone=(), accelerometer=(), magnetometer=(), gyroscope=(), payment=(), usb=()");
     assert.equal(headers.get("access-control-allow-origin"), expectedCors || "*");
     assert.equal(headers.get("access-control-allow-methods"), "GET,POST,OPTIONS");
     assert.ok(headers.get("access-control-allow-headers"));

@@ -103,6 +103,107 @@ export const MIGRATIONS = [
       UNIQUE(chat_id, user_id, session_type)
     );`,
   },
+
+  {
+    version: "20240514120000-kicad-library-sources",
+    name: "Ensure kicad_library_sources table exists",
+    sql: `CREATE TABLE IF NOT EXISTS kicad_library_sources (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_slug TEXT NOT NULL UNIQUE,
+      source_url TEXT NOT NULL,
+      license_spdx TEXT NOT NULL,
+      upstream_commit TEXT,
+      kicad_version_family TEXT,
+      ingested_at TEXT NOT NULL,
+      raw_manifest_json TEXT
+    );`,
+  },
+  {
+    version: "20240514120001-kicad-library-components",
+    name: "Ensure kicad_library_components table exists",
+    sql: `CREATE TABLE IF NOT EXISTS kicad_library_components (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id INTEGER,
+      library_name TEXT,
+      symbol_name TEXT,
+      footprint_name TEXT,
+      reference_prefix TEXT,
+      description TEXT,
+      keywords TEXT,
+      manufacturer TEXT,
+      mpn TEXT,
+      datasheet_url TEXT,
+      package TEXT,
+      normalized_part_number TEXT,
+      raw_symbol_path TEXT,
+      raw_footprint_path TEXT,
+      raw_metadata_json TEXT,
+      created_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20240514120002-recycled-part-kicad-links",
+    name: "Ensure recycled_part_kicad_links table exists",
+    sql: `CREATE TABLE IF NOT EXISTS recycled_part_kicad_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      master_part_id INTEGER NOT NULL,
+      kicad_component_id INTEGER NOT NULL,
+      match_type TEXT NOT NULL,
+      confidence REAL,
+      review_status TEXT NOT NULL DEFAULT 'suggested',
+      reviewed_by TEXT,
+      reason TEXT,
+      created_at TEXT NOT NULL,
+      reviewed_at TEXT,
+      UNIQUE(master_part_id, kicad_component_id)
+    );`,
+  },
+  {
+    version: "20240514120003-kicad-components-normalized-index",
+    name: "Ensure KiCad component normalized part index exists",
+    sql: `CREATE INDEX IF NOT EXISTS idx_kicad_components_normalized_part_number
+      ON kicad_library_components(normalized_part_number);`,
+  },
+  {
+    version: "20240514120004-kicad-components-symbol-footprint-indexes",
+    name: "Ensure KiCad component symbol and footprint indexes exist",
+    sql: `CREATE INDEX IF NOT EXISTS idx_kicad_components_symbol_name
+      ON kicad_library_components(symbol_name);`,
+  },
+  {
+    version: "20240514120005-kicad-components-footprint-index",
+    name: "Ensure KiCad component footprint index exists",
+    sql: `CREATE INDEX IF NOT EXISTS idx_kicad_components_footprint_name
+      ON kicad_library_components(footprint_name);`,
+  },
+  {
+    version: "20240514120006-kicad-links-review-index",
+    name: "Ensure KiCad review status index exists",
+    sql: `CREATE INDEX IF NOT EXISTS idx_recycled_part_kicad_links_review_status
+      ON recycled_part_kicad_links(review_status);`,
+  },
+
+  {
+    version: "20240514120007-kicad-review-events",
+    name: "Ensure KiCad review event ledger exists",
+    sql: `CREATE TABLE IF NOT EXISTS kicad_review_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      link_id INTEGER,
+      master_part_id INTEGER NOT NULL,
+      kicad_component_id INTEGER NOT NULL,
+      previous_status TEXT,
+      next_status TEXT NOT NULL,
+      reviewed_by TEXT,
+      reason TEXT,
+      created_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20240514120008-kicad-review-events-link-index",
+    name: "Ensure KiCad review event link index exists",
+    sql: `CREATE INDEX IF NOT EXISTS idx_kicad_review_events_link_id
+      ON kicad_review_events(link_id);`,
+  },
 ];
 
 async function runSql(db, sql) {

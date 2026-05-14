@@ -42,14 +42,13 @@ import {
   validateManualEntry,
 } from "./telegram_ai.js";
 import { fetchWithTimeout, timingSafeEqualString } from "./base_utils.js";
+import { jsonResponse } from "./security_headers.js";
+import { checkPayloadSize } from "./payload_size.js";
 
 const DISCORD_PLATFORM = "discord";
 
-function jsonReply(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  });
+function jsonReply(data, status = 200, env = null, request = null) {
+  return jsonResponse(data, status, env, request);
 }
 
 function convertKeyboardToButtons(inlineKeyboard) {
@@ -921,13 +920,20 @@ async function verifyDiscordSignature(request, rawBody, env) {
   }
 }
 
+export function checkDiscordPayloadSize(request, env) {
+  return checkPayloadSize(request, env, {
+    envKey: "DISCORD_MAX_WEBHOOK_BODY_BYTES",
+    fallbackKey: "MAX_WEBHOOK_BODY_BYTES",
+    defaultMax: 5242880,
+    responseFactory: jsonReply,
+    errorMessage: "Payload Too Large",
+  });
+}
+
 export async function handleDiscordWebhook(request, env) {
   // Content-Length check: reject oversized payloads
-  const contentLength = request.headers.get("Content-Length");
-  const maxBodyBytes = parseInt(env.DISCORD_MAX_WEBHOOK_BODY_BYTES || env.MAX_WEBHOOK_BODY_BYTES || "5242880", 10);
-  if (contentLength && Number.isFinite(maxBodyBytes) && maxBodyBytes > 0 && parseInt(contentLength, 10) > maxBodyBytes) {
-    return jsonReply({ error: "Payload Too Large", max_bytes: maxBodyBytes }, 413);
-  }
+  const sizeCheck = checkDiscordPayloadSize(request, env);
+  if (sizeCheck) return sizeCheck;
 
   // Verify Discord Ed25519 signature if public key is configured
   if (env.DISCORD_PUBLIC_KEY) {
