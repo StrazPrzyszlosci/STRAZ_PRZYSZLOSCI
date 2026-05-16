@@ -232,3 +232,93 @@ export function buildKicadReviewQueueReply(rows = []) {
   lines.push("AI może sugerować, ale zatwierdzenie wymaga maintenera-człowieka.");
   return lines.join("\n");
 }
+
+function asCount(value) {
+  const count = Number(value || 0);
+  return Number.isFinite(count) ? count : 0;
+}
+
+function hoursBetween(laterIso, earlierIso) {
+  const laterMs = Date.parse(laterIso);
+  const earlierMs = Date.parse(earlierIso);
+  if (Number.isNaN(laterMs) || Number.isNaN(earlierMs) || laterMs < earlierMs) return null;
+  return Math.round(((laterMs - earlierMs) / 3600000) * 10) / 10;
+}
+
+export async function getKicadReviewQueueMetrics(env, options = {}) {
+  const db = assertDb(env);
+  const now = options.now || toIsoNow();
+  const since = options.since || new Date(Date.parse(now) - 7 * 24 * 3600 * 1000).toISOString();
+
+  const statusRows = await allSql(
+    db,
+    `
+    SELECT review_status, COUNT(*) AS count, MIN(created_at) AS oldest_created_at
+    FROM recycled_part_kicad_links
+    GROUP BY review_status
+    `
+  );
+  const decisionRows = await allSql(
+    db,
+    `
+    SELECT next_status, COUNT(*) AS count
+    FROM kicad_review_events
+    WHERE next_status IN ('approved', 'rejected')
+      AND created_at >= ?
+    GROUP BY next_status
+    `,
+    [since]
+  );
+
+  const byStatus = { suggested: 0, needs_more_data: 0, approved: 0, rejected: 0 };
+  let oldestPendingAt = null;
+  for (const row of statusRows) {
+    const status = normalizeStatus(row.review_status);
+    byStatus[status] = asCount(row.count);
+    if (["suggested", "needs_more_data"].includes(status) && row.oldest_created_at) {
+      if (!oldestPendingAt || Date.parse(row.oldest_created_at) < Date.parse(oldestPendingAt)) {
+        oldestPendingAt = row.oldest_created_at;
+      }
+    }
+  }
+
+  const decisionCounts = { approved: 0, rejected: 0 };
+  for (const row of decisionRows) {
+    if (row.next_status === "approved" || row.next_status === "rejected") {
+      decisionCounts[row.next_status] = asCount(row.count);
+    }
+  }
+  const decisionsLast7Days = decisionCounts.approved + decisionCounts.rejected;
+  const approvalRatio = decisionsLast7Days ? decisionCounts.approved / decisionsLast7Days : null;
+
+  return {
+    generated_at: now,
+    since,
+    status_counts: byStatus,
+    pending_count: byStatus.suggested + byStatus.needs_more_data,
+    oldest_pending_at: oldestPendingAt,
+    oldest_pending_age_hours: oldestPendingAt ? hoursBetween(now, oldestPendingAt) : null,
+    decisions_last_7_days: decisionsLast7Days,
+    decisions_last_7_days_by_status: decisionCounts,
+    approval_ratio: approvalRatio,
+  };
+}
+
+export function buildKicadReviewMetricsReply(metrics = {}) {
+  const status = metrics.status_counts || {};
+  const ratio = metrics.approval_ratio === null || metrics.approval_ratio === undefined
+    ? "n/a"
+    : `${Math.round(metrics.approval_ratio * 100)}%`;
+  const oldest = metrics.oldest_pending_at
+    ? `${metrics.oldest_pending_at} (${metrics.oldest_pending_age_hours}h)`
+    : "brak pending";
+  return [
+    "📊 KiCad review metrics",
+    `Pending: ${metrics.pending_count || 0} (suggested=${status.suggested || 0}, needs_more_data=${status.needs_more_data || 0})`,
+    `Oldest pending: ${oldest}`,
+    `Decisions last 7 days: ${metrics.decisions_last_7_days || 0} (approved=${metrics.decisions_last_7_days_by_status?.approved || 0}, rejected=${metrics.decisions_last_7_days_by_status?.rejected || 0})`,
+    `Approval ratio: ${ratio}`,
+    `Current totals: approved=${status.approved || 0}, rejected=${status.rejected || 0}`,
+    "Read-only metrics: nie zatwierdzają ani nie zmieniają danych.",
+  ].join("\n");
+}

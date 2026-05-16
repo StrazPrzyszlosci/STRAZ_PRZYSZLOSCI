@@ -12,4 +12,4 @@ Dodać przyciski/akcje Discord dla wyników KiCad staging: `Wyślij do review`, 
 
 ## Status
 
-TODO — zależy od Z90.
+DONE — wykonane w tej sesji. Odbiór: `ODBIOR_PORTFELA_24_ZADANIE_94_2026-05-16.md`.

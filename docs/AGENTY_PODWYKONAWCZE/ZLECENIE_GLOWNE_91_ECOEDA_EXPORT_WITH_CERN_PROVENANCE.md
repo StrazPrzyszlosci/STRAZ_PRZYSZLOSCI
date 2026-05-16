@@ -12,4 +12,4 @@ Rozszerzyć eksport kompatybilny z ecoEDA tak, aby zachować dotychczasowe pola 
 
 ## Status
 
-TODO — zależy od Z90.
+DONE — wykonane w tej sesji. Odbiór: `ODBIOR_PORTFELA_24_ZADANIE_91_2026-05-16.md`.

@@ -1,7 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildKicadReviewMetricsReply,
   buildKicadReviewQueueReply,
+  getKicadReviewQueueMetrics,
   listPendingKicadReviewLinks,
   recordKicadReviewDecision,
   suggestKicadLink,
@@ -124,5 +126,74 @@ describe("KiCad human review ledger (Z90)", () => {
     const reply = buildKicadReviewQueueReply(rows);
     assert.match(reply, /KiCad review queue/);
     assert.match(reply, /maintenera-człowieka/);
+  });
+});
+
+describe("KiCad review queue SLA metrics (Z97)", () => {
+  function createMetricsDb({ statusRows = [], decisionRows = [] } = {}) {
+    return {
+      prepare(sql) {
+        return {
+          bind(...args) {
+            return {
+              async all() {
+                if (sql.includes("FROM recycled_part_kicad_links") && sql.includes("GROUP BY review_status")) {
+                  return { results: statusRows };
+                }
+                if (sql.includes("FROM kicad_review_events") && sql.includes("GROUP BY next_status")) {
+                  assert.equal(args.length, 1);
+                  assert.match(args[0], /^2026-05-09T12:00:00/);
+                  return { results: decisionRows };
+                }
+                return { results: [] };
+              },
+            };
+          },
+        };
+      },
+    };
+  }
+
+  it("returns empty read-only metrics for an empty queue", async () => {
+    const metrics = await getKicadReviewQueueMetrics(
+      { DB: createMetricsDb() },
+      { now: "2026-05-16T12:00:00.000Z" }
+    );
+    const reply = buildKicadReviewMetricsReply(metrics);
+
+    assert.equal(metrics.pending_count, 0);
+    assert.equal(metrics.oldest_pending_at, null);
+    assert.equal(metrics.decisions_last_7_days, 0);
+    assert.equal(metrics.approval_ratio, null);
+    assert.match(reply, /Read-only metrics/);
+  });
+
+  it("aggregates pending age, seven-day decisions and approval ratio", async () => {
+    const metrics = await getKicadReviewQueueMetrics(
+      {
+        DB: createMetricsDb({
+          statusRows: [
+            { review_status: "suggested", count: 2, oldest_created_at: "2026-05-15T06:00:00.000Z" },
+            { review_status: "needs_more_data", count: 1, oldest_created_at: "2026-05-14T12:00:00.000Z" },
+            { review_status: "approved", count: 5, oldest_created_at: "2026-05-10T00:00:00.000Z" },
+            { review_status: "rejected", count: 3, oldest_created_at: "2026-05-11T00:00:00.000Z" },
+          ],
+          decisionRows: [
+            { next_status: "approved", count: 4 },
+            { next_status: "rejected", count: 1 },
+          ],
+        }),
+      },
+      { now: "2026-05-16T12:00:00.000Z" }
+    );
+    const reply = buildKicadReviewMetricsReply(metrics);
+
+    assert.equal(metrics.pending_count, 3);
+    assert.equal(metrics.oldest_pending_at, "2026-05-14T12:00:00.000Z");
+    assert.equal(metrics.oldest_pending_age_hours, 48);
+    assert.equal(metrics.decisions_last_7_days, 5);
+    assert.equal(metrics.approval_ratio, 0.8);
+    assert.match(reply, /Pending: 3/);
+    assert.match(reply, /Approval ratio: 80%/);
   });
 });

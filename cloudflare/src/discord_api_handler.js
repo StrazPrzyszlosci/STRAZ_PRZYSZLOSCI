@@ -44,6 +44,19 @@ import {
 import { fetchWithTimeout, timingSafeEqualString } from "./base_utils.js";
 import { jsonResponse } from "./security_headers.js";
 import { checkPayloadSize } from "./payload_size.js";
+import {
+  buildKicadReviewQueueReply,
+  listPendingKicadReviewLinks,
+  recordKicadReviewDecision,
+  suggestKicadLink,
+} from "./kicad_review.js";
+import {
+  buildApprovedKicadEcoedaCsv,
+  buildKicadExportReceipt,
+  buildKicadReviewAuditCsv,
+  listApprovedKicadEcoedaRows,
+  listKicadReviewAuditEvents,
+} from "./kicad_export.js";
 
 const DISCORD_PLATFORM = "discord";
 
@@ -77,6 +90,194 @@ function buildDiscordResponse(replyData) {
     reply_markup: markup,
     provider_name: replyData.provider_name,
     model_name: replyData.model_name,
+  };
+}
+
+
+function parseDelimitedEnvList(value) {
+  return String(value || "")
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function isDiscordKicadReviewer(env, userId) {
+  const reviewers = parseDelimitedEnvList(env?.DISCORD_KICAD_REVIEWER_IDS || env?.KICAD_REVIEWER_IDS);
+  return reviewers.includes(String(userId || ""));
+}
+
+function parseKicadReviewCallback(data) {
+  const parts = String(data || "").split(":");
+  if (parts.length < 4) return null;
+  const action = parts[1];
+  const masterPartId = Number.parseInt(parts[2], 10);
+  const kicadComponentId = Number.parseInt(parts[3], 10);
+  if (!Number.isFinite(masterPartId) || !Number.isFinite(kicadComponentId)) return null;
+  return { action, masterPartId, kicadComponentId };
+}
+
+function buildKicadReviewButtons(rows = []) {
+  const buttons = rows.slice(0, 5).map((row) => {
+    const masterPartId = row.master_part_id;
+    const kicadComponentId = row.kicad_component_id;
+    const labelSuffix = `${masterPartId}/${kicadComponentId}`;
+    return [
+      { label: `Zatwierdź ${labelSuffix}`, action: "callback", value: `kicad_review:approve:${masterPartId}:${kicadComponentId}`, style: "success" },
+      { label: `Odrzuć ${labelSuffix}`, action: "callback", value: `kicad_review:reject:${masterPartId}:${kicadComponentId}`, style: "danger" },
+      { label: `Więcej danych ${labelSuffix}`, action: "callback", value: `kicad_review:needs_more_data:${masterPartId}:${kicadComponentId}`, style: "secondary" },
+    ];
+  });
+  buttons.push([{ label: "Odśwież kolejkę KiCad", action: "callback", value: "kicad_review:queue", style: "primary" }]);
+  return { buttons };
+}
+
+function buildKicadSuggestButtons(masterPartId, kicadComponentId) {
+  return {
+    buttons: [[
+      { label: "Wyślij do review", action: "callback", value: `kicad_review:suggest:${masterPartId}:${kicadComponentId}`, style: "primary" },
+    ]],
+  };
+}
+
+function buildKicadApprovedExportPreviewReply(rows = [], receipt = {}) {
+  const previewLines = rows.slice(0, 5).map((row, index) => {
+    const label = row.part_number || row.part_name || row.symbol_name || `record-${index + 1}`;
+    const symbol = row.kicad_symbol || row.symbol_name || "no-symbol";
+    const source = row.source_slug || "unknown-source";
+    return `${index + 1}. ${label} | ${symbol} | ${source}`;
+  });
+  return [
+    "📦 KiCad approved ecoEDA export preview",
+    `Rows: ${receipt.row_count || 0}`,
+    "Filter: approved only",
+    `SHA-256: ${receipt.sha256 || "n/a"}`,
+    "Provenance: CERN/source columns included; preview only, no release published.",
+    "",
+    previewLines.length ? previewLines.join("\n") : "No approved KiCad links ready for export.",
+  ].join("\n");
+}
+
+async function handleKicadApprovedExportPreview(env, message) {
+  if (!isDiscordKicadReviewer(env, message.user_id)) {
+    return {
+      reply_text: "⛔ Podgląd eksportu KiCad approved jest dostępny tylko dla operatora/maintainera z listy DISCORD_KICAD_REVIEWER_IDS/KICAD_REVIEWER_IDS.",
+      reply_markup: getDiscordMainMenuButtons(),
+    };
+  }
+  const rows = await listApprovedKicadEcoedaRows(env, { limit: 5 });
+  const csv = await buildApprovedKicadEcoedaCsv(env, { limit: 1000 });
+  const receipt = await buildKicadExportReceipt(csv, {
+    export_kind: "approved_ecoeda_provenance",
+    status_filter: "approved",
+  });
+  return {
+    reply_text: buildKicadApprovedExportPreviewReply(rows, receipt),
+    reply_markup: getDiscordMainMenuButtons(),
+  };
+}
+
+function buildKicadAuditPreviewReply(rows = [], receipt = {}) {
+  const previewLines = rows.slice(0, 5).map((row, index) => {
+    const label = row.part_number || row.part_name || row.symbol_name || `event-${row.event_id || index + 1}`;
+    const transition = `${row.previous_status || "new"} → ${row.next_status || row.current_review_status || "unknown"}`;
+    const reviewer = row.reviewed_by || "unknown-reviewer";
+    const reason = row.reason || "no-reason";
+    const source = row.source_slug || "unknown-source";
+    const license = row.license_spdx || "unknown-license";
+    return `${index + 1}. ${label} | ${transition} | ${reviewer} | ${reason} | ${source} | ${license}`;
+  });
+  return [
+    "🧾 KiCad review audit preview",
+    `Rows: ${receipt.row_count || 0}`,
+    "Filter: review events only",
+    `SHA-256: ${receipt.sha256 || "n/a"}`,
+    "Preview only: no release published and no review status changed.",
+    "",
+    previewLines.length ? previewLines.join("\n") : "No KiCad review events found.",
+  ].join("\n");
+}
+
+async function handleKicadAuditPreview(env, message) {
+  if (!isDiscordKicadReviewer(env, message.user_id)) {
+    return {
+      reply_text: "⛔ Podgląd audytu KiCad review jest dostępny tylko dla operatora/maintainera z listy DISCORD_KICAD_REVIEWER_IDS/KICAD_REVIEWER_IDS.",
+      reply_markup: getDiscordMainMenuButtons(),
+    };
+  }
+  const rows = await listKicadReviewAuditEvents(env, { limit: 5 });
+  const csv = buildKicadReviewAuditCsv(rows);
+  const receipt = await buildKicadExportReceipt(csv, {
+    export_kind: "review_audit",
+    status_filter: "review_events",
+  });
+  return {
+    reply_text: buildKicadAuditPreviewReply(rows, receipt),
+    reply_markup: getDiscordMainMenuButtons(),
+  };
+}
+
+async function handleKicadReviewCallback(env, message) {
+  const data = message.callback_data || "";
+  if (data === "kicad_review:queue") {
+    const rows = await listPendingKicadReviewLinks(env, { limit: 5 });
+    return {
+      reply_text: buildKicadReviewQueueReply(rows),
+      reply_markup: buildKicadReviewButtons(rows),
+    };
+  }
+
+  const parsed = parseKicadReviewCallback(data);
+  if (!parsed) {
+    return { reply_text: "Błędne dane akcji KiCad review.", reply_markup: getDiscordMainMenuButtons() };
+  }
+
+  if (parsed.action === "suggest") {
+    const result = await suggestKicadLink(env, {
+      master_part_id: parsed.masterPartId,
+      kicad_component_id: parsed.kicadComponentId,
+      suggested_by: message.user_id || "discord-user",
+      reason: "Discord action: Wyślij do review",
+    });
+    return {
+      reply_text: result.created
+        ? `✅ Link KiCad ${parsed.masterPartId}/${parsed.kicadComponentId} wysłany do review.`
+        : `ℹ️ Link KiCad ${parsed.masterPartId}/${parsed.kicadComponentId} jest już w ledgerze ze statusem ${result.status}.`,
+      reply_markup: buildKicadSuggestButtons(parsed.masterPartId, parsed.kicadComponentId),
+    };
+  }
+
+  if (!isDiscordKicadReviewer(env, message.user_id)) {
+    return {
+      reply_text: "⛔ Tę decyzję KiCad review może wykonać tylko maintainer z listy DISCORD_KICAD_REVIEWER_IDS/KICAD_REVIEWER_IDS.",
+      reply_markup: getDiscordMainMenuButtons(),
+    };
+  }
+
+  const statusByAction = {
+    approve: "approved",
+    reject: "rejected",
+    needs_more_data: "needs_more_data",
+  };
+  const nextStatus = statusByAction[parsed.action];
+  if (!nextStatus) {
+    return { reply_text: "Nieznana akcja KiCad review.", reply_markup: getDiscordMainMenuButtons() };
+  }
+
+  const result = await recordKicadReviewDecision(env, {
+    master_part_id: parsed.masterPartId,
+    kicad_component_id: parsed.kicadComponentId,
+    review_status: nextStatus,
+    reviewed_by: `discord:${message.user_id}`,
+    reason: `Discord maintainer action: ${parsed.action}`,
+  });
+  const rows = await listPendingKicadReviewLinks(env, { limit: 5 });
+  return {
+    reply_text: [
+      `✅ Decyzja zapisana w KiCad review ledger: ${result.previous_status} → ${result.status}.`,
+      "",
+      buildKicadReviewQueueReply(rows),
+    ].join("\n"),
+    reply_markup: buildKicadReviewButtons(rows),
   };
 }
 
@@ -240,6 +441,25 @@ async function handleCommand(env, message, command) {
       return {
         reply_text: "🔍 **Szukaj w katalogu reuse** — wpisz model urządzenia lub oznaczenie części po komendzie, np. `!search ESP32`.",
       };
+    }
+    case "kicad-review":
+    case "kicad_review":
+    case "kicadreview": {
+      const rows = await listPendingKicadReviewLinks(env, { limit: 5 });
+      return {
+        reply_text: buildKicadReviewQueueReply(rows),
+        reply_markup: buildKicadReviewButtons(rows),
+      };
+    }
+    case "kicad-export-preview":
+    case "kicad_export_preview":
+    case "kicadexportpreview": {
+      return await handleKicadApprovedExportPreview(env, message);
+    }
+    case "kicad-audit-preview":
+    case "kicad_audit_preview":
+    case "kicadauditpreview": {
+      return await handleKicadAuditPreview(env, message);
     }
     case "issue":
     case "zglos":
@@ -475,6 +695,9 @@ async function handleDiscordCallback(env, message) {
   const actionPrefix = data.split(":")[0];
 
   switch (actionPrefix) {
+    case "kicad_review": {
+      return await handleKicadReviewCallback(env, message);
+    }
     case "command_start": {
       await closeAllUserSessions(env, message.chat_id, message.user_id, DISCORD_PLATFORM);
       const reply = buildCommandReply("start");
