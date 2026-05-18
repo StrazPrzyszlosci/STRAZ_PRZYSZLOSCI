@@ -1,40 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-// ── Replicated from cloudflare/src/base_utils.js and cloudflare/src/discord_api_handler.js ──
+import { timingSafeEqualString } from "../cloudflare/src/base_utils.js";
+import { checkDiscordPayloadSize } from "../cloudflare/src/discord_api_handler.js";
 
-function timingSafeEqualString(a, b) {
-  if (typeof a !== "string" || typeof b !== "string") return false;
-  const aLen = a.length;
-  const bLen = b.length;
-  let result = aLen === bLen ? 0 : 1;
-  const maxLen = Math.max(aLen, bLen);
-  for (let i = 0; i < maxLen; i++) {
-    const aChar = i < aLen ? a.charCodeAt(i) : 0;
-    const bChar = i < bLen ? b.charCodeAt(i) : 0;
-    result |= aChar ^ bChar;
-  }
-  return result === 0;
-}
-
-function jsonReply(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  });
-}
-
-// Replicated from the start of handleDiscordWebhook in discord_api_handler.js
-function checkDiscordPayloadSize(request, env) {
-  const contentLength = request.headers.get("Content-Length");
-  const maxBodyBytes = parseInt(env.DISCORD_MAX_WEBHOOK_BODY_BYTES || env.MAX_WEBHOOK_BODY_BYTES || "5242880", 10);
-  if (contentLength && Number.isFinite(maxBodyBytes) && maxBodyBytes > 0 && parseInt(contentLength, 10) > maxBodyBytes) {
-    return jsonReply({ error: "Payload Too Large", max_bytes: maxBodyBytes }, 413);
-  }
-  return null;
-}
-
-// Helper to create a mock Request
 function createMockRequest(contentLength) {
   return {
     headers: {

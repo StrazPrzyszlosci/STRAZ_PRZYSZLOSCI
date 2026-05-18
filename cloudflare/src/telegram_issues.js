@@ -51,14 +51,11 @@ import { buildVerificationResultReply } from "./vision.js";
 import { sanitizeUserInput } from "./input_sanitizer.js";
 import { sanitizeTelegramReply, sendTelegramReply, getMainMenuKeyboard } from "./telegram_utils.js";
 import { fetchWithTimeout, fetchTelegramFileAsBase64 } from "./base_utils.js";
+import { checkPayloadSize } from "./payload_size.js";
+import { jsonResponse as secureJsonResponse } from "./security_headers.js";
 
-function jsonResponse(payload, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-    },
-  });
+function jsonResponse(payload, status = 200, env = null, request = null) {
+  return secureJsonResponse(payload, status, env, request);
 }
 
 function parseAllowedIds(rawValue) {
@@ -2076,12 +2073,13 @@ async function removeInlineKeyboard(env, chat_id, message_id) {
 }
 
 export function checkTelegramPayloadSize(request, env) {
-  const maxBodyBytes = parseInt(env.TELEGRAM_MAX_WEBHOOK_BODY_BYTES || env.MAX_WEBHOOK_BODY_BYTES || "5242880", 10);
-  const contentLength = request.headers.get("Content-Length");
-  if (contentLength && parseInt(contentLength, 10) > maxBodyBytes) {
-    return jsonResponse({ error: `Request body too large. Max: ${maxBodyBytes} bytes.` }, 413);
-  }
-  return null;
+  return checkPayloadSize(request, env, {
+    envKey: "TELEGRAM_MAX_WEBHOOK_BODY_BYTES",
+    fallbackKey: "MAX_WEBHOOK_BODY_BYTES",
+    defaultMax: 5242880,
+    responseFactory: (payload, status) =>
+      jsonResponse({ error: `Request body too large. Max: ${payload.max_bytes} bytes.` }, status),
+  });
 }
 
 export async function handleTelegramWebhook(request, env, ctx = null) {

@@ -93,6 +93,17 @@ describe("D1 Schema Migrations (Z86)", () => {
     }
   });
 
+
+  it("includes KiCad staging/provenance migrations (Z88)", () => {
+    const allSql = MIGRATIONS.map((migration) => migration.sql).join("\n");
+    assert.ok(allSql.includes("kicad_library_sources"));
+    assert.ok(allSql.includes("kicad_library_components"));
+    assert.ok(allSql.includes("recycled_part_kicad_links"));
+    assert.ok(allSql.includes("idx_kicad_components_normalized_part_number"));
+    assert.ok(allSql.includes("idx_recycled_part_kicad_links_review_status"));
+    assert.ok(allSql.includes("kicad_review_events"));
+  });
+
   it("all migrations are idempotent (contain IF NOT EXISTS)", () => {
     for (const m of MIGRATIONS) {
       assert.ok(m.sql.toUpperCase().includes("IF NOT EXISTS"), `Migration ${m.version} not idempotent: ${m.name}`);
