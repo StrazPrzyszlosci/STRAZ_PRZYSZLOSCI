@@ -129,9 +129,12 @@ jobs:
           find PROJEKTY/13_baza_czesci_recykling/data/backups/ -name "recycled_parts_catalog_*.sql" -mtime +90 -delete
 
       - name: Commit and push Public Backup
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
           git add PROJEKTY/13_baza_czesci_recykling/data/backups/
           git commit -m "Auto: Public D1 Parts Catalog Backup ${TIMESTAMP}" || echo "No changes to commit"
           git pull --rebase origin main
@@ -142,12 +145,13 @@ jobs:
           PRIVATE_REPO: "StrazPrzyszlosci/STRAZ_PRZYSZLOSCI_PRIVATE"
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          git clone https://${GH_PAT}@github.com/${PRIVATE_REPO}.git private_repo_dir
+          git clone https://x-access-token:${GH_PAT}@github.com/${PRIVATE_REPO}.git private_repo_dir
           mkdir -p private_repo_dir/backups
           cp private_backups/chat_history_${TIMESTAMP}.sql private_repo_dir/backups/
           cd private_repo_dir
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${PRIVATE_REPO}.git
           git add backups/
           git commit -m "Auto: Private Chat History Backup ${TIMESTAMP}" || echo "No changes to commit"
           git pull --rebase origin main
