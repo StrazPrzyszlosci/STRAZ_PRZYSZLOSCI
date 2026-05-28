@@ -7,7 +7,7 @@ Projekt zakłada wykorzystanie technologii IoT, tanich minikomputerów (Raspberr
 
 Projekt skupia się na trzech gatunkach o różnym stopniu trudności uprawy:
 1. **Pieczarka dwuzarodnikowa (*Agaricus bisporus*):** Klasyk rynkowy o bardzo precyzyjnych i zmiennych wymaganiach CO₂ oraz wilgotności na różnych etapach (szok termiczny, owocnikowanie).
-2. **Boczniak ostrygowaty (*Pleurotus ostreatus*):** Szybko rosnący grzyb o ogromnym zapotrzebowaniu na świeże powietrze (wymaga częstej wymiany powietrza - FAE), doskonały do szybkich cykli produkcyjnych w społeczności.
+2. **Boczniak ostrygowaty (*Pleurotus ostreatus*):** Szybko rosnący grzyb, doskonały do szybkich cykli produkcyjnych w społeczności.
 3. **Żółciak siarkowy (*Laetiporus sulphureus* - Chicken of the woods):** Gatunek niezwykle ceniony kulinarnie, ale uważany za **bardzo trudny i eksperymentalny** w hodowli domowej. Wymaga specyficznych substratów drzewnych, stabilnej, wysokiej wilgotności oraz unikalnych, trudnych do wywołania bodźców klimatycznych (np. precyzyjny szok temperaturowo-świetlny). AI jest kluczem do zdekodowania i replikacji tych warunków na bazie ciągłej analizy sensorycznej.
 
 ---
