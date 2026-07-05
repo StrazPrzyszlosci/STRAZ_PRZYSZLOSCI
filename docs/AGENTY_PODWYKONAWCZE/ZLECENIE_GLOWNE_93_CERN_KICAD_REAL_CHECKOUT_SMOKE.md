@@ -18,5 +18,4 @@ Uruchomić `pipelines/import_cern_kicad_library.py` na realnym lokalnym checkout
 
 ## Status
 
-BLOCKED (2026-07-05) — `docs/AGENTY_PODWYKONAWCZE/Z93_BLOCKER_RECEIPT_CERN_CHECKOUT_2026-07-05.md`.
-Brak lokalnego checkout CERN KiCad Library na maszynie deweloperskiej. Importer Z87 istnieje (partial), fixture działa. Smoke na fixture jest rekomendowany jako substytut.
+**PARTIAL PASS (fixture substitute)** (2026-07-05) — realny checkout CERN nadal niedostępny (blocker receipt `Z93_BLOCKER_RECEIPT_CERN_CHECKOUT_2026-07-05.md`), ale smoke na fixture mini wykonany i udokumentowany w `Z93_FIXTURE_SMOKE_REPORT_2026-07-05.md`. Wszystkie 3 kryteria odbioru spełnione w trybie substytutu. Parser Z87 działa end-to-end (sym + footprint + provenance). Do pełnego PASS wymagany realny checkout CERN przez operatora (krok w blocker receipt).
