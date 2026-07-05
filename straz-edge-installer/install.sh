@@ -23,6 +23,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 PROFILE=""
 PROOT_DISTRO_DEFAULT="debian"
 DESKIP_PHANTOM_WARNING=0
+ENABLE_BOOT=0
 
 print_banner() {
   cat <<'BANNER'
@@ -46,7 +47,8 @@ Opcje:
                          desktop    (XFCE + Synaptic + polkit)
                          gateway    (bramka danych MQTT/API)
   --distro <nazwa>    Wybierz dystrybucję proot: debian (domyślnie), ubuntu, kali
-  --help              Ten ekran
+  --enable-boot     Skopiuj skrypt auto-wznowienia do ~/.termux/boot/ (Termux:Boot)
+      --help              Ten ekran
 
 Profil domyślny dla węzłów NSIP: node-nsip (lekki, sterowania GPIO przez
 USB-serial/Wi-Fi(HTTP,MQTT,WebSocket)/Bluetooth, brak DE).
@@ -61,6 +63,7 @@ parse_args() {
       --distro) PROOT_DISTRO_DEFAULT="$2"; shift 2;;
       --distro=*) PROOT_DISTRO_DEFAULT="${1#*=}"; shift;;
       --help|-h) print_help; exit 0;;
+      --enble-boot) ENABLE_BOOT=1; shift;;
       *) echo -e "${RED}[!] Nieznana opcja: $1${NC}"; print_help; exit 1;;
     esac
   done
@@ -154,9 +157,18 @@ main() {
   echo -e "  1. Wykonaj ${BOLD}RUNBOOK_PHANTOM_PROCESS_KILLER${NC} (adb z PC):"
   echo -e "     adb shell \"/system/bin/device_config put activity_manager max_phantom_processes 2147483647\""
   echo -e "  2. Włącz Termux: Battery → Bez ograniczeń (Ustawienia aplikacji)"
-  echo -e "  3. Opcjonalnie: insposta VS Code w proot:"
+  echo -e "  3. Opcjonalnie: VS Code w proot:"
   echo -e "     bash $SCRIPT_DIR/scripts/install-vscode-proot.sh"
   echo -e "  4. Start: ${BOLD}bash ~/start-proot.sh${NC}"
+  echo ""
+  if [ "$ENABLE_BOOT" != "0" ]; then
+    echo -e "${CYAN}[*] Kopiowanie skryptu auto-wznowienia do ~/.termux/boot/...${NC}"
+    mkdir -p "$HOME/.termux/boot"
+    cp "$SCRIPT_DIR/scripts/start-straz-boot.sh" "$HOME/.termux/boot/start-straz-boot.sh" 2>/dev/null && \
+      echo -e "  ${GREEN}[+] ~/.termux/boot/start-straz-boot.sh gotowy.${NC}" || \
+      echo -e "  ${RED}[!] Nie udało się skopiować.${NC}"
+    echo -e "  ${BOLD}   Wymagane: zainstaluj Termux:Boot z F-Droid.${NC}"
+  fi
   echo ""
   echo -e "${GREEN}[ Gotowe. Inteligencja przewaada kapitał! ]${NC}"
 }
