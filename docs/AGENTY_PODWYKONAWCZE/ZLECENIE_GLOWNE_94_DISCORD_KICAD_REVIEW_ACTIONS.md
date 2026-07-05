@@ -12,4 +12,5 @@ Dodać przyciski/akcje Discord dla wyników KiCad staging: `Wyślij do review`, 
 
 ## Status
 
-TODO — zależy od Z90.
+DONE (2026-07-05) — odebrane w `ODBIOR_PORTFELA_24_ZADANIE_94_2026-07-05.md`.
+Implementacja: `cloudflare/src/discord_kicad_actions.js` + integracja w `discord_api_handler.js` + testy `tests/discord_kicad_actions_test.mjs` (10 testów PASS). Cienka warstwa nad `kicad_review.js` z Z90, walidacja maintenera przez env `KICAD_REVIEW_MAINTAINER_IDS`/`KICAD_REVIEW_MAINTAINER_ROLES`.

@@ -8,7 +8,7 @@ Po wdrożeniu ledgeru review zbudować warstwę operacyjną: akcje Discord, eksp
 
 | ID | Plik | Priorytet | Cel | Blokery |
 |----|------|-----------|-----|---------|
-| Z94 | `ZLECENIE_GLOWNE_94_DISCORD_KICAD_REVIEW_ACTIONS.md` | high | Discord UI/actions dla review KiCad. | Z90 gotowe |
+| Z94 | `ZLECENIE_GLOWNE_94_DISCORD_KICAD_REVIEW_ACTIONS.md` | high | Discord UI/actions dla review KiCad. | Z90 gotowe | DONE 2026-07-05 — `cloudflare/src/discord_kicad_actions.js` + integracja + 10 testów PASS. |
 | Z91 | `ZLECENIE_GLOWNE_91_ECOEDA_EXPORT_WITH_CERN_PROVENANCE.md` | high | Eksport ecoEDA/NSIP z provenance CERN dla statusów `approved`. | Z90 gotowe |
 | Z93 | `ZLECENIE_GLOWNE_93_CERN_KICAD_REAL_CHECKOUT_SMOKE.md` | medium | Smoke importera na realnym checkout/archiwum CERN albo blocker receipt. | Dostęp do danych |
 | Z95 | `ZLECENIE_GLOWNE_95_AI_AUTOMATION_ORCHESTRATOR_ROADMAP.md` | medium | Roadmap autonomicznej automatyzacji AI. | README + obecne moduły |

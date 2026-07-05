@@ -44,6 +44,7 @@ import {
 import { fetchWithTimeout, timingSafeEqualString } from "./base_utils.js";
 import { jsonResponse } from "./security_headers.js";
 import { checkPayloadSize } from "./payload_size.js";
+import { handleKicadReviewCommand, handleKicadReviewAction } from "./discord_kicad_actions.js";
 
 const DISCORD_PLATFORM = "discord";
 
@@ -128,6 +129,7 @@ function parseDiscordBody(body) {
     username: body.username || "",
     callback_data: body.callback_data || null,
     type: body.type || "message",
+    roles: Array.isArray(body.roles) ? body.roles : [],
   };
 }
 
@@ -254,6 +256,10 @@ async function handleCommand(env, message, command) {
           "`Uwaga: strona ładuje się wolno na Firefox`",
         ].join("\n"),
       };
+    }
+    case "kicad":
+    case "kicad_review": {
+      return await handleKicadReviewCommand(env, message);
     }
     default: {
       await closeAllUserSessions(env, message.chat_id, message.user_id, DISCORD_PLATFORM);
@@ -473,6 +479,10 @@ async function createGitHubIssue(env, title, body, classification, labels = []) 
 async function handleDiscordCallback(env, message) {
   const data = message.callback_data || "";
   const actionPrefix = data.split(":")[0];
+
+  if (actionPrefix.startsWith("kicad_review_")) {
+    return await handleKicadReviewAction(env, message);
+  }
 
   switch (actionPrefix) {
     case "command_start": {
