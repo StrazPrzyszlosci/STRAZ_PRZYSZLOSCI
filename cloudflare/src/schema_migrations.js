@@ -204,6 +204,11 @@ export const MIGRATIONS = [
     sql: `CREATE INDEX IF NOT EXISTS idx_kicad_review_events_link_id
       ON kicad_review_events(link_id);`,
   },
+  {
+    version: "20260705000001-devices-gpio-pin-map",
+    name: "Ensure recycled_devices has gpio_pin_map_json column (Z15 profile template extension)",
+    sql: `ALTER TABLE recycled_devices ADD COLUMN gpio_pin_map_json TEXT;`,
+  },
 ];
 
 async function runSql(db, sql) {

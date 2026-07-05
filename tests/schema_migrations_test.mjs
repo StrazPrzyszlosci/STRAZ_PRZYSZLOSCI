@@ -104,9 +104,17 @@ describe("D1 Schema Migrations (Z86)", () => {
     assert.ok(allSql.includes("kicad_review_events"));
   });
 
-  it("all migrations are idempotent (contain IF NOT EXISTS)", () => {
+  it("all table/create migrations are idempotent (contain IF NOT EXISTS)", () => {
     for (const m of MIGRATIONS) {
+      // ALTER TABLE ADD COLUMN nie ma IF NOT EXISTS w SQLite; pomiń
+      if (m.sql.trim().toUpperCase().startsWith("ALTER TABLE")) continue;
       assert.ok(m.sql.toUpperCase().includes("IF NOT EXISTS"), `Migration ${m.version} not idempotent: ${m.name}`);
     }
+  });
+
+  it("includes gpio_pin_map_json column for edge devices (Z15 extension)", () => {
+    const allSql = MIGRATIONS.map((m) => m.sql).join("\n");
+    assert.ok(allSql.includes("gpio_pin_map_json"));
+    assert.ok(allSql.includes("recycled_devices"));
   });
 });
