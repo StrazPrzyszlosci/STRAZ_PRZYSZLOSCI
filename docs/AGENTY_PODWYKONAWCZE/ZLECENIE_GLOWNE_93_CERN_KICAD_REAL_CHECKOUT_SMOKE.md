@@ -18,4 +18,5 @@ Uruchomić `pipelines/import_cern_kicad_library.py` na realnym lokalnym checkout
 
 ## Status
 
-TODO — równoległe do Z89, ale nie blokuje mock/fixture development.
+BLOCKED (2026-07-05) — `docs/AGENTY_PODWYKONAWCZE/Z93_BLOCKER_RECEIPT_CERN_CHECKOUT_2026-07-05.md`.
+Brak lokalnego checkout CERN KiCad Library na maszynie deweloperskiej. Importer Z87 istnieje (partial), fixture działa. Smoke na fixture jest rekomendowany jako substytut.

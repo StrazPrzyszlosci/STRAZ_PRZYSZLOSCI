@@ -16,4 +16,5 @@ Nie konwertować całej biblioteki CERN przed ingestem. Konwersja jest etapem ek
 
 ## Status
 
-TODO — niski priorytet po Z87-Z91.
+DONE (2026-07-05) — `docs/KICAD_VERSION_CONVERSION_EXPORT_POLICY.md`.
+Decyzja bazowa: konwersja to downstream export, nie przed ingestem. Runbook A-D, test na fixture NE555, ryzyka zinwentaryzowane. Reguły dla NSIP: provenance konserwowana, eksporter może opcjonalnie konwertować z `--target-version`.
