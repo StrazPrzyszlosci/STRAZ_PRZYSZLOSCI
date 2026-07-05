@@ -16,6 +16,7 @@
 #include <WebSocketsServer.h>
 #include <PubSubClient.h>
 #include <Preferences.h>
+#include "ble.cpp"
 
 #define UART_BAUD 115200
 #define HTTP_PORT 80
@@ -175,7 +176,8 @@ void connectWifi() {
   deviceId = prefs.getString("id", "esp32-default");
   prefs.end();
   if (ssid.length() == 0) {
-    Serial.println("{\"msg\":\"no WiFi config — send JSON: {\\\"wifi_ssid\\\":\\\"...\\\",\\\"wifi_pass\\\":\\\"...\\\",\\\"mqtt_broker\\\":\\\"...\\\",\\\"device_id\\\":\\\"esp32-<id>\\\"}\"}");
+    Serial.println("{\"msg\":\"no WiFi config — standalone BLE mode\",\"help\":\"send JSON: {\\\"wifi_ssid\\\":\\\"...\\\",\\\"wifi_pass\\\":\\\"...\\\",\\\"mqtt_broker\\\":\\\"...\\\",\\\"device_id\\\":\\\"esp32-<id>\\\"}\"}");
+    setupBLE();
     return;
   }
   Serial.println("{\"msg\":\"connecting WiFi\",\"ssid\":\"" + ssid + "\"}");
@@ -206,6 +208,7 @@ void connectWifi() {
       Serial.println("{\"ok\":true,\"mqtt\":\"connected\",\"topic\":\"" + mqttTopic + "\"}");
     }
   }
+  setupBLE();
 }
 
 void setup() {

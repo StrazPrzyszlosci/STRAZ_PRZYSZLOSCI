@@ -10,6 +10,7 @@ Firmware ESP32 eksponujący endpoint GPIO kompatybilny z klientami z [`straz-edg
 | Wi-Fi HTTP REST | `gpio-http <ip> set 12 1` | `GET/POST /gpio?cmd=set&pin=12&value=1` |
 | MQTT | `gpio-mqtt <broker> esp32 <id> 12 1` | topic `esp32/<id>/gpio`, ack `.../ack` |
 | WebSocket | `gpio-ws ws://<ip>:81/ws 12 1` | `ws://<ip>:81/ws` |
+| Bluetooth LE GATT | `gpio-ble <mac> ffe1 12 1` | Service `ffe0`, char `ffe1`: write pin[byte] value[byte] → response JSON |
 
 ## Pinmap (bezpieczne piny OUTPUT)
 
@@ -69,5 +70,5 @@ gpio-ws ws://192.168.x.x:81/ws 12 1
 
 ## Status
 
-- Impl: Arduino + ArduinoJson + PubSubClient + WebSocketsServer.
-- TODO: BLE GATT (`gpio-ble`) — kolejny kanał; testy na hardware; MQTT TLS.
+- Impl: Arduino + ArduinoJson + PubSubClient + WebSocketsServer + native ESP32 BLE.
+- ⬤ BLE GATT endpoint dodany (Q6). Service `ffe0`, char `ffe1` — kompatybilny z `gpio-ble`.
