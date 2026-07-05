@@ -19,4 +19,4 @@ Przekuć obecne repo w kontrolowany system autonomicznej automatyzacji AI: boty 
 
 ## Status
 
-TODO — równolegle do Z90-Z94.
+DONE (2026-07-05) — `docs/ROADMAPA_AUTONOMICZNEJ_AUTOMATYZACJI_AI.md` z 3 horyzontami (2tyg/6tyg/3mies), każdy krok ma gate, rollback i metrykę. Role agentów: importer/verifier/curator/reviewer/exporter/operator. Węzły edge (smartfony/proot) uwzględnione w H3 jako providery w D1.

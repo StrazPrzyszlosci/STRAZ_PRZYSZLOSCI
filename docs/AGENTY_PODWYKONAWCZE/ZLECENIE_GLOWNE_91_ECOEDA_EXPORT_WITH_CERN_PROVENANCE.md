@@ -12,4 +12,5 @@ Rozszerzyć eksport kompatybilny z ecoEDA tak, aby zachować dotychczasowe pola 
 
 ## Status
 
-TODO — zależy od Z90.
+DONE (2026-07-05) — `cloudflare/src/ecoeda_export.js` + `tests/ecoeda_export_test.mjs` (9 testow PASS).
+Eksport tylko dla `review_status='approved'`. Provenance opcjonalne (`include_provenance`), nie laczy obecnego `ecoEDA_inventory.csv` (zwraca string do zapisu przez konsumenta). Format CSV i JSON.
