@@ -14,7 +14,7 @@ describe("Security Headers Regression Tests (Z84/Z81/Z82)", () => {
     assert.equal(headers.get("content-security-policy"), "default-src 'none'; frame-ancestors 'none'");
     assert.equal(headers.get("permissions-policy"), "geolocation=(), camera=(), microphone=(), accelerometer=(), magnetometer=(), gyroscope=(), payment=(), usb=()");
     assert.equal(headers.get("access-control-allow-origin"), expectedCors || "*");
-    assert.equal(headers.get("access-control-allow-methods"), "GET,POST,OPTIONS");
+    assert.equal(headers.get("access-control-allow-methods"), "GET,POST,PATCH,OPTIONS");
     assert.ok(headers.get("access-control-allow-headers"));
   }
 
@@ -88,5 +88,30 @@ describe("Security Headers Regression Tests (Z84/Z81/Z82)", () => {
     const hsts = resp.headers.get("strict-transport-security");
     assert.ok(hsts.includes("max-age=31536000"));
     assert.ok(hsts.includes("includeSubDomains"));
+  });
+
+  it("jsonResponse accepts extraHeaders (S2 Retry-After on 429)", async () => {
+    const resp = jsonResponse(
+      { error: "Too Many Requests", retry_after_seconds: 60 },
+      429,
+      null,
+      null,
+      { "Retry-After": "60" }
+    );
+    assert.equal(resp.status, 429);
+    assert.equal(resp.headers.get("Retry-After"), "60");
+    // Security headers nadal obecne
+    assert.equal(resp.headers.get("x-content-type-options"), "nosniff");
+  });
+
+  it("access-control-allow-headers includes x-trust-editor-secret (S3)", async () => {
+    const resp = jsonResponse({});
+    const allowHeaders = resp.headers.get("access-control-allow-headers") || "";
+    assert.ok(allowHeaders.includes("x-trust-editor-secret"));
+  });
+
+  it("access-control-allow-methods includes PATCH (S3 trust-level endpoint)", async () => {
+    const resp = jsonResponse({});
+    assert.equal(resp.headers.get("access-control-allow-methods"), "GET,POST,PATCH,OPTIONS");
   });
 });

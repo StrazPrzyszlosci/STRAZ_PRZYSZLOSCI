@@ -15,9 +15,9 @@ export function getSecurityHeaders(env = null, request = null) {
   return {
     "content-type": "application/json; charset=utf-8",
     "access-control-allow-origin": corsOrigin,
-    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
     "access-control-allow-headers":
-      "content-type,x-provider-token,x-hub-signature-256,x-telegram-bot-api-secret-token,x-discord-bot-secret",
+      "content-type,x-provider-token,x-hub-signature-256,x-telegram-bot-api-secret-token,x-discord-bot-secret,x-trust-editor-secret",
     "strict-transport-security": "max-age=31536000; includeSubDomains",
     "x-content-type-options": "nosniff",
     "x-frame-options": "DENY",
@@ -27,9 +27,15 @@ export function getSecurityHeaders(env = null, request = null) {
   };
 }
 
-export function jsonResponse(payload, status = 200, env = null, request = null) {
+export function jsonResponse(payload, status = 200, env = null, request = null, extraHeaders = null) {
+  const headers = getSecurityHeaders(env, request);
+  if (extraHeaders) {
+    for (const [key, value] of Object.entries(extraHeaders)) {
+      headers[key] = value;
+    }
+  }
   return new Response(JSON.stringify(payload), {
     status,
-    headers: getSecurityHeaders(env, request),
+    headers,
   });
 }

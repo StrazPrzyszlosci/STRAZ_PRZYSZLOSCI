@@ -2,6 +2,7 @@ import { generateRecommendation } from "./recommendation.js";
 import { fetchWithTimeout } from "./base_utils.js";
 import { getCorsAllowOrigin, jsonResponse } from "./security_headers.js";
 import { checkGlobalRateLimit } from "./global_rate_limiter.js";
+import { checkProviderRateLimit } from "./provider_rate_limiter.js";
 import {
   handleWhatsAppVerification,
   handleWhatsAppWebhook,
@@ -200,6 +201,9 @@ function validateEvent(payload) {
     throw new Error("Brak provider.provider_id");
   }
   validateProviderId(payload.provider.provider_id, payload.provider.provider_kind);
+  if (payload.kind !== undefined && typeof payload.kind !== "string") {
+    throw new Error("Pole kind musi być tekstem.");
+  }
   return payload;
 }
 
@@ -218,11 +222,13 @@ async function hashToken(token) {
 }
 
 async function getProvider(env, providerId) {
+  await ensureProviderTrustLevelColumn(env);
   return env.DB.prepare(
     `
     SELECT provider_id, provider_kind, provider_label, node_class,
            supports_water_quality, supports_flow_monitoring, supports_edge_vision_summary,
-           schema_version, write_token_hash, registered_at, last_seen_at
+           schema_version, write_token_hash, registered_at, last_seen_at,
+           trust_level
     FROM providers
     WHERE provider_id = ?
     `
@@ -283,6 +289,69 @@ async function rotateProviderToken(env, providerId) {
     write_token: writeToken,
   };
 }
+
+async function ensureProviderTrustLevelColumn(env) {
+  const columns = await env.DB.prepare(`PRAGMA table_info(providers)`).all();
+  const names = new Set((columns?.results || []).map((row) => row.name));
+  if (!names.has("trust_level")) {
+    await env.DB.prepare(
+      `ALTER TABLE providers ADD COLUMN trust_level INTEGER NOT NULL DEFAULT 0`
+    ).run();
+  }
+}
+
+function getProviderTrustLevel(provider) {
+  if (!provider) return 0;
+  const raw = Number(provider.trust_level);
+  if (!Number.isFinite(raw) || raw < 0) return 0;
+  return Math.floor(raw);
+}
+
+const DECISION_TRUST_LEVEL_REQUIRED = 2;
+function getDecisionTrustLevelRequired(env) {
+  const raw = Number(env.PROVIDER_DECISION_TRUST_LEVEL);
+  if (!Number.isFinite(raw) || raw < 0) return DECISION_TRUST_LEVEL_REQUIRED;
+  return Math.floor(raw);
+}
+
+async function setProviderTrustLevel(env, providerId, trustLevel) {
+  await env.DB.prepare(
+    `UPDATE providers SET trust_level = ? WHERE provider_id = ?`
+  )
+    .bind(trustLevel, providerId)
+    .run();
+}
+
+function isTrustLevelEditor(env) {
+  const editorSecret = env.PROVIDER_TRUST_EDITOR_SECRET;
+  if (!editorSecret) return false;
+  return true;
+}
+
+async function requireTrustLevelEditor(request, env) {
+  if (!isTrustLevelEditor(env)) {
+    throw new AuthError("Zmiana trust_level wymaga ustawienia PROVIDER_TRUST_EDITOR_SECRET w środowisku Worker.");
+  }
+  const provided = request.headers.get("X-Trust-Editor-Secret");
+  if (!provided || provided !== env.PROVIDER_TRUST_EDITOR_SECRET) {
+    throw new AuthError("Brak lub nieprawidłowy X-Trust-Editor-Secret.");
+  }
+}
+
+function validateTrustLevel(value) {
+  const raw = Number(value);
+  if (!Number.isInteger(raw) || raw < 0 || raw > 10) {
+    throw new Error("trust_level musi być liczbą całkowitą z zakresu 0-10.");
+  }
+  return raw;
+}
+
+export {
+  validateTrustLevel,
+  getProviderTrustLevel,
+  getDecisionTrustLevelRequired,
+  DECISION_TRUST_LEVEL_REQUIRED,
+};
 
 async function upsertProvider(env, provider, writeTokenHash) {
   const currentTime = nowIso();
@@ -539,6 +608,73 @@ export default {
         return jsonResponse(response, 200);
       }
 
+      const heartbeatMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/heartbeat$/);
+      if (request.method === "POST" && heartbeatMatch) {
+        const providerId = heartbeatMatch[1];
+        ensureProviderEnvironmentAllowed(
+          providerId,
+          deploymentEnvironment,
+          allowedProviderEnvironments
+        );
+        const existingProvider = await getProvider(env, providerId);
+        if (!existingProvider) {
+          throw new NotFoundError("Nie znaleziono providera.");
+        }
+        await requireProviderToken(request, env, providerId);
+        const providerRateLimit = await checkProviderRateLimit(env, providerId);
+        if (!providerRateLimit.allowed) {
+          return jsonResponse(
+            {
+              error: "Too Many Requests for provider",
+              reason: providerRateLimit.reason,
+              provider_id: providerId,
+              retry_after_seconds: providerRateLimit.retry_after_seconds,
+            },
+            429,
+            null,
+            null,
+            { "Retry-After": String(providerRateLimit.retry_after_seconds || 60) }
+          );
+        }
+        await updateProviderSeen(env, providerId);
+        return jsonResponse(
+          {
+            status: "ok",
+            provider_id: providerId,
+            last_seen_at_iso: nowIso(),
+            trust_level: getProviderTrustLevel(existingProvider),
+          },
+          200
+        );
+      }
+
+      const trustLevelMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/trust-level$/);
+      if (request.method === "PATCH" && trustLevelMatch) {
+        const providerId = trustLevelMatch[1];
+        ensureProviderEnvironmentAllowed(
+          providerId,
+          deploymentEnvironment,
+          allowedProviderEnvironments
+        );
+        const existingProvider = await getProvider(env, providerId);
+        if (!existingProvider) {
+          throw new NotFoundError("Nie znaleziono providera.");
+        }
+        await requireTrustLevelEditor(request, env);
+        const body = await readJson(request);
+        const requestedLevel = validateTrustLevel(body?.trust_level);
+        await setProviderTrustLevel(env, providerId, requestedLevel);
+        return jsonResponse(
+          {
+            status: "updated",
+            provider_id: providerId,
+            trust_level: requestedLevel,
+            decision_trust_level_required: getDecisionTrustLevelRequired(env),
+          },
+          200
+        );
+      }
+
       if (request.method === "POST" && url.pathname === "/v1/observations") {
         const observation = validateObservation(await readJson(request));
         ensureProviderEnvironmentAllowed(
@@ -547,6 +683,23 @@ export default {
           allowedProviderEnvironments
         );
         await requireProviderToken(request, env, observation.provider.provider_id);
+        const providerRateLimit = await checkProviderRateLimit(env, observation.provider.provider_id);
+        if (!providerRateLimit.allowed) {
+          return jsonResponse(
+            {
+              error: "Too Many Requests for provider",
+              reason: providerRateLimit.reason,
+              provider_id: observation.provider.provider_id,
+              limit: providerRateLimit.limit,
+              current: providerRateLimit.current,
+              retry_after_seconds: providerRateLimit.retry_after_seconds,
+            },
+            429,
+            null,
+            null,
+            { "Retry-After": String(providerRateLimit.retry_after_seconds || 60) }
+          );
+        }
         await saveObservation(env, observation);
         await updateProviderSeen(env, observation.provider.provider_id);
         return jsonResponse(
@@ -566,7 +719,40 @@ export default {
           deploymentEnvironment,
           allowedProviderEnvironments
         );
-        await requireProviderToken(request, env, eventPayload.provider.provider_id);
+        const provider = await requireProviderToken(request, env, eventPayload.provider.provider_id);
+        const providerRateLimit = await checkProviderRateLimit(env, eventPayload.provider.provider_id);
+        if (!providerRateLimit.allowed) {
+          return jsonResponse(
+            {
+              error: "Too Many Requests for provider",
+              reason: providerRateLimit.reason,
+              provider_id: eventPayload.provider.provider_id,
+              limit: providerRateLimit.limit,
+              current: providerRateLimit.current,
+              retry_after_seconds: providerRateLimit.retry_after_seconds,
+            },
+            429,
+            null,
+            null,
+            { "Retry-After": String(providerRateLimit.retry_after_seconds || 60) }
+          );
+        }
+        const eventKind = eventPayload.kind || "telemetry";
+        if (eventKind === "decision") {
+          const providerTrust = getProviderTrustLevel(provider);
+          const required = getDecisionTrustLevelRequired(env);
+          if (providerTrust < required) {
+            return jsonResponse(
+              {
+                error: "Forbidden: trust_level insufficient for decision event",
+                provider_id: eventPayload.provider.provider_id,
+                trust_level: providerTrust,
+                required_trust_level: required,
+              },
+              403
+            );
+          }
+        }
         await saveEvent(env, eventPayload);
         await updateProviderSeen(env, eventPayload.provider.provider_id);
         return jsonResponse(
@@ -574,6 +760,7 @@ export default {
             status: "accepted",
             provider_id: eventPayload.provider.provider_id,
             pond_id: eventPayload.pond.pond_id,
+            event_kind: eventKind,
           },
           202
         );
