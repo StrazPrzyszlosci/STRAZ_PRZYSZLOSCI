@@ -22,7 +22,21 @@ SYMBOL_FIXTURE = '''
     (property "MPN" "TPS65994AD" (at 0 0 0))
     (property "Manufacturer" "Texas Instruments" (at 0 0 0))
     (property "ki_keywords" "USB PD controller" (at 0 0 0))
+    (property "ki_fp_filters" "QFN*QFN-56*" (at 0 0 0))
+    (property "dnp" "0" (at 0 0 0))
+    (property "exclude_from_sim" "0" (at 0 0 0))
     (symbol "TPS65994_0_1" (rectangle (start 0 0) (end 1 1)))
+  )
+)
+'''
+
+SYMBOL_FIXTURE_ALT_MPN = '''
+(kicad_symbol_lib (version 20240100) (generator "test")
+  (symbol "NoNamePart"
+    (property "Reference" "R" (at 0 0 0))
+    (property "Value" "NoNamePart" (at 0 0 0))
+    (property "MPN_Alt" "ALT123" (at 0 0 0))
+    (symbol "NoNamePart_0_1" (rectangle (start 0 0) (end 1 1)))
   )
 )
 '''
@@ -68,9 +82,32 @@ class CernKicadImporterTests(unittest.TestCase):
         self.assertEqual(symbol.mpn, "TPS65994AD")
         self.assertEqual(symbol.normalized_part_number, "TPS65994AD")
         self.assertEqual(symbol.license_spdx, "CERN-OHL-P-2.0")
+        # S4: dodatkowe metadane KiCad w raw_metadata_json.
+        raw_meta = json.loads(symbol.raw_metadata_json)
+        self.assertEqual(raw_meta["ki_fp_filters"], "QFN*QFN-56*")
+        self.assertEqual(raw_meta["dnp"], "0")
+        self.assertEqual(raw_meta["exclude_from_sim"], "0")
         footprint = rows[1]
         self.assertEqual(footprint.artifact_type, "footprint")
         self.assertEqual(footprint.footprint_name, "Package_QFN:QFN-56-1EP_7x7mm_P0.4mm")
+
+    def test_iter_components_uses_mpn_alt_fallback_when_no_mpn(self):
+        """S4: MPN_Alt/Substitution fallback gdy brak jawnego MPN."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "AltPart.kicad_sym").write_text(SYMBOL_FIXTURE_ALT_MPN, encoding="utf-8")
+            rows = iter_components(root, {
+                "source_slug": "cern-kicad-libs",
+                "source_url": "https://gitlab.com/ohwr/cern-kicad-libs",
+                "license_spdx": "CERN-OHL-P-2.0",
+                "upstream_commit": "fixture",
+                "kicad_version_family": "9.x",
+            }, sample_limit=None)
+        self.assertEqual(len(rows), 1)
+        symbol = rows[0]
+        self.assertEqual(symbol.mpn, "ALT123")
+        self.assertEqual(symbol.normalized_part_number, "ALT123")
+        self.assertEqual(symbol.artifact_type, "symbol")
 
     def test_run_import_writes_jsonl_csv_and_report(self):
         with tempfile.TemporaryDirectory() as temp_dir:

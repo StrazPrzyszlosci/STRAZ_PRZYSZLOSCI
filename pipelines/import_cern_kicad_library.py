@@ -157,14 +157,37 @@ def component_from_symbol(
     props = extract_properties(symbol_form)
     symbol_name = extract_symbol_name(symbol_form)
     value = props.get("Value") or symbol_name
-    mpn = props.get("MPN") or props.get("Manufacturer Part Number") or ""
+    # S4: MPN priorytet — MPN, Manufacturer Part Number, MPN_Alt/Substitution jako fallback.
+    mpn = (
+        props.get("MPN")
+        or props.get("Manufacturer Part Number")
+        or props.get("MPN_Alt")
+        or props.get("Substitution")
+        or ""
+    )
     description = props.get("Description") or props.get("ki_description") or ""
     keywords = props.get("ki_keywords") or props.get("Keywords") or ""
     footprint = props.get("Footprint") or ""
     manufacturer = props.get("Manufacturer") or props.get("MFR") or ""
-    package = props.get("Package") or props.get("ki_fp_filters") or ""
+    # S4: package preferuje jawne "Package" property; ki_fp_filters captured w extra_fields.
+    ki_fp_filters = props.get("ki_fp_filters") or props.get("ki_footprint_filters") or ""
+    package = props.get("Package") or ki_fp_filters or ""
     datasheet = props.get("Datasheet") or ""
     part_number = mpn or value or symbol_name
+
+    # S4: zbieramy dodatkowe metadane sterujące KiCad (deterministyczne, niewymagające AI).
+    dnp = props.get("dnp") or props.get("DNP") or ""
+    exclude_from_sim = props.get("exclude_from_sim") or props.get("Exclude_from_sim") or ""
+
+    # Zachowujemy pełne props + dodatkowe klucze w raw_metadata_json.
+    raw_metadata = {
+        "properties": props,
+        "ki_fp_filters": ki_fp_filters,
+        "dnp": dnp,
+        "exclude_from_sim": exclude_from_sim,
+        "mpn_alt": props.get("MPN_Alt") or "",
+        "substitution": props.get("Substitution") or "",
+    }
 
     return KicadComponent(
         source_slug=source_slug,
@@ -186,7 +209,7 @@ def component_from_symbol(
         normalized_part_number=normalize_part_number(part_number),
         raw_symbol_path=relative_to_root(symbol_path, source_root),
         raw_footprint_path="",
-        raw_metadata_json=json.dumps({"properties": props}, ensure_ascii=False, sort_keys=True),
+        raw_metadata_json=json.dumps(raw_metadata, ensure_ascii=False, sort_keys=True),
     )
 
 
