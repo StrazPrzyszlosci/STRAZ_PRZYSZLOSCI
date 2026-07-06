@@ -226,13 +226,13 @@ async function hashToken(token) {
 }
 
 async function getProvider(env, providerId) {
-  await ensureProviderTrustLevelColumn(env);
+  await ensureProviderLifecycleSchema(env);
   return env.DB.prepare(
     `
     SELECT provider_id, provider_kind, provider_label, node_class,
            supports_water_quality, supports_flow_monitoring, supports_edge_vision_summary,
            schema_version, write_token_hash, registered_at, last_seen_at,
-           trust_level
+           trust_level, provider_status
     FROM providers
     WHERE provider_id = ?
     `
@@ -241,7 +241,7 @@ async function getProvider(env, providerId) {
     .first();
 }
 
-async function requireProviderToken(request, env, providerId) {
+async function requireProviderToken(request, env, providerId, options = {}) {
   const token = request.headers.get("X-Provider-Token");
   const provider = await getProvider(env, providerId);
   if (!provider) {
@@ -254,6 +254,9 @@ async function requireProviderToken(request, env, providerId) {
   if (provider.write_token_hash !== tokenHash) {
     throw new AuthError("Brak poprawnego tokenu providera.");
   }
+  if (!options.allowInactive && !isProviderActive(provider)) {
+    throw new ForbiddenError("Provider jest nieaktywny. Wyślij heartbeat lub skontaktuj się z maintainerem.");
+  }
   return provider;
 }
 
@@ -261,7 +264,7 @@ async function updateProviderSeen(env, providerId) {
   await env.DB.prepare(
     `
     UPDATE providers
-    SET last_seen_at = ?
+    SET last_seen_at = ?, provider_status = 'active'
     WHERE provider_id = ?
     `
   )
@@ -279,7 +282,7 @@ async function rotateProviderToken(env, providerId) {
   await env.DB.prepare(
     `
     UPDATE providers
-    SET write_token_hash = ?, last_seen_at = ?
+    SET write_token_hash = ?, last_seen_at = ?, provider_status = 'active'
     WHERE provider_id = ?
     `
   )
@@ -294,7 +297,8 @@ async function rotateProviderToken(env, providerId) {
   };
 }
 
-async function ensureProviderTrustLevelColumn(env) {
+async function ensureProviderLifecycleSchema(env) {
+  if (!env?.DB) return { success: false, reason: "no_db" };
   const columns = await env.DB.prepare(`PRAGMA table_info(providers)`).all();
   const names = new Set((columns?.results || []).map((row) => row.name));
   if (!names.has("trust_level")) {
@@ -302,6 +306,34 @@ async function ensureProviderTrustLevelColumn(env) {
       `ALTER TABLE providers ADD COLUMN trust_level INTEGER NOT NULL DEFAULT 0`
     ).run();
   }
+  if (!names.has("provider_status")) {
+    await env.DB.prepare(
+      `ALTER TABLE providers ADD COLUMN provider_status TEXT NOT NULL DEFAULT 'active'`
+    ).run();
+  }
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS provider_lifecycle_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider_id TEXT NOT NULL,
+      previous_status TEXT,
+      next_status TEXT NOT NULL,
+      reason TEXT,
+      created_at TEXT NOT NULL
+    )`
+  ).run();
+  await env.DB.prepare(
+    `CREATE INDEX IF NOT EXISTS idx_provider_lifecycle_events_provider_created
+      ON provider_lifecycle_events(provider_id, created_at)`
+  ).run();
+  return { success: true };
+}
+
+async function ensureProviderTrustLevelColumn(env) {
+  return await ensureProviderLifecycleSchema(env);
+}
+
+function isProviderActive(provider) {
+  return !provider?.provider_status || provider.provider_status === "active";
 }
 
 function getProviderTrustLevel(provider) {
@@ -350,11 +382,70 @@ function validateTrustLevel(value) {
   return raw;
 }
 
+
+function inactiveProviderCutoffIso(now = new Date(), inactiveHours = 72) {
+  const hours = Number.isFinite(Number(inactiveHours)) ? Number(inactiveHours) : 72;
+  return new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
+}
+
+export async function autoDeactivateInactiveProviders(env, options = {}) {
+  if (!env?.DB) {
+    return { success: true, reason: "no_db", deactivated_count: 0 };
+  }
+  try {
+    await ensureProviderLifecycleSchema(env);
+    const now = options.now || new Date();
+    const inactiveHours = options.inactiveHours || env.PROVIDER_INACTIVE_AFTER_HOURS || 72;
+    const cutoff = inactiveProviderCutoffIso(now, inactiveHours);
+    const staleRows = await env.DB.prepare(
+      `SELECT provider_id, provider_status
+       FROM providers
+       WHERE last_seen_at < ?
+         AND COALESCE(provider_status, 'active') != 'inactive'`
+    )
+      .bind(cutoff)
+      .all();
+    const rows = staleRows?.results || [];
+    if (!rows.length) {
+      return { success: true, deactivated_count: 0, cutoff };
+    }
+    await env.DB.prepare(
+      `UPDATE providers
+       SET provider_status = 'inactive'
+       WHERE last_seen_at < ?
+         AND COALESCE(provider_status, 'active') != 'inactive'`
+    )
+      .bind(cutoff)
+      .run();
+    const createdAt = now.toISOString();
+    for (const row of rows) {
+      await env.DB.prepare(
+        `INSERT INTO provider_lifecycle_events
+          (provider_id, previous_status, next_status, reason, created_at)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+        .bind(
+          row.provider_id,
+          row.provider_status || "active",
+          "inactive",
+          `auto_deactivate_no_heartbeat_${inactiveHours}h`,
+          createdAt
+        )
+        .run();
+    }
+    return { success: true, deactivated_count: rows.length, cutoff };
+  } catch (error) {
+    console.error("[provider-lifecycle] auto-deactivate failed open:", error);
+    return { success: true, reason: "failed_open", deactivated_count: 0, error: error?.message || String(error) };
+  }
+}
+
 export {
   validateTrustLevel,
   getProviderTrustLevel,
   getDecisionTrustLevelRequired,
   DECISION_TRUST_LEVEL_REQUIRED,
+  isProviderActive,
 };
 
 async function upsertProvider(env, provider, writeTokenHash) {
@@ -364,8 +455,8 @@ async function upsertProvider(env, provider, writeTokenHash) {
     INSERT INTO providers (
       provider_id, provider_kind, provider_label, node_class,
       supports_water_quality, supports_flow_monitoring, supports_edge_vision_summary,
-      schema_version, write_token_hash, registered_at, last_seen_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'v1', ?, ?, ?)
+      schema_version, write_token_hash, registered_at, last_seen_at, provider_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'v1', ?, ?, ?, 'active')
     ON CONFLICT(provider_id) DO UPDATE SET
       provider_kind = excluded.provider_kind,
       provider_label = excluded.provider_label,
@@ -374,7 +465,8 @@ async function upsertProvider(env, provider, writeTokenHash) {
       supports_flow_monitoring = excluded.supports_flow_monitoring,
       supports_edge_vision_summary = excluded.supports_edge_vision_summary,
       write_token_hash = excluded.write_token_hash,
-      last_seen_at = excluded.last_seen_at
+      last_seen_at = excluded.last_seen_at,
+      provider_status = 'active'
     `
   )
     .bind(
@@ -485,10 +577,11 @@ function shouldApplyGlobalRateLimit(request, url, env) {
 export default {
   async scheduled(_event, env, _ctx) {
     await applyMigrations(env.DB);
+    const providerLifecycle = await autoDeactivateInactiveProviders(env);
     const ingest = await runScheduledKicadImport(env);
     const verify = await runKicadVerifier(env);
     const curate = await runKicadCurator(env);
-    return { ingest, verify, curate };
+    return { providerLifecycle, ingest, verify, curate };
   },
 
   async fetch(request, env, ctx) {
@@ -623,7 +716,7 @@ export default {
         if (!existingProvider) {
           throw new NotFoundError("Nie znaleziono providera.");
         }
-        await requireProviderToken(request, env, providerId);
+        await requireProviderToken(request, env, providerId, { allowInactive: true });
         const response = await rotateProviderToken(env, providerId);
         return jsonResponse(response, 200);
       }
@@ -640,7 +733,7 @@ export default {
         if (!existingProvider) {
           throw new NotFoundError("Nie znaleziono providera.");
         }
-        await requireProviderToken(request, env, providerId);
+        await requireProviderToken(request, env, providerId, { allowInactive: true });
         const providerRateLimit = await checkProviderRateLimit(env, providerId);
         if (!providerRateLimit.allowed) {
           return jsonResponse(
@@ -809,11 +902,13 @@ export default {
 
       const statusMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/status$/);
       if (request.method === "GET" && statusMatch) {
+        await ensureProviderLifecycleSchema(env);
         const providerId = statusMatch[1];
         const result = await env.DB.prepare(
           `
           SELECT provider_id, schema_version, last_seen_at,
-                 supports_water_quality, supports_flow_monitoring, supports_edge_vision_summary
+                 supports_water_quality, supports_flow_monitoring, supports_edge_vision_summary,
+                 provider_status
           FROM providers
           WHERE provider_id = ?
           `
@@ -828,7 +923,7 @@ export default {
         return jsonResponse(
           {
             provider_id: result.provider_id,
-            status: "ok",
+            status: result.provider_status || "active",
             last_seen_at: result.last_seen_at,
             schema_version: result.schema_version,
             supports_water_quality: Boolean(result.supports_water_quality),

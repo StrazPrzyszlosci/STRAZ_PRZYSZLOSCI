@@ -310,6 +310,29 @@ export const MIGRATIONS = [
     sql: `CREATE INDEX IF NOT EXISTS idx_kicad_ocr_queue_status_created
       ON kicad_ocr_queue(status, created_at);`,
   },
+  {
+    version: "20260706000016-execution-packs",
+    name: "Ensure execution_packs table for B5 bot initiator",
+    sql: `CREATE TABLE IF NOT EXISTS execution_packs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pack_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      reviewer TEXT NOT NULL,
+      fork_branch TEXT,
+      pr_url TEXT,
+      canary_mode INTEGER NOT NULL DEFAULT 1,
+      initiated_by TEXT,
+      platform TEXT NOT NULL DEFAULT 'discord',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20260706000017-execution-packs-status-index",
+    name: "Ensure execution_packs pack/status index for B5",
+    sql: `CREATE INDEX IF NOT EXISTS idx_execution_packs_pack_status
+      ON execution_packs(pack_id, status);`,
+  },
 ];
 
 async function runSql(db, sql) {
