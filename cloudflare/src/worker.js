@@ -4,6 +4,9 @@ import { getCorsAllowOrigin, jsonResponse } from "./security_headers.js";
 import { checkGlobalRateLimit } from "./global_rate_limiter.js";
 import { checkProviderRateLimit } from "./provider_rate_limiter.js";
 import { computeAutomationMetrics } from "./automation_metrics.js";
+import { runScheduledKicadImport } from "./scheduled_kicad_importer.js";
+import { runKicadVerifier } from "./kicad_verifier.js";
+import { runKicadCurator } from "./kicad_curator.js";
 import {
   handleWhatsAppVerification,
   handleWhatsAppWebhook,
@@ -480,6 +483,14 @@ function shouldApplyGlobalRateLimit(request, url, env) {
 }
 
 export default {
+  async scheduled(_event, env, _ctx) {
+    await applyMigrations(env.DB);
+    const ingest = await runScheduledKicadImport(env);
+    const verify = await runKicadVerifier(env);
+    const curate = await runKicadCurator(env);
+    return { ingest, verify, curate };
+  },
+
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
       return jsonResponse({ ok: true }, 200);
