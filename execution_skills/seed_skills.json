@@ -1,0 +1,90 @@
+{
+  "skills": [
+    {
+      "id": "repo_scout",
+      "version": "v1",
+      "status": "draft",
+      "goal": "Monitorować zewnętrzne repozytoria i tworzyć krótkie, audytowalne karty inspiracji dla Straży Przyszłości.",
+      "mission_alignment": ["knowledge", "auditability", "hardware_reuse"],
+      "allowed_modes": ["read-only", "suggest-only"],
+      "inputs": [
+        { "name": "external repository URL", "kind": "external_repo", "required": true, "provenance_required": true },
+        { "name": "current handoff", "kind": "handoff", "required": true, "provenance_required": true }
+      ],
+      "outputs": [
+        { "path_or_type": "docs/external_repos/<repo-id>.md", "description": "Karta inspiracji z mapowaniem na misję, ryzykami i zakresem safe-use.", "review_required": true }
+      ],
+      "audit_trail": { "must_record_inputs": true, "must_record_tool_versions": true, "must_record_decisions": true, "must_record_artifacts": true },
+      "review_gates": [
+        { "gate": "license_and_security_review", "reviewer_role": "integrity_reviewer", "blocks": ["runtime_adoption", "vendoring_code"] }
+      ],
+      "safety_notes": ["Nie vendorować kodu zewnętrznego bez osobnego review licencji i bezpieczeństwa."],
+      "next_handoff": "Zaktualizuj registry.json i zaproponuj tylko suggest-only kroki integracyjne."
+    },
+    {
+      "id": "edge_onboarding",
+      "version": "v1",
+      "status": "draft",
+      "goal": "Prowadzić operatora przez przygotowanie smartfona lub low-power node jako audytowalnego węzła edge.",
+      "mission_alignment": ["hardware_reuse", "waste", "auditability", "safety"],
+      "allowed_modes": ["read-only", "suggest-only", "dry-run", "hardware-lab"],
+      "inputs": [
+        { "name": "device profile", "kind": "operator_note", "required": true, "provenance_required": true },
+        { "name": "bench observations", "kind": "sensor_data", "required": false, "provenance_required": true }
+      ],
+      "outputs": [
+        { "path_or_type": "device_profile.json", "description": "Profil urządzenia, możliwości, ograniczenia i źródło sprzętu.", "review_required": true },
+        { "path_or_type": "install_receipt.json", "description": "Ślad instalacji, wersje narzędzi, wybrany profil i wynik kroków.", "review_required": true },
+        { "path_or_type": "bench_test_report.md", "description": "Raport testu bezpiecznego działania bez kontroli fizycznej wysokiego ryzyka.", "review_required": true }
+      ],
+      "audit_trail": { "must_record_inputs": true, "must_record_tool_versions": true, "must_record_decisions": true, "must_record_artifacts": true },
+      "review_gates": [
+        { "gate": "no_physical_actuation_without_human_approval", "reviewer_role": "hardware_safety_reviewer", "blocks": ["pump_control", "heater_control", "relay_control", "dosing_control"] }
+      ],
+      "safety_notes": ["Domyślnie wolno tylko mierzyć, raportować i sugerować; sterowanie światem fizycznym wymaga osobnego zatwierdzenia."],
+      "next_handoff": "Wygeneruj artefakty profilu i raport testowy, nie uruchamiaj automatycznego sterowania."
+    },
+    {
+      "id": "aquaponics_observer",
+      "version": "v1",
+      "status": "draft",
+      "goal": "Zbierać obserwacje akwaponiki/hydroponiki i proponować działania bez automatycznego dozowania lub sterowania pompami.",
+      "mission_alignment": ["food", "water", "knowledge", "safety", "auditability"],
+      "allowed_modes": ["read-only", "suggest-only", "dry-run"],
+      "inputs": [
+        { "name": "water measurements", "kind": "sensor_data", "required": true, "provenance_required": true },
+        { "name": "plant or fish photos", "kind": "photo", "required": false, "provenance_required": true }
+      ],
+      "outputs": [
+        { "path_or_type": "aquaponics_observation_report.md", "description": "Raport obserwacji, niepewności, sugestii i pytań do operatora.", "review_required": true }
+      ],
+      "audit_trail": { "must_record_inputs": true, "must_record_tool_versions": true, "must_record_decisions": true, "must_record_artifacts": true },
+      "review_gates": [
+        { "gate": "human_operator_before_biology_change", "reviewer_role": "food_safety_reviewer", "blocks": ["chemical_dosing", "feeding_change", "water_change", "stocking_change"] }
+      ],
+      "safety_notes": ["Nie podejmować decyzji biologicznych na podstawie pojedynczego czujnika lub pojedynczej odpowiedzi AI."],
+      "next_handoff": "Zapisz raport obserwacji i wskaż brakujące pomiary przed rekomendacją działań."
+    },
+    {
+      "id": "handoff_builder",
+      "version": "v1",
+      "status": "draft",
+      "goal": "Czytać ostatnie zmiany, testy i ryzyka, a potem tworzyć następny handoff z konkretnymi zadaniami i kryteriami odbioru.",
+      "mission_alignment": ["knowledge", "auditability", "social_coordination"],
+      "allowed_modes": ["read-only", "suggest-only", "staging-write"],
+      "inputs": [
+        { "name": "git log", "kind": "repo_file", "required": true, "provenance_required": true },
+        { "name": "previous handoff", "kind": "handoff", "required": true, "provenance_required": true }
+      ],
+      "outputs": [
+        { "path_or_type": "docs/HANDOFF_DLA_NASTEPNEGO_AGENTA_<date>.md", "description": "Nowy handoff ze statusem, testami, ryzykami i backlogiem.", "review_required": true }
+      ],
+      "audit_trail": { "must_record_inputs": true, "must_record_tool_versions": true, "must_record_decisions": true, "must_record_artifacts": true },
+      "review_gates": [
+        { "gate": "no_false_green_status", "reviewer_role": "integrity_reviewer", "blocks": ["claiming_pass_without_test", "hiding_known_blockers"] }
+      ],
+      "safety_notes": ["Handoff musi rozróżniać awarie testów od poprawnego stanu governance BLOCKED."],
+      "next_handoff": "Podaj następne 3-5 zadań z acceptance criteria i znanymi ryzykami."
+    }
+  ]
+}

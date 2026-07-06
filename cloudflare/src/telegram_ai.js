@@ -3215,7 +3215,7 @@ function buildPartLookupReply(queryText, matches) {
   return { text: lines.join("\n"), reply_markup: replyMarkup };
 }
 
-function buildPartMasterDetailReply(part) {
+async function buildPartMasterDetailReply(env, part) {
   let params = {};
   try {
     params = typeof part.parameters === 'string' ? JSON.parse(part.parameters || '{}') : (part.parameters || {});
@@ -3243,6 +3243,16 @@ function buildPartMasterDetailReply(part) {
 
   if (part.donor_count > 0) {
     lines.push(`\n♻️ Znaleziono w ${part.donor_count} zrecyklingowanych urządzeniach.`);
+    const donorMatches = await searchPartDonors(env, part.part_number || part.part_name);
+    if (donorMatches.length) {
+      lines.push("Przykładowi dawcy:");
+      for (const donor of donorMatches.slice(0, 5)) {
+        const donorName = formatDeviceName(donor.device);
+        if (donorName) {
+          lines.push(`- ${donorName}${donor.designator ? ` | ${donor.designator}` : ""}`);
+        }
+      }
+    }
   }
 
   return lines.join("\n");
@@ -4026,7 +4036,7 @@ export async function handleRecycledKnowledgeLookup(env, message) {
   const masterMatches = await findPartMasterMatches(env, queryText);
   if (masterMatches && masterMatches.length > 0) {
     const bestPart = masterMatches[0];
-    let replyText = buildPartMasterDetailReply(bestPart);
+    let replyText = await buildPartMasterDetailReply(env, bestPart);
     if (!bestPart.kicad_symbol || !bestPart.kicad_footprint) {
       const kicadLookup = await findKicadLookupMatches(env, bestPart.part_number || queryText, { limit: 3 });
       if (kicadLookup.matches.length) {
@@ -4269,7 +4279,7 @@ export async function answerPartLookupQuestion(env, session, userQuestion) {
       env,
       buildPromptPayload(
         [
-          "Jesteś asystentem elektronika i odpowiadasz na podstawie lokalnej bazy części oraz dołączonej dokumentacji PDF.",
+          "Jesteś asystentem elektronika i odpowiadasz na podstawie lokalnej bazy części reuse oraz dołączonej dokumentacji PDF.",
           "Jeśli masz dostęp do dokumentu PDF w załączniku, traktuj go jako główne źródło prawdy o parametrach części.",
           "ZWRÓĆ UWAGĘ: Zawsze weryfikuj, czy dostarczony PDF faktycznie opisuje zadaną część. Jeśli opisuje zupełnie inny układ, poinformuj użytkownika i zignoruj treść PDF, zgłaszając błąd w bazie.",
           "Jeśli dokumentacja jest w języku obcym (np. po chińsku), użyj swoich zdolności wizyjnych (OCR), by wyczytać uniwersalne parametry liczbowe i jednostki z tabel. Jeśli mimo to dane są nieczytelne lub nie jesteś pewny ich znaczenia - NIE ZMYŚLAJ. Jawnie poinformuj, że nie możesz jednoznacznie odczytać wartości z dokumentu.",

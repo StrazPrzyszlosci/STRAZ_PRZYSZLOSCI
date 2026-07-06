@@ -1,0 +1,12 @@
+{
+  "repositories": [
+    {
+      "id": "hermes-agent",
+      "url": "https://github.com/nousresearch/hermes-agent",
+      "role": "inspiration_and_optional_agent_runtime",
+      "local_review_path": "docs/external_repos/hermes-agent.md",
+      "why": "Self-improving agent with skills, memory, scheduled automations, messaging gateway and subagents; useful pattern for auditable chained automation.",
+      "integration_policy": "reference_only_until_security_review"
+    }
+  ]
+}

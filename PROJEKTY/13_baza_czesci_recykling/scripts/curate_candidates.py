@@ -699,6 +699,37 @@ def cmd_decide(args):
     return counts
 
 
+def write_pending_human_approval_list(review_queue):
+    pending = [e for e in review_queue if e.get("review_status") == "pending_human_approval"]
+    for e in pending:
+        e["_batch"] = assign_batch(e.get("device", ""))
+    batch_order = {r["batch"]: i for i, r in enumerate(REVIEW_BATCH_RULES)}
+    batch_order["unbatched"] = len(REVIEW_BATCH_RULES)
+    pending.sort(key=lambda e: (batch_order.get(e.get("_batch"), 99), e.get("candidate_id", "")))
+    pending_export_path = REPORTS_DIR / "pending_human_approval_list.json"
+    export_data = {
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "total_pending": len(pending),
+        "batch_rules": REVIEW_BATCH_RULES,
+        "pending_entries": [
+            {
+                "candidate_id": e["candidate_id"],
+                "part_number": e.get("part_number", ""),
+                "part_name": e.get("part_name", ""),
+                "device": e.get("device", ""),
+                "verification_status": e.get("verification_status", ""),
+                "triage_category": e.get("triage_category", ""),
+                "status_resolution_policy": e.get("status_resolution_policy", ""),
+                "review_note": e.get("review_note", ""),
+                "batch": e.get("_batch", "unbatched"),
+            }
+            for e in pending
+        ],
+    }
+    write_json(pending_export_path, export_data)
+    return pending_export_path
+
+
 def cmd_review_queue(args):
     print("=== Curation Review Queue: Generating explicit review queue ===\n")
 
@@ -793,7 +824,9 @@ def cmd_review_queue(args):
             print(f"  - {e['part_number']} ({e['part_name']}, {e['device']}) — {e['review_note']}")
 
     write_jsonl(REVIEW_QUEUE_PATH, queue_entries)
+    pending_export_path = write_pending_human_approval_list(queue_entries)
     print(f"\n Review queue saved to: {REVIEW_QUEUE_PATH}")
+    print(f" Pending list synced to: {pending_export_path}")
 
     print(f"\n=== Review Queue complete ===")
     return {
@@ -992,9 +1025,11 @@ def cmd_list_pending(args):
         return {"pending": 0}
 
     pending = [e for e in review_queue if e.get("review_status") == "pending_human_approval"]
+    pending_export_path = write_pending_human_approval_list(review_queue)
 
     if not pending:
         print(" No pending_human_approval entries found.")
+        print(f" Empty pending list synced to: {pending_export_path}")
         return {"pending": 0}
 
     for e in pending:

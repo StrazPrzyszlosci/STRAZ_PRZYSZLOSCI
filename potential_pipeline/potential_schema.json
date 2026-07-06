@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strazprzyszlosci.example/schemas/potential-dossier-v1.json",
+  "title": "PotentialDossier",
+  "type": "object",
+  "required": ["id", "status", "source", "free_or_low_cost", "mission_need", "resource_classes", "potential_score", "risk_score", "intended_products", "workflow", "review_gates", "optimization_metrics"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{2,80}$" },
+    "status": { "enum": ["draft", "ready_for_review", "approved", "rejected"] },
+    "source": { "type": "string", "minLength": 5 },
+    "free_or_low_cost": { "type": "boolean" },
+    "mission_need": { "type": "array", "minItems": 1, "items": { "enum": ["food", "waste", "water", "energy", "hardware_reuse", "sensing", "communications", "social_coordination"] } },
+    "resource_classes": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "potential_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "risk_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "intended_products": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["product", "target_use", "required_artifacts", "approval_required"],
+        "properties": {
+          "product": { "type": "string" },
+          "target_use": { "type": "string" },
+          "required_artifacts": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+          "approval_required": { "type": "boolean" }
+        }
+      }
+    },
+    "workflow": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["stage", "question", "output", "default_mode"],
+        "properties": {
+          "stage": { "enum": ["analiza_potencjalu", "zamysl", "projekt", "wykonanie", "optymalizacja"] },
+          "question": { "type": "string" },
+          "output": { "type": "string" },
+          "default_mode": { "enum": ["read-only", "suggest-only", "dry-run", "staging-write", "human-approved"] }
+        }
+      }
+    },
+    "review_gates": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "optimization_metrics": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+  }
+}
