@@ -144,4 +144,12 @@ describe("D1 Schema Migrations (Z86)", () => {
     assert.ok(allSql.includes("kicad_ocr_queue"));
     assert.ok(allSql.includes("idx_kicad_ocr_queue_status_created"));
   });
+
+  it("includes B5 execution_packs canary initiator migrations", () => {
+    const allSql = MIGRATIONS.map((m) => m.sql).join("\n");
+    assert.ok(allSql.includes("CREATE TABLE IF NOT EXISTS execution_packs"));
+    assert.ok(allSql.includes("reviewer TEXT NOT NULL"));
+    assert.ok(allSql.includes("canary_mode INTEGER NOT NULL DEFAULT 1"));
+    assert.ok(allSql.includes("idx_execution_packs_pack_status"));
+  });
 });

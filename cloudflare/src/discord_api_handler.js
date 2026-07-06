@@ -45,6 +45,7 @@ import { fetchWithTimeout, timingSafeEqualString } from "./base_utils.js";
 import { jsonResponse } from "./security_headers.js";
 import { checkPayloadSize } from "./payload_size.js";
 import { handleKicadReviewCommand, handleKicadReviewAction } from "./discord_kicad_actions.js";
+import { handleExecutionPackCommand } from "./execution_pack_initiator.js";
 import { computeAutomationMetrics, formatAutomationMetricsReply } from "./automation_metrics.js";
 
 const DISCORD_PLATFORM = "discord";
@@ -261,6 +262,11 @@ async function handleCommand(env, message, command) {
     case "kicad":
     case "kicad_review": {
       return await handleKicadReviewCommand(env, message);
+    }
+    case "execution-pack":
+    case "execution_pack":
+    case "pack": {
+      return await handleExecutionPackCommand(env, message, DISCORD_PLATFORM);
     }
     case "metrics": {
       // B4: read-only dashboard metryk AI (H2 roadmapa). Bez sekretów w reply.
