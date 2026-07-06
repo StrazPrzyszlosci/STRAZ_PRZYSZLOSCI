@@ -1,0 +1,16 @@
+{
+  "records": [
+    {
+      "id": "selfhost_compute_node_recovered_001",
+      "source": { "type": "volunteer_offer", "url_or_note": "Wolontariusz ma odzyskany mini PC dostępny wieczorami" },
+      "location": { "country": "PL", "region": "remote", "pickup_radius_km": 0 },
+      "cost": { "amount_pln": 0, "currency": "PLN", "condition": "volunteer_owned_free_quota" },
+      "resource_class": "selfhost_compute",
+      "possible_products": ["selfhost_recovered_low_power_node", "offline_rag_worker"],
+      "risks": ["limited_availability", "unknown_power_draw", "private_data_boundary_needed"],
+      "required_evidence": ["cpu_ram_disk_summary", "power_draw_estimate", "operator_availability_window"],
+      "activation_requirements": { "energy": "low-power evening window, prefer OZE surplus if available", "logistics": "remote only, no physical transfer" },
+      "activation_fit": "oze_or_free_energy"
+    }
+  ]
+}
