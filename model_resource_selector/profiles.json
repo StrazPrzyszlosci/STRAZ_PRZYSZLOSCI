@@ -1,0 +1,31 @@
+{
+  "profiles": [
+    {
+      "id": "free_public_small_model",
+      "provider_type": "free_public_api_or_web_model",
+      "cost_class": "free_quota",
+      "privacy_class": "public_or_non_sensitive_only",
+      "energy_class": "external_provider",
+      "best_for": ["summaries", "classification", "low-risk drafting"],
+      "requires_human_consent_for_private_data": true
+    },
+    {
+      "id": "selfhost_recovered_low_power_node",
+      "provider_type": "selfhost_on_recovered_hardware",
+      "cost_class": "owned_hardware_low_cost",
+      "privacy_class": "private_data_allowed_local_only",
+      "energy_class": "low_power_or_oze_preferred",
+      "best_for": ["private notes", "local routing", "offline fallback"],
+      "requires_energy_justification": false
+    },
+    {
+      "id": "selfhost_gpu_high_cost_node",
+      "provider_type": "selfhost_gpu",
+      "cost_class": "high_energy_cost",
+      "privacy_class": "private_data_allowed_local_only",
+      "energy_class": "high_energy_requires_oze_or_justification",
+      "best_for": ["batch extraction", "vision", "larger local reasoning"],
+      "requires_energy_justification": true
+    }
+  ]
+}

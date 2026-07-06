@@ -1,0 +1,48 @@
+{
+  "generated_on": "2026-07-06",
+  "providers": [
+    {
+      "id": "google_ai_studio_free",
+      "kind": "hosted_api",
+      "secret_name": "GEMINI_API_KEY",
+      "default_role": "primary_reasoning_and_multimodal",
+      "candidate_models": ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
+      "free_or_low_cost": true,
+      "quota_policy": "project-level RPM/TPM/RPD; inspect active limits in AI Studio",
+      "privacy_note": "free tier may use content to improve products; do not send private data unless policy and consent allow it",
+      "allowed_cell_modes": ["read-only", "suggest-only", "repo-staging"],
+      "blocked_modes": ["physical_actuation", "secret_exfiltration", "unreviewed_deployment"]
+    },
+    {
+      "id": "nvidia_nim_free",
+      "kind": "hosted_api",
+      "secret_name": "NVIDIA_API_KEY",
+      "default_role": "fallback_or_parallel_text_worker",
+      "candidate_models": ["google/gemma-4-31b-it", "meta/llama-3.1-405b-instruct", "mistralai/mixtral-8x22b-instruct-v0.1"],
+      "free_or_low_cost": true,
+      "quota_policy": "free tier rate limits are model/use-case/traffic dependent; observed/requested baseline often 40 RPM, not guaranteed",
+      "privacy_note": "treat as hosted external inference; avoid private or secret data",
+      "allowed_cell_modes": ["read-only", "suggest-only", "repo-staging"],
+      "blocked_modes": ["physical_actuation", "secret_exfiltration", "unreviewed_deployment"]
+    },
+    {
+      "id": "selfhost_recovered_node",
+      "kind": "selfhost",
+      "secret_name": "SELFHOST_AI_BASE_URL",
+      "default_role": "private_low_power_worker",
+      "candidate_models": ["small-coder", "small-instruct", "embedding-or-rerank"],
+      "free_or_low_cost": true,
+      "quota_policy": "bounded by recovered hardware and energy/OZE ledger",
+      "privacy_note": "preferred for private notes and local data if operator controls node",
+      "allowed_cell_modes": ["read-only", "suggest-only", "repo-staging", "private-local"],
+      "blocked_modes": ["physical_actuation", "unreviewed_deployment"]
+    }
+  ],
+  "routing_rules": [
+    "Use hosted free APIs for public, low-risk drafting, summarization, classification and scout triage.",
+    "Use selfhost/recovered hardware for private needs, local logs and community-sensitive data.",
+    "Use NVIDIA NIM as fallback or parallel text worker; never assume a guaranteed 40 RPM budget without live quota check.",
+    "Use Google AI Studio for stronger multimodal/reasoning work when project rate limits allow it.",
+    "All repo-changing agents must write artifacts and open PRs; physical execution remains blocked until human approval."
+  ]
+}

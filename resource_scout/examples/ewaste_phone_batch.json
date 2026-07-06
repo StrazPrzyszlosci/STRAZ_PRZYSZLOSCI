@@ -1,0 +1,16 @@
+{
+  "records": [
+    {
+      "id": "ewaste_phone_batch_local_001",
+      "source": { "type": "operator_note", "url_or_note": "Lokalna oferta: 6 starych smartfonów, odbiór osobisty" },
+      "location": { "country": "PL", "region": "local", "pickup_radius_km": 12 },
+      "cost": { "amount_pln": 0, "currency": "PLN", "condition": "free_pickup" },
+      "resource_class": "old_smartphones",
+      "possible_products": ["phone-aquaponics-observer", "phone-sensor-gateway"],
+      "risks": ["unknown_battery_health", "unknown_data_left_on_device", "charger_missing"],
+      "required_evidence": ["front_back_photos", "battery_swelling_check", "boot_status_photo"],
+      "activation_requirements": { "energy": "charge from OZE/low-cost surplus before bench", "logistics": "one human pickup, no shipping" },
+      "activation_fit": "oze_or_free_energy"
+    }
+  ]
+}

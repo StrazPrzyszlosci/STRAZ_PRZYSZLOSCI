@@ -1,0 +1,75 @@
+{
+  "pilot_id": "hermes_repo_builder_pilot_2026_07_06",
+  "status": "draft_review_required",
+  "runtime_targets": [
+    {
+      "id": "cheap_vps_or_cloud_vm",
+      "use_for": [
+        "cron",
+        "repo_builder",
+        "handoff_builder",
+        "telegram_gateway"
+      ],
+      "notes": "Good first always-on option for Hermes because it can run on a low-cost VPS or cloud VM."
+    },
+    {
+      "id": "termux_recovered_phone",
+      "use_for": [
+        "notifications",
+        "lightweight_scout",
+        "operator_gateway"
+      ],
+      "notes": "Good recovered-hardware option, but do not run high-risk write tasks until storage, power and backup are reviewed."
+    },
+    {
+      "id": "selfhost_recovered_pc_oze_window",
+      "use_for": [
+        "private_local_worker",
+        "batch_reports",
+        "offline_rag"
+      ],
+      "notes": "Use when energy ledger confirms low-cost/OZE window and operator controls the machine."
+    }
+  ],
+  "initial_cells": [
+    "HermesRepoScout",
+    "HermesHandoffBuilder",
+    "HermesExecutionPackGenerator",
+    "HermesAuditReviewer",
+    "HermesProviderQuotaMonitor"
+  ],
+  "required_secrets": [
+    "GEMINI_API_KEY",
+    "NVIDIA_API_KEY",
+    "GITHUB_PAT"
+  ],
+  "required_artifacts_per_run": [
+    "run_receipt.json",
+    "model_route.json",
+    "quota_snapshot.json",
+    "git_diff.patch",
+    "handoff_or_pr.md"
+  ],
+  "human_control_points": [
+    "approve GitHub token scope before first run",
+    "review every PR before merge",
+    "approve any new secret/provider",
+    "approve any physical-world action separately"
+  ],
+  "blocked_until_review": [
+    "direct push to main",
+    "physical actuation",
+    "secret printing",
+    "auto-merge",
+    "unbounded spend"
+  ],
+  "installer_packet": {
+    "path": "straz-edge-installer/scripts/install-hermes-agent-proot.sh",
+    "runbook": "straz-edge-installer/scripts/RUNBOOK_HERMES_AGENT_PROOT.md",
+    "default_mode": "dry-run",
+    "targets": [
+      "termux_proot_debian",
+      "termux_proot_ubuntu"
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "pack-phone-aquaponics-observer-01",
+  "status": "draft",
+  "profile_id": "phone-aquaponics-observer",
+  "skill_id": "aquaponics_observer",
+  "mode": "read-only/suggest-only",
+  "goal": "Use a reused phone as an observation and reporting node for aquaponics without physical actuation.",
+  "required_inputs": [
+    "edge_flasher device_profile.json",
+    "edge_flasher install_receipt.json",
+    "manual water measurements",
+    "operator observation note"
+  ],
+  "output_artifacts": [
+    "aquaponics_observation_report.md",
+    "operator_questions.md",
+    "run_receipt.json"
+  ],
+  "blocked_capabilities": [
+    "pump actuation",
+    "nutrient dosing",
+    "heater actuation",
+    "automatic feeding",
+    "valve actuation"
+  ],
+  "review_gates": [
+    "human_operator_before_biology_change",
+    "food_safety_review_before_recommendation",
+    "no_physical_actuation_without_human_approval",
+    "provenance_required"
+  ]
+}

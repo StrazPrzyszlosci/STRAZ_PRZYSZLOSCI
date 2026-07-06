@@ -1,0 +1,31 @@
+{
+  "profiles": [
+    {
+      "id": "phone-aquaponics-observer",
+      "device_class": "reused_phone",
+      "purpose": "Observe aquaponics conditions with camera/manual readings; no actuation.",
+      "allowed_actions": ["capture_observation", "write_report", "export_receipt"],
+      "blocked_high_risk_actions": ["control_pump", "dose_nutrients", "control_heater", "feed_fish"],
+      "required_human_approval_before": ["physical_installation", "network_exposure", "actuation"],
+      "bench_checks": ["camera_available", "battery_safe", "offline_mode_ok", "rollback_documented"]
+    },
+    {
+      "id": "recycle-bench-catalog-station",
+      "device_class": "bench_workstation",
+      "purpose": "Catalog recovered parts on a recycling bench using a local/offline-first workflow.",
+      "allowed_actions": ["scan_label", "capture_photo", "write_catalog_draft", "export_receipt"],
+      "blocked_high_risk_actions": ["publish_without_review", "erase_donor_storage", "operate_power_tools"],
+      "required_human_approval_before": ["public_catalog_publish", "destructive_disassembly", "mains_power_work"],
+      "bench_checks": ["camera_available", "storage_path_writable", "secret_scan_clean", "rollback_documented"]
+    },
+    {
+      "id": "phone-sensor-gateway",
+      "device_class": "reused_phone_gateway",
+      "purpose": "Collect low-risk sensor observations and prepare auditable reports; no autonomous control.",
+      "allowed_actions": ["read_sensor_payload", "buffer_offline", "write_report", "export_receipt"],
+      "blocked_high_risk_actions": ["open_inbound_ports", "control_relay", "change_firmware", "bypass_rate_limit"],
+      "required_human_approval_before": ["internet_exposure", "firmware_change", "actuation"],
+      "bench_checks": ["offline_buffer_ok", "rate_limit_configured", "provider_identity_documented", "rollback_documented"]
+    }
+  ]
+}
