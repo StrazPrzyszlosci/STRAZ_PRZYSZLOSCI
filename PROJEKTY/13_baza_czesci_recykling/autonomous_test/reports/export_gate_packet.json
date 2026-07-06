@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-05-07T12:30:50Z",
-  "gate_result": "OPEN",
+  "generated_at": "2026-07-06T17:47:58Z",
+  "gate_result": "BLOCKED",
   "gate_checks": [
     {
       "check": "no_pending_approvals",
-      "pass": true,
-      "detail": "No candidates pending human approval"
+      "pass": false,
+      "detail": "5 candidates pending human approval: M425R1GB4BB0-CWM0D, M51413ASP, INTEL 08 i7-628M, RM 121, LDF-12V16W"
     },
     {
       "check": "no_unresolved_deferrals",
@@ -19,22 +19,33 @@
     },
     {
       "check": "human_review_recorded",
-      "pass": true,
-      "detail": "5 human reviews recorded (approved)"
+      "pass": false,
+      "detail": "No human review approval recorded for pending candidates"
     }
   ],
-  "blockers": [],
+  "blockers": [
+    "5 accepted candidates still pending human approval: M425R1GB4BB0-CWM0D, M51413ASP, INTEL 08 i7-628M, RM 121, LDF-12V16W",
+    "No human review approval recorded for pending candidates"
+  ],
   "warnings": [],
   "queue_summary": {
     "accept": 17,
     "defer": 0,
     "reject": 65,
-    "pending_human_approval": 0,
+    "pending_human_approval": 5,
     "auto_approved": 12
   },
-  "status_resolution_ref": "/home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/status_resolution_packet.json",
+  "status_resolution_ref": "/workspace/STRAZ_PRZYSZLOSCI/PROJEKTY/13_baza_czesci_recykling/autonomous_test/reports/status_resolution_packet.json",
   "next_steps": [
-    "Export gate is OPEN. Run: python3 scripts/build_catalog_artifacts.py export-all",
-    "Then validate: python3 scripts/build_catalog_artifacts.py validate"
+    "Resolve 2 blocker(s) before export:",
+    "  - 5 accepted candidates still pending human approval: M425R1GB4BB0-CWM0D, M51413ASP, INTEL 08 i7-628M, RM 121, LDF-12V16W",
+    "  - No human review approval recorded for pending candidates",
+    "To approve pending candidates, use record-review command:",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0005 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0019 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0041 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0054 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "  python3 scripts/curate_candidates.py record-review --candidate-id candidate-0057 --decision approved --reviewed-by <REVIEWER_NAME>",
+    "Then re-run: python3 scripts/curate_candidates.py export-gate"
   ]
 }

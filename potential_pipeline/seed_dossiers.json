@@ -1,0 +1,68 @@
+{
+  "dossiers": [
+    {
+      "id": "ewaste_to_food_edge_devices",
+      "status": "draft",
+      "source": "Lokalne elektrośmieci: smartfony, zasilacze, routery, kamery USB, przewody i obudowy.",
+      "free_or_low_cost": true,
+      "mission_need": ["food", "waste", "hardware_reuse", "sensing", "communications"],
+      "resource_classes": ["old_smartphones", "usb_cameras", "router_boards", "power_supplies", "cables", "enclosures"],
+      "potential_score": 92,
+      "risk_score": 54,
+      "intended_products": [
+        {
+          "product": "phone-aquaponics-observer",
+          "target_use": "Smartfon jako kamera i panel obserwacji hydro/akwaponiki bez automatycznego sterowania pompami.",
+          "required_artifacts": ["device_profile.json", "install_receipt.json", "aquaponics_observation_report.md", "rollback.md"],
+          "approval_required": true
+        },
+        {
+          "product": "recycled-sensor-gateway",
+          "target_use": "Bramka danych dla temperatury, wilgotności i jakości wody w małej hodowli żywności.",
+          "required_artifacts": ["bom.md", "wiring_plan.md", "bench_test_report.md", "safety_review.md"],
+          "approval_required": true
+        },
+        {
+          "product": "recycle-bench-catalog-station",
+          "target_use": "Stanowisko do fotografowania i katalogowania części odzyskanych z elektrośmieci.",
+          "required_artifacts": ["operator_runbook.md", "part_capture_schema.json", "test_dataset.jsonl"],
+          "approval_required": false
+        }
+      ],
+      "workflow": [
+        {
+          "stage": "analiza_potencjalu",
+          "question": "Jakie darmowe zasoby mają największy wpływ na żywność, sensorykę i odzysk części?",
+          "output": "PotentialDossier z rankingiem zasobów i ryzyk.",
+          "default_mode": "read-only"
+        },
+        {
+          "stage": "zamysl",
+          "question": "Jaki produkt może powstać z tych zasobów i komu pomoże?",
+          "output": "ProductIntent z problemem społecznym, użytkownikiem i oczekiwanym wpływem.",
+          "default_mode": "suggest-only"
+        },
+        {
+          "stage": "projekt",
+          "question": "Jakie artefakty trzeba stworzyć, żeby produkt był testowalny i powtarzalny?",
+          "output": "DesignPack: BOM, schemat, profil urządzenia, instrukcja testu i rollback.",
+          "default_mode": "dry-run"
+        },
+        {
+          "stage": "wykonanie",
+          "question": "Który execution pack może bezpiecznie wykonać pierwszy mały krok?",
+          "output": "ExecutionPack run z audit trail i review gate.",
+          "default_mode": "staging-write"
+        },
+        {
+          "stage": "optymalizacja",
+          "question": "Co realnie zadziałało i jak poprawić następny run?",
+          "output": "OptimizationReport z metrykami, wnioskami i propozycją PR.",
+          "default_mode": "suggest-only"
+        }
+      ],
+      "review_gates": ["human_approval_before_physical_actuation", "food_safety_review", "electrical_safety_review", "provenance_required"],
+      "optimization_metrics": ["cost_avoided_pln", "devices_reused", "food_system_observations_per_week", "manual_steps_removed", "incidents_or_near_misses"]
+    }
+  ]
+}
