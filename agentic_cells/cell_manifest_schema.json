@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strazprzyszlosci.example/schemas/agentic-cell-manifest-v1.json",
+  "title": "AgenticCellManifest",
+  "description": "Uogólniony kontrakt opisujący małe ogniwo automatyzacji (cell). Manifest opisuje istniejącą komórkę obok jej implementacji (np. edge_flasher/, resource_scout/) i jej NIE zastępuje.",
+  "type": "object",
+  "required": [
+    "cell_id",
+    "version",
+    "status",
+    "purpose",
+    "allowed_modes",
+    "input_contract",
+    "output_artifacts",
+    "model_resource_policy",
+    "energy_policy",
+    "human_control_points",
+    "audit_trail",
+    "rollback_plan",
+    "review_gates"
+  ],
+  "properties": {
+    "cell_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,80}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+$"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "ready_for_review",
+        "active",
+        "deprecated"
+      ]
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 10
+    },
+    "allowed_modes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "read-only",
+          "suggest-only",
+          "dry-run",
+          "staging-write",
+          "human-approved",
+          "hardware-lab",
+          "production"
+        ]
+      }
+    },
+    "input_contract": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "required"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "repo_file",
+              "external_repo",
+              "sensor_data",
+              "photo",
+              "operator_note",
+              "catalog",
+              "api",
+              "handoff",
+              "execution_pack"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "provenance_required": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      }
+    },
+    "output_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "path_or_type",
+          "description",
+          "review_required"
+        ],
+        "properties": {
+          "path_or_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "review_required": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "model_resource_policy": {
+      "type": "object",
+      "required": [
+        "default_profile",
+        "may_use_paid",
+        "may_use_private_data_on_public_model"
+      ],
+      "properties": {
+        "default_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fallback_profile": {
+          "type": "string"
+        },
+        "may_use_paid": {
+          "type": "boolean"
+        },
+        "may_use_private_data_on_public_model": {
+          "type": "boolean"
+        },
+        "energy_justification_required": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "energy_policy": {
+      "type": "object",
+      "required": [
+        "default_class",
+        "low_power_first"
+      ],
+      "properties": {
+        "default_class": {
+          "enum": [
+            "external_provider",
+            "low_power_or_oze_preferred",
+            "high_energy_requires_oze_or_justification",
+            "owned_hardware_low_cost"
+          ]
+        },
+        "low_power_first": {
+          "type": "boolean"
+        },
+        "oze_preferred": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "human_control_points": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "point",
+          "reviewer_role",
+          "blocks"
+        ],
+        "properties": {
+          "point": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reviewer_role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blocks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "audit_trail": {
+      "type": "object",
+      "required": [
+        "must_record_inputs",
+        "must_record_tool_versions",
+        "must_record_decisions",
+        "must_record_artifacts"
+      ],
+      "properties": {
+        "must_record_inputs": {
+          "type": "boolean"
+        },
+        "must_record_tool_versions": {
+          "type": "boolean"
+        },
+        "must_record_decisions": {
+          "type": "boolean"
+        },
+        "must_record_artifacts": {
+          "type": "boolean"
+        }
+      }
+    },
+    "rollback_plan": {
+      "type": "object",
+      "required": [
+        "strategy",
+        "rollback_artifact"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "minLength": 5
+        },
+        "rollback_artifact": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "review_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "gate",
+          "reviewer_role",
+          "blocks"
+        ],
+        "properties": {
+          "gate": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reviewer_role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blocks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "safety_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "implementation_ref": {
+      "type": "object",
+      "description": "Opcjonalne odwołanie do implementacji komórki. Manifest NIE zastępuje implementacji.",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "entry_artifact": {
+          "type": "string"
+        },
+        "pack_id": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
