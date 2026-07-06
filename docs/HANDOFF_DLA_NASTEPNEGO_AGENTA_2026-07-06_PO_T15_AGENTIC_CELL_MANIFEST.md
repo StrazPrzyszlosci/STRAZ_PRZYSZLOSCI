@@ -68,7 +68,7 @@ Nowe pliki:
 ### Zgodność z konwencją
 
 - NUMERACJA: T15 jest monotonicznie rosnący, NIE relokuję T8–T14 ani T1–T7. Skoro w `PO_T11_T14_AGENTIC_CELLS` pojawiło się już T15 (Agentic cell manifest) jako PRIORYTET 1, przejęto to znaczenie; kolejne zadanie to T16 (wg tamtego handoffu = Human needs intake).
-- STRUKTURA: jeden handoff = jedno zadanie (T15), sekcje zgodne z T1–T7 (Kontekst wejściowy / Co zrobiono / Testy wykonane / Następne zadania / Status backlogu / Ryzyka).
+- STRUKTURA: handoff dokumentuje T15 (zrealizowany w tej turze jako pojedyncze zadanie). Nowa konwencja wejściowa od T15+: **jedna tura agenta = do 5 zadań, jeden handoff podsumowujący turę**. Pierwsza tura zgodna z nową konwencją powinna wykonać T16..T20 i zapisać wspólny handoff `PO_T16_T20_<OPIS>.md` (lub krótszy zakres, jeśli kolejne OPEN nie dokończą bez operatora).
 - NIE wprowadzono nowych równoległych serii H* jako odrębnych; H2/H3/H4 z HERMES_PILOT wchodzą jako OPEN w backlogu i mogą być podjęte jako T17+ po T16.
 - `staging-write` w `allowed_modes` NIE jest traktowane jako high-risk wymagające blokady actuation (to tryb zapisu draftów/D1), co poprawia semantykę `HIGH_RISK_MODES`. To wyłącznie zawężenie trybów fizycznie ryzykownych do `hardware-lab` i `production`.
 
@@ -166,11 +166,11 @@ Pierwsza kolejka prac Hermesa. Dodać manifest komórki `hermes_work_queue` do `
 
 Następny agent MUSI trzymać się dotychczasowej konwencji nazewnictwa i pipeline'u. Łamanie tych punktów psuje spójność repo i będzie odrzucane w review:
 
-1. **Nazewnictwo handoffów**: jeden plik na zadanie, nazwa `docs/HANDOFF_DLA_NASTEPNEGO_AGENTA_<DATA>_PO_T<n>_<KRÓTKI_OPIS>.md` (dla zadań powiązanych z blokiem B1/B2/B3/B4/B5 dodawać suffix `_Bx_<NAZWA>`).
+1. **Nazewnictwo handoffów**: nazwa `docs/HANDOFF_DLA_NASTEPNEGO_AGENTA_<DATA>_PO_T<n>_<KRÓTKI_OPIS>.md` dla pojedynczego zadania, albo `docs/HANDOFF_DLA_NASTEPNEGO_AGENTA_<DATA>_PO_T<n>_T<m>_<KRÓTKI_OPIS>.md` gdy handoff obejmuje zakres zadań (np. `PO_T11_T14_AGENTIC_CELLS`). Dla zadań powiązanych z blokiem B1/B2/B3/B4/B5 dodawać suffix `_Bx_<NAZWA>`.
 2. **Pipeline liniowy**: zadania numerujemy monotonicznie rosnąco (`T<n+1>`) — NIE relokować istniejących numerów T1..T15, NIE dublować znaczeń (zakazany przypadek: T8 jako ingestion path i jednocześnie jako skill registry).
-3. **Jeden handoff = jedno zadanie**. NIE pisać wielu równoległych handoffów w jednej turze. W jednej turze robimy dokładnie jeden NEXT/PRIORYTET 1; P2/P3 mogą zostać jako OPEN do kolejnej tury.
-4. **Struktura pliku**: `# Handoff...`, `## Kontekst wejściowy`, `## Co zrobiono`, `## Testy wykonane`, `## Następne zadania` (JEDNO NEXT, z acceptance criteria), `## Status backlogu` (skopiowany, nie redefiniowany), `## Ryzyka`.
-5. **Brak równoległych serii literowych**. Stare serie `H1`/`H2`/`H3`/`H4` z `PO_HERMES_PILOT` są poprzypisywane do głównej numeracji (`T17` = był H2, `T18` = był H3); `H4` planowane do wbudowania w T16+. NIE tworzyć nowych serii literowych jako odrębnych ścieżek.
+3. **Jeden handoff = jedna tura agenta = do 5 zadań**. W jednej turze agent realizuje **do 5 zadań naraz** (np. T16..T20), a na koniec pisze **jeden podsumowujący handoff** obejmujący całą turę. NIE pisać wielu równoległych handoffów w jednej turze — wszystkie wykonane zadania dokumentujemy w jednym pliku (z zakresem `PO_T16_T20` lub analogicznym). Jeśli kolejne zadania nie mieszczą się w tury/zakresie kompetencji, zostawia się je jako OPEN w `## Następne zadania` dla kolejnej tury.
+4. **Struktura pliku**: `# Handoff...`, `## Kontekst wejściowy`, `## Co zrobiono` (sekcja per zadanie: `### T16 — DONE: ...`, `### T17 — DONE: ...`, itd.), `## Testy wykonane` (komendy + PASS/FAIL + liczby), `## Następne zadania` (do 5 NEXT/PRIORYTET z acceptance criteria, lub OPEN jeśli turę trzeba było przerwać), `## Status backlogu` (skopiowany i uzupełniony o nowo wykonane zadania), `## Ryzyka`, `## Zasady dla następnego agenta`.
+5. **Brak równoległych serii literowych**. Stare serie `H1`/`H2`/`H3`/`H4` z `PO_HERMES_PILOT` są poprzypisywane do głównej numeracji (`T17` = był H2, `T18` = był H3); `H4` planowane do wbudowania w T16+. NIE tworzyć nowych serii literowych jako odrębnych ścieżek — każdy następny task to kolejny `T<n>` w głównej numeracji.
 6. **Każda nowa komórka agentic** (T16+) MUSI dostać swój manifest w `agentic_cells/seed_cell_manifests.json` z `implementation_ref` wskazującym realną implementację (katalog + entry artifact). Brak manifestu = komórka poza standardem.
 7. **Status backlog kopiujemy, nie piszemy na nowo**: kopiujemy tabelę DONE/OPEN z ostatniego handoffu w tej samej fali, tylko uzupełniając o nowo wykonane zadanie.
 8. **Testy obowiązkowe**: po zrealizowaniu zadania uruchomić `python3 -m unittest discover -s tests -p 'test_*.py'` oraz `tests/*.mjs` i upisać wynik w `## Testy wykonane` (PASS/FAIL z liczbami). Czerwony suite Python = blokada zakończenia tury.
