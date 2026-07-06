@@ -3,6 +3,7 @@ import { fetchWithTimeout } from "./base_utils.js";
 import { getCorsAllowOrigin, jsonResponse } from "./security_headers.js";
 import { checkGlobalRateLimit } from "./global_rate_limiter.js";
 import { checkProviderRateLimit } from "./provider_rate_limiter.js";
+import { computeAutomationMetrics } from "./automation_metrics.js";
 import {
   handleWhatsAppVerification,
   handleWhatsAppWebhook,
@@ -558,6 +559,14 @@ export default {
 
       if (request.method === "GET" && url.pathname === "/health") {
         return jsonResponse({ status: "ok" }, 200);
+      }
+
+      if (request.method === "GET" && url.pathname === "/v1/metrics") {
+        // Cyber: metryki read-only, ale wymagają X-Trust-Editor-Secret (jak trust-level)
+        // aby nie eksponować acceptance rates/false-positive dla anonimów.
+        await requireTrustLevelEditor(request, env);
+        const snapshot = await computeAutomationMetrics(env);
+        return jsonResponse(snapshot, 200);
       }
 
       const deploymentEnvironment = env.DEPLOYMENT_ENVIRONMENT || null;

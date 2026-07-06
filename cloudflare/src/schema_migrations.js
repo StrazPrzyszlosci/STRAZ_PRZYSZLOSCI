@@ -209,6 +209,23 @@ export const MIGRATIONS = [
     name: "Ensure recycled_devices has gpio_pin_map_json column (Z15 profile template extension)",
     sql: `ALTER TABLE recycled_devices ADD COLUMN gpio_pin_map_json TEXT;`,
   },
+  {
+    version: "20260706000001-automation-metrics",
+    name: "Ensure automation_metrics table + index for B4 dashboard (H2 roadmapa)",
+    sql: `CREATE TABLE IF NOT EXISTS automation_metrics (
+      metric_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      metric_key TEXT NOT NULL,
+      metric_value REAL NOT NULL,
+      measured_at TEXT NOT NULL,
+      window TEXT NOT NULL DEFAULT 'sprint'
+    );`,
+  },
+  {
+    version: "20260706000002-automation-metrics-index",
+    name: "Ensure automation_metrics index on (metric_key, measured_at) for B4",
+    sql: `CREATE INDEX IF NOT EXISTS idx_automation_metrics_key_measured
+      ON automation_metrics(metric_key, measured_at);`,
+  },
 ];
 
 async function runSql(db, sql) {

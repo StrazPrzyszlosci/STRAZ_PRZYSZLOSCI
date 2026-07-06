@@ -53,6 +53,7 @@ import { sanitizeTelegramReply, sendTelegramReply, getMainMenuKeyboard } from ".
 import { fetchWithTimeout, fetchTelegramFileAsBase64 } from "./base_utils.js";
 import { checkPayloadSize } from "./payload_size.js";
 import { jsonResponse as secureJsonResponse } from "./security_headers.js";
+import { computeAutomationMetrics, formatAutomationMetricsReply } from "./automation_metrics.js";
 
 function jsonResponse(payload, status = 200, env = null, request = null) {
   return secureJsonResponse(payload, status, env, request);
@@ -1608,6 +1609,17 @@ async function processCommandMessage(env, message, command) {
     }
     await sendTelegramReply(env, message, "Nie jesteś obecnie w procesie analizy części. Wyślij PDF lub nazwę części, aby zacząć.", getMainMenuKeyboard());
     return { status: "command_ignored" };
+  } else if (command === "metrics") {
+    // B4: read-only dashboard metryk AI (H2 roadmapa). Bez sekretów w reply.
+    const snapshot = await computeAutomationMetrics(env);
+    const replyText = formatAutomationMetricsReply(snapshot);
+    const notificationSent = await sendTelegramReply(env, message, replyText, getMainMenuKeyboard());
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "command_metrics",
+      notification_sent: notificationSent,
+    };
   }
   const reply = buildCommandReply(command);
   const replyText = typeof reply === "object" ? reply.text : reply;

@@ -117,4 +117,12 @@ describe("D1 Schema Migrations (Z86)", () => {
     assert.ok(allSql.includes("gpio_pin_map_json"));
     assert.ok(allSql.includes("recycled_devices"));
   });
+
+  it("includes automation_metrics table + index for B4 dashboard (H2 roadmapa)", () => {
+    const allSql = MIGRATIONS.map((m) => m.sql).join("\n");
+    assert.ok(allSql.includes("automation_metrics"));
+    assert.ok(allSql.includes("metric_key"));
+    assert.ok(allSql.includes("metric_value"));
+    assert.ok(allSql.includes("idx_automation_metrics_key_measured"));
+  });
 });
