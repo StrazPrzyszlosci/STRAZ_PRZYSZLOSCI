@@ -4,6 +4,9 @@ compatibility_date = "2026-04-12"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
+[triggers]
+crons = ["17 2 * * *"]
+
 [observability]
 enabled = true
 head_sampling_rate = 0.1
