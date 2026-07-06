@@ -226,6 +226,90 @@ export const MIGRATIONS = [
     sql: `CREATE INDEX IF NOT EXISTS idx_automation_metrics_key_measured
       ON automation_metrics(metric_key, measured_at);`,
   },
+  {
+    version: "20260706000003-kicad-import-status-dedup",
+    name: "Ensure KiCad component import status and dedup checksum for B1",
+    sql: `ALTER TABLE kicad_library_components ADD COLUMN import_status TEXT NOT NULL DEFAULT 'staged';`,
+  },
+  {
+    version: "20260706000004-kicad-import-dedup-checksum",
+    name: "Ensure KiCad component dedup checksum column for B1",
+    sql: `ALTER TABLE kicad_library_components ADD COLUMN dedup_checksum TEXT;`,
+  },
+  {
+    version: "20260706000005-kicad-import-dedup-index",
+    name: "Ensure unique KiCad import dedup checksum index for B1",
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS idx_kicad_components_dedup_checksum
+      ON kicad_library_components(dedup_checksum);`,
+  },
+  {
+    version: "20260706000006-kicad-library-events",
+    name: "Ensure KiCad library ingest event ledger for B1",
+    sql: `CREATE TABLE IF NOT EXISTS kicad_library_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind TEXT NOT NULL,
+      source_slug TEXT NOT NULL,
+      upstream_commit TEXT,
+      component_count INTEGER NOT NULL DEFAULT 0,
+      inserted_count INTEGER NOT NULL DEFAULT 0,
+      skipped_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20260706000007-kicad-library-events-kind-index",
+    name: "Ensure KiCad library events kind/time index for B1",
+    sql: `CREATE INDEX IF NOT EXISTS idx_kicad_library_events_kind_created
+      ON kicad_library_events(kind, created_at);`,
+  },
+  {
+    version: "20260706000008-kicad-verifier-note",
+    name: "Ensure KiCad verifier note column for B2",
+    sql: `ALTER TABLE kicad_library_components ADD COLUMN verify_note TEXT;`,
+  },
+  {
+    version: "20260706000009-kicad-verifier-verified-at",
+    name: "Ensure KiCad verifier timestamp column for B2",
+    sql: `ALTER TABLE kicad_library_components ADD COLUMN verified_at TEXT;`,
+  },
+  {
+    version: "20260706000010-kicad-library-events-component-status",
+    name: "Ensure KiCad library events verifier status columns for B2",
+    sql: `ALTER TABLE kicad_library_events ADD COLUMN component_id INTEGER;`,
+  },
+  {
+    version: "20260706000011-kicad-library-events-previous-status",
+    name: "Ensure KiCad library events previous status column for B2",
+    sql: `ALTER TABLE kicad_library_events ADD COLUMN previous_status TEXT;`,
+  },
+  {
+    version: "20260706000012-kicad-library-events-next-status",
+    name: "Ensure KiCad library events next status column for B2",
+    sql: `ALTER TABLE kicad_library_events ADD COLUMN next_status TEXT;`,
+  },
+  {
+    version: "20260706000013-kicad-library-events-reason",
+    name: "Ensure KiCad library events reason column for B2",
+    sql: `ALTER TABLE kicad_library_events ADD COLUMN reason TEXT;`,
+  },
+  {
+    version: "20260706000014-kicad-ocr-queue",
+    name: "Ensure KiCad OCR deferred queue for B2",
+    sql: `CREATE TABLE IF NOT EXISTS kicad_ocr_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      component_id INTEGER NOT NULL UNIQUE,
+      datasheet_url TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      reason TEXT,
+      created_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20260706000015-kicad-ocr-queue-status-index",
+    name: "Ensure KiCad OCR queue status index for B2",
+    sql: `CREATE INDEX IF NOT EXISTS idx_kicad_ocr_queue_status_created
+      ON kicad_ocr_queue(status, created_at);`,
+  },
 ];
 
 async function runSql(db, sql) {

@@ -125,4 +125,23 @@ describe("D1 Schema Migrations (Z86)", () => {
     assert.ok(allSql.includes("metric_value"));
     assert.ok(allSql.includes("idx_automation_metrics_key_measured"));
   });
+
+  it("includes B1 scheduled KiCad importer staging, dedup and ingest event migrations", () => {
+    const allSql = MIGRATIONS.map((m) => m.sql).join("\n");
+    assert.ok(allSql.includes("import_status"));
+    assert.ok(allSql.includes("dedup_checksum"));
+    assert.ok(allSql.includes("idx_kicad_components_dedup_checksum"));
+    assert.ok(allSql.includes("kicad_library_events"));
+    assert.ok(allSql.includes("idx_kicad_library_events_kind_created"));
+  });
+
+  it("includes B2 verifier status/event and OCR queue migrations", () => {
+    const allSql = MIGRATIONS.map((m) => m.sql).join("\n");
+    assert.ok(allSql.includes("verify_note"));
+    assert.ok(allSql.includes("verified_at"));
+    assert.ok(allSql.includes("previous_status"));
+    assert.ok(allSql.includes("next_status"));
+    assert.ok(allSql.includes("kicad_ocr_queue"));
+    assert.ok(allSql.includes("idx_kicad_ocr_queue_status_created"));
+  });
 });
