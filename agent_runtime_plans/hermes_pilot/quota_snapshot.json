@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-07-07T00:35:43+00:00",
+  "source": "manual",
+  "platform": "hermes_pilot",
+  "entries": [
+    {
+      "provider": "google_ai_studio_free",
+      "model": "gemini-3.1-flash-lite",
+      "source": "manual",
+      "checked_at": "2026-07-07T00:35:43+00:00",
+      "status": "stale",
+      "rpm": null,
+      "tpm": null,
+      "rpd": null,
+      "guaranteed": false,
+      "note": "inspect active project-level RPM/TPM/RPD limits in AI Studio"
+    },
+    {
+      "provider": "nvidia_nim_free",
+      "model": "google/gemma-4-31b-it",
+      "source": "manual",
+      "checked_at": "2026-07-07T00:35:43+00:00",
+      "status": "stale",
+      "rpm": null,
+      "tpm": null,
+      "rpd": null,
+      "guaranteed": false,
+      "note": "observed baseline 40 RPM not guaranteed; measure live"
+    },
+    {
+      "provider": "selfhost_recovered_node",
+      "model": "small-coder",
+      "source": "manual",
+      "checked_at": "2026-07-07T00:35:43+00:00",
+      "status": "stale",
+      "rpm": null,
+      "tpm": null,
+      "rpd": null,
+      "guaranteed": false,
+      "note": "bounded by recovered hardware and energy/OZE ledger"
+    }
+  ]
+}

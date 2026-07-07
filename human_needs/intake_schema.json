@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strazprzyszlosci.example/schemas/human-need-intake-v1.json",
+  "title": "HumanNeedIntake",
+  "description": "Zgloszenie potrzeby/problemu przez czlowieka lub inicjatywe, z jawnym zakresem widocznosci i ograniczeniami kosztu/energii. Rekomendacje automatyzacji nie moga wybierac wykonania fizycznego bez human approval.",
+  "type": "object",
+  "required": [
+    "id",
+    "submitted_by",
+    "visibility_scope",
+    "need_or_problem",
+    "location_or_area",
+    "cost_constraints",
+    "energy_constraints",
+    "origin",
+    "expected_outcome"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,80}$"
+    },
+    "submitted_by": {
+      "type": "object",
+      "required": [
+        "role",
+        "public_label"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "operator",
+            "volunteer",
+            "maintainer",
+            "external_partner",
+            "anonymous"
+          ]
+        },
+        "public_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contact_note": {
+          "type": "string"
+        }
+      }
+    },
+    "visibility_scope": {
+      "type": "object",
+      "required": [
+        "level"
+      ],
+      "properties": {
+        "level": {
+          "enum": [
+            "public",
+            "maintainer_only",
+            "operator_only",
+            "private_anonymized"
+          ]
+        },
+        "may_be_linked_to_resource_scout": {
+          "type": "boolean",
+          "default": false
+        },
+        "may_be_linked_to_potential_dossier": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "need_or_problem": {
+      "type": "string",
+      "minLength": 10
+    },
+    "location_or_area": {
+      "type": "string",
+      "minLength": 2
+    },
+    "mission_classes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "food",
+          "waste",
+          "water",
+          "energy",
+          "hardware_reuse",
+          "sensing",
+          "communications",
+          "social_coordination",
+          "knowledge"
+        ]
+      }
+    },
+    "cost_constraints": {
+      "type": "object",
+      "required": [
+        "max_pln_or_free"
+      ],
+      "properties": {
+        "max_pln_or_free": {
+          "enum": [
+            "free",
+            "low_cost_under_50_pln",
+            "low_cost_under_200_pln",
+            "any_reasonable"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "energy_constraints": {
+      "type": "object",
+      "required": [
+        "preferred_class"
+      ],
+      "properties": {
+        "preferred_class": {
+          "enum": [
+            "external_provider",
+            "low_power_or_oze_preferred",
+            "high_energy_requires_oze_or_justification",
+            "owned_hardware_low_cost",
+            "unspecified"
+          ]
+        },
+        "oze_required": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "origin": {
+      "type": "object",
+      "required": [
+        "chosen_from_recommendation"
+      ],
+      "properties": {
+        "chosen_from_recommendation": {
+          "type": "boolean"
+        },
+        "own_description_provided": {
+          "type": "boolean",
+          "default": false
+        },
+        "recommended_dossier_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provenance": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "expected_outcome": {
+      "type": "string",
+      "minLength": 5
+    },
+    "safety_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

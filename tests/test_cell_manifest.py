@@ -20,6 +20,10 @@ EXPECTED_CELL_IDS = {
     "model_resource_selector",
     "potential_pipeline",
     "aquaponics_observer_pack",
+    "human_needs_intake",
+    "provider_quota_monitor",
+    "hermes_work_queue",
+    "human_approval",
 }
 
 

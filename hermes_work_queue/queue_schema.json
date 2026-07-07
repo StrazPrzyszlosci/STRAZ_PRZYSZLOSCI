@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strazprzyszlosci.example/schemas/hermes-work-queue-v1.json",
+  "title": "HermesWorkQueue",
+  "description": "Pierwsza kolejka prac agenta Hermes. Kazdy job ma input, output, model_route, artifact requirements i human_control_point. Zaden job nie moze auto-merge ani direct push.",
+  "type": "object",
+  "required": [
+    "queue_id",
+    "generated_at",
+    "platform",
+    "jobs"
+  ],
+  "properties": {
+    "queue_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,80}$"
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schedule_note": {
+      "type": "string"
+    },
+    "jobs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "job_id",
+          "purpose",
+          "inputs",
+          "outputs",
+          "model_route",
+          "artifact_requirements",
+          "human_control_point",
+          "no_auto_merge",
+          "no_direct_push"
+        ],
+        "properties": {
+          "job_id": {
+            "enum": [
+              "repo_scout_daily",
+              "handoff_builder_after_commit",
+              "resource_scout_triage",
+              "execution_pack_draft_generator",
+              "audit_reviewer_before_pr"
+            ]
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 10
+          },
+          "inputs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "model_route": {
+            "type": "object",
+            "required": [
+              "default_profile"
+            ],
+            "properties": {
+              "default_profile": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fallback_profile": {
+                "type": "string"
+              }
+            }
+          },
+          "artifact_requirements": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": [
+                "run_receipt.json",
+                "model_route.json",
+                "quota_snapshot.json",
+                "git_diff.patch",
+                "handoff_or_pr.md"
+              ]
+            }
+          },
+          "human_control_point": {
+            "type": "string",
+            "minLength": 5
+          },
+          "next_disabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "no_auto_merge": {
+            "type": "boolean"
+          },
+          "no_direct_push": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

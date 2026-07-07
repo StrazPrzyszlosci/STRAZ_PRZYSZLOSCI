@@ -1,0 +1,73 @@
+{
+  "records": [
+    {
+      "id": "need_aquaponics_observer_food",
+      "submitted_by": {
+        "role": "volunteer",
+        "public_label": "volunteer_aq_01",
+        "contact_note": "telegram: @volunteer_aq_01"
+      },
+      "visibility_scope": {
+        "level": "maintainer_only",
+        "may_be_linked_to_resource_scout": true,
+        "may_be_linked_to_potential_dossier": true
+      },
+      "need_or_problem": "Brak taniego monitoringu akwaponiki w gospodarstwie; rachunki za prąd przy ciaglym grzaniu.",
+      "location_or_area": "Mazowieckie, lokalnie",
+      "mission_classes": [
+        "food",
+        "energy"
+      ],
+      "cost_constraints": {
+        "max_pln_or_free": "low_cost_under_50_pln",
+        "notes": "OZE + odzyskany smartfon"
+      },
+      "energy_constraints": {
+        "preferred_class": "low_power_or_oze_preferred",
+        "oze_required": true
+      },
+      "origin": {
+        "chosen_from_recommendation": true,
+        "own_description_provided": true,
+        "recommended_dossier_ids": [
+          "ewaste_to_food_edge_devices"
+        ],
+        "provenance": "operator_onboarding"
+      },
+      "expected_outcome": "Obserwacja akwaponiki + raport dzieny dla operatora",
+      "safety_notes": [
+        "No pump control without operator approval."
+      ]
+    },
+    {
+      "id": "need_local_edatabase_knowledge",
+      "submitted_by": {
+        "role": "maintainer",
+        "public_label": "maintainer_core"
+      },
+      "visibility_scope": {
+        "level": "public",
+        "may_be_linked_to_resource_scout": true,
+        "may_be_linked_to_potential_dossier": false
+      },
+      "need_or_problem": "Lokalny katalog czesci z recyklingu musi dzialac offline-first bez API korporacji.",
+      "location_or_area": "Polska, ogólnokrajowy",
+      "mission_classes": [
+        "knowledge",
+        "hardware_reuse"
+      ],
+      "cost_constraints": {
+        "max_pln_or_free": "free"
+      },
+      "energy_constraints": {
+        "preferred_class": "owned_hardware_low_cost"
+      },
+      "origin": {
+        "chosen_from_recommendation": false,
+        "own_description_provided": true,
+        "provenance": "repo_open_issue"
+      },
+      "expected_outcome": "Mozliwosc przeszukiwania katalogu offline na odzyskanym hardware"
+    }
+  ]
+}

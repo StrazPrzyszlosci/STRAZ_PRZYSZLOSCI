@@ -1,0 +1,129 @@
+{
+  "queue_id": "hermes_pilot_queue_v1",
+  "generated_at": "2026-07-07T01:34:10+00:00",
+  "platform": "hermes_pilot",
+  "schedule_note": "first manual queue; jobs staged, never auto-chained",
+  "jobs": [
+    {
+      "job_id": "repo_scout_daily",
+      "purpose": "Scan external_repos registry and surface deltas/inspirations as read-only reports.",
+      "inputs": [
+        "docs/external_repos/registry.json"
+      ],
+      "outputs": [
+        "repo_scout_report.md"
+      ],
+      "model_route": {
+        "default_profile": "free_public_small_model",
+        "fallback_profile": "selfhost_recovered_low_power_node"
+      },
+      "artifact_requirements": [
+        "run_receipt.json",
+        "model_route.json",
+        "quota_snapshot.json",
+        "handoff_or_pr.md"
+      ],
+      "human_control_point": "maintainer reviews scout report before any PR",
+      "next_disabled": true,
+      "no_auto_merge": true,
+      "no_direct_push": true
+    },
+    {
+      "job_id": "handoff_builder_after_commit",
+      "purpose": "After a merged commit, draft next handoff using existing T<n> convention.",
+      "inputs": [
+        "git log",
+        "docs/HANDOFF_*.md"
+      ],
+      "outputs": [
+        "handoff_draft.md"
+      ],
+      "model_route": {
+        "default_profile": "free_public_small_model",
+        "fallback_profile": "selfhost_recovered_low_power_node"
+      },
+      "artifact_requirements": [
+        "run_receipt.json",
+        "model_route.json",
+        "git_diff.patch",
+        "handoff_or_pr.md"
+      ],
+      "human_control_point": "maintainer reviews handoff draft and edits before commit",
+      "next_disabled": true,
+      "no_auto_merge": true,
+      "no_direct_push": true
+    },
+    {
+      "job_id": "resource_scout_triage",
+      "purpose": "Triage new resource_scout records for missing risks/evidence and propose normalized drafts.",
+      "inputs": [
+        "resource_scout/examples/*.json"
+      ],
+      "outputs": [
+        "resource_triage_report.md"
+      ],
+      "model_route": {
+        "default_profile": "free_public_small_model",
+        "fallback_profile": "selfhost_recovered_low_power_node"
+      },
+      "artifact_requirements": [
+        "run_receipt.json",
+        "model_route.json",
+        "handoff_or_pr.md"
+      ],
+      "human_control_point": "maintainer triages and approves before write to D1 or pack",
+      "next_disabled": true,
+      "no_auto_merge": true,
+      "no_direct_push": true
+    },
+    {
+      "job_id": "execution_pack_draft_generator",
+      "purpose": "Draft execution_pack manifest.json/RUNBOOK/REVIEW_CHECKLIST for reviewed dossiers.",
+      "inputs": [
+        "potential_pipeline/seed_dossiers.json",
+        "execution_skills/seed_skills.json"
+      ],
+      "outputs": [
+        "pack_draft.json"
+      ],
+      "model_route": {
+        "default_profile": "free_public_small_model",
+        "fallback_profile": "selfhost_recovered_low_power_node"
+      },
+      "artifact_requirements": [
+        "run_receipt.json",
+        "model_route.json",
+        "git_diff.patch",
+        "handoff_or_pr.md"
+      ],
+      "human_control_point": "maintainer reviews pack draft before canary PR",
+      "next_disabled": true,
+      "no_auto_merge": true,
+      "no_direct_push": true
+    },
+    {
+      "job_id": "audit_reviewer_before_pr",
+      "purpose": "Audit pending PR: check secret hygiene, no auto-merge tokens, no physical actuation markers.",
+      "inputs": [
+        "pending PR diff",
+        "providers matrix"
+      ],
+      "outputs": [
+        "audit_review.md"
+      ],
+      "model_route": {
+        "default_profile": "free_public_small_model",
+        "fallback_profile": "selfhost_recovered_low_power_node"
+      },
+      "artifact_requirements": [
+        "run_receipt.json",
+        "model_route.json",
+        "handoff_or_pr.md"
+      ],
+      "human_control_point": "maintainer signs audit before any merge",
+      "next_disabled": true,
+      "no_auto_merge": true,
+      "no_direct_push": true
+    }
+  ]
+}

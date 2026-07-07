@@ -1,0 +1,47 @@
+{
+  "records": [
+    {
+      "id": "approval_code_review_t15",
+      "approved_by": {
+        "role": "maintainer",
+        "label": "maintainer_core"
+      },
+      "approved_scope": "code_review",
+      "artifacts_or_target": [
+        "agentic_cells/cell_manifest_schema.json",
+        "agentic_cells/validate_cell_manifest.py"
+      ],
+      "granted_at": "2026-07-06T21:00:00+00:00",
+      "expires_at": "2026-08-06T00:00:00+00:00",
+      "risks": [
+        "manifest mismatch with real implementation",
+        "validation bypass"
+      ],
+      "rollback_command": "git revert <commit-hash>",
+      "human_control_point": "maintainer checks implementation_ref exists before signing",
+      "revoked": false,
+      "reason": "T15 Agentic cell manifest standard code review - no physical actuation or provider cost involved."
+    },
+    {
+      "id": "approval_dry_run_hermes_queue",
+      "approved_by": {
+        "role": "maintainer",
+        "label": "maintainer_core"
+      },
+      "approved_scope": "dry_run_only",
+      "artifacts_or_target": [
+        "hermes_work_queue/seed_queue.json"
+      ],
+      "granted_at": "2026-07-06T21:00:00+00:00",
+      "expires_at": "2026-08-06T00:00:00+00:00",
+      "risks": [
+        "manual execution",
+        "operator misconfiguration"
+      ],
+      "rollback_command": "delete queue/schedule",
+      "human_control_point": "operator runs kill switch before dry-run",
+      "revoked": false,
+      "reason": "Hermes work queue dry-run only - no auto-merge, no direct push, no physical actuation."
+    }
+  ]
+}
