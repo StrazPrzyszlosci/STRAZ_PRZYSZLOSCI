@@ -1,0 +1,54 @@
+name: Cell Manifest Sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'agentic_cells/**'
+      - 'edge_flasher/**'
+      - 'resource_scout/**'
+      - 'model_resource_selector/**'
+      - 'potential_pipeline/**'
+      - 'aquaponics_observer_pack/**'
+      - 'human_needs/**'
+      - 'provider_quota_monitor/**'
+      - 'hermes_work_queue/**'
+      - 'human_approval/**'
+      - 'agri_autopilot/**'
+      - 'agri_grow_agent/**'
+      - '.github/workflows/cell_manifest_sync.yml'
+  pull_request:
+    paths:
+      - 'agentic_cells/**'
+      - 'edge_flasher/**'
+      - 'resource_scout/**'
+      - 'model_resource_selector/**'
+      - 'potential_pipeline/**'
+      - 'human_needs/**'
+      - 'provider_quota_monitor/**'
+      - 'hermes_work_queue/**'
+      - 'human_approval/**'
+      - 'agri_autopilot/**'
+
+jobs:
+  manifest-sync-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # T25: implementacja komórek nie moze rozjechac sie z manifestem T15.
+      - name: Validate cell manifests
+        run: python3 agentic_cells/validate_cell_manifest.py
+
+      - name: Run cell manifest sync test (implementation_ref vs disk)
+        run: python3 -m unittest discover -s tests -p 'test_cell_manifest_sync.py' -v
+
+      - name: Run cell manifest schema tests
+        run: python3 -m unittest discover -s tests -p 'test_cell_manifest.py' -v

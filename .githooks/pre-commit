@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# T25 — lokalny odpowiednik workflow cell_manifest_sync.yml.
+#
+# Instalacja jako hook (jednorazowo, per klon):
+#   git config core.hooksPath .githooks
+# Po tym kazdy `git commit` uruchomia ten skrypt i zablokuje commit, gdy
+# implementacja komorek rozjezdza sie z agentic_cells/seed_cell_manifests.json.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+python3 agentic_cells/validate_cell_manifest.py
+python3 -m unittest discover -s tests -p 'test_cell_manifest_sync.py'
