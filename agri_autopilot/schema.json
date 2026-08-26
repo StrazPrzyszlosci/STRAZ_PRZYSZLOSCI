@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgriGrowPolicy",
+  "type": "object",
+  "required": ["policies"],
+  "properties": {
+    "policies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "grow_cell_id",
+          "crop_profile",
+          "sensors",
+          "bands",
+          "advisories",
+          "kill_switch_ref",
+          "human_control_point"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{2,80}$" },
+          "grow_cell_id": { "type": "string", "minLength": 3 },
+          "crop_profile": { "type": "string", "minLength": 3 },
+          "location_or_area": { "type": "string" },
+          "sensors": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "pattern": "^[a-z0-9_]+$" }
+          },
+          "bands": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "object",
+              "required": ["safe_min", "safe_max", "alarm_below", "alarm_above"],
+              "properties": {
+                "safe_min": { "type": "number" },
+                "safe_max": { "type": "number" },
+                "alarm_below": { "type": "number" },
+                "alarm_above": { "type": "number" }
+              }
+            }
+          },
+          "advisories": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["action_id", "trigger", "actuation_class"],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]{2,80}$"
+                },
+                "trigger": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]+_(below_safe_min|above_safe_max)$"
+                },
+                "actuation_class": {
+                  "type": "string",
+                  "enum": [
+                    "advisory_only",
+                    "edge_auto_within_safe_band",
+                    "requires_human_approval"
+                  ]
+                },
+                "max_per_day": { "type": "integer", "minimum": 1, "maximum": 10 },
+                "note": { "type": "string" }
+              }
+            }
+          },
+          "autopilot_limits": {
+            "type": "object",
+            "required": ["max_auto_actions_per_day"],
+            "properties": {
+              "max_auto_actions_per_day": { "type": "integer", "minimum": 1, "maximum": 12 }
+            }
+          },
+          "kill_switch_ref": { "type": "string", "minLength": 5 },
+          "human_control_point": { "type": "string", "minLength": 10 }
+        }
+      }
+    }
+  }
+}

@@ -333,6 +333,131 @@ export const MIGRATIONS = [
     sql: `CREATE INDEX IF NOT EXISTS idx_execution_packs_pack_status
       ON execution_packs(pack_id, status);`,
   },
+  {
+    version: "20260826000001-edge-event-stream",
+    name: "Ensure edge_event_stream table for T22 edge H3 polling stream",
+    sql: `CREATE TABLE IF NOT EXISTS edge_event_stream (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      severity TEXT NOT NULL DEFAULT 'info',
+      payload_json TEXT,
+      created_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20260826000002-edge-event-stream-index",
+    name: "Ensure edge_event_stream provider/cursor index for T22",
+    sql: `CREATE INDEX IF NOT EXISTS idx_edge_event_stream_provider_id
+      ON edge_event_stream(provider_id, id);`,
+  },
+  {
+    version: "20260826000003-agri-grow-policies",
+    name: "Ensure agri_grow_policies table for T27 agri autopilot loop",
+    sql: `CREATE TABLE IF NOT EXISTS agri_grow_policies (
+      policy_id TEXT PRIMARY KEY,
+      grow_cell_id TEXT NOT NULL,
+      policy_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20260826000004-agri-grow-policies-cell-index",
+    name: "Ensure agri_grow_policies grow_cell index for T27",
+    sql: `CREATE INDEX IF NOT EXISTS idx_agri_grow_policies_cell
+      ON agri_grow_policies(grow_cell_id);`,
+  },
+  {
+    version: "20260826000005-agri-autopilot-usage",
+    name: "Ensure daily autopilot usage counters for T27 server-side budget",
+    sql: `CREATE TABLE IF NOT EXISTS agri_autopilot_usage (
+      usage_key TEXT PRIMARY KEY,
+      used_count INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20260826000006-sensor-readings-staging",
+    name: "Ensure sensor_readings_staging table for T29 telemetry ingestion",
+    sql: `CREATE TABLE IF NOT EXISTS sensor_readings_staging (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider_id TEXT NOT NULL,
+      sensor TEXT NOT NULL,
+      value REAL NOT NULL,
+      unit TEXT,
+      source TEXT,
+      recorded_at TEXT NOT NULL,
+      ingested_at TEXT NOT NULL,
+      dedup_checksum TEXT
+    );`,
+  },
+  {
+    version: "20260826000007-sensor-readings-dedup-index",
+    name: "Ensure unique dedup checksum index for T29",
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS idx_sensor_readings_dedup
+      ON sensor_readings_staging(dedup_checksum);`,
+  },
+  {
+    version: "20260826000008-sensor-readings-day-index",
+    name: "Ensure provider/sensor/recorded_at index for T29 aggregates",
+    sql: `CREATE INDEX IF NOT EXISTS idx_sensor_readings_provider_sensor_time
+      ON sensor_readings_staging(provider_id, sensor, recorded_at);`,
+  },
+  {
+    version: "20260826000009-sensor-telemetry-events",
+    name: "Ensure telemetry ingest audit ledger for T29",
+    sql: `CREATE TABLE IF NOT EXISTS sensor_telemetry_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind TEXT NOT NULL,
+      provider_id TEXT NOT NULL,
+      batch_count INTEGER NOT NULL DEFAULT 0,
+      inserted_count INTEGER NOT NULL DEFAULT 0,
+      skipped_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );`,
+  },
+  {
+    version: "20260826000010-agri-policy-versioning",
+    name: "Ensure agri grow policy active/superseded/version columns for T33",
+    sql: `ALTER TABLE agri_grow_policies ADD COLUMN active INTEGER NOT NULL DEFAULT 1;`,
+  },
+  {
+    version: "20260826000011-agri-policy-superseded-by",
+    name: "Ensure agri grow policy superseded_by column for T33",
+    sql: `ALTER TABLE agri_grow_policies ADD COLUMN superseded_by TEXT;`,
+  },
+  {
+    version: "20260826000012-agri-policy-version",
+    name: "Ensure agri grow policy version column for T33",
+    sql: `ALTER TABLE agri_grow_policies ADD COLUMN version INTEGER NOT NULL DEFAULT 1;`,
+  },
+  {
+    version: "20260826000013-harvest-records",
+    name: "Ensure harvest_records table for T36 learning loop",
+    sql: `CREATE TABLE IF NOT EXISTS harvest_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      grow_cell_id TEXT NOT NULL,
+      crop_profile TEXT NOT NULL,
+      mass_g REAL NOT NULL,
+      quality_note TEXT,
+      harvested_at TEXT NOT NULL,
+      ingested_at TEXT NOT NULL,
+      dedup_checksum TEXT
+    );`,
+  },
+  {
+    version: "20260826000014-harvest-records-dedup-index",
+    name: "Ensure unique harvest dedup checksum index for T36",
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS idx_harvest_records_dedup
+      ON harvest_records(dedup_checksum);`,
+  },
+  {
+    version: "20260826000015-harvest-records-cell-index",
+    name: "Ensure harvest cell/time index for T36 aggregates",
+    sql: `CREATE INDEX IF NOT EXISTS idx_harvest_records_cell_time
+      ON harvest_records(grow_cell_id, harvested_at);`,
+  },
 ];
 
 async function runSql(db, sql) {

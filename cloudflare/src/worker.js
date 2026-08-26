@@ -5,6 +5,14 @@ import { checkGlobalRateLimit } from "./global_rate_limiter.js";
 import { checkProviderRateLimit } from "./provider_rate_limiter.js";
 import { computeAutomationMetrics } from "./automation_metrics.js";
 import { runScheduledKicadImport } from "./scheduled_kicad_importer.js";
+import { ingestKicadJsonlPayload } from "./kicad_jsonl_ingest.js";
+import { listEdgeEventsSince, parseEdgeStreamQuery, publishEdgeEvent, pruneEdgeEvents, resolveEdgeEventRetentionConfig } from "./edge_events_stream.js";
+import { runAgriEvaluate, upsertAgriPolicy, getAgriPolicy, getActiveAgriPolicy, deactivateAgriPolicy } from "./agri_evaluate.js";
+import { computeAgriMetrics } from "./agri_metrics.js";
+import { ingestTelemetry, pruneSensorReadings, resolveSensorReadingRetentionConfig } from "./sensor_telemetry.js";
+import { recordHarvest } from "./harvest_ledger.js";
+import { computeGrowCorrelation } from "./agri_correlation.js";
+import { buildCalibrationPrBody, suggestBandAdjustments } from "./agri_calibration.js";
 import { runKicadVerifier } from "./kicad_verifier.js";
 import { runKicadCurator } from "./kicad_curator.js";
 import {
@@ -16,6 +24,7 @@ import {
   isTelegramWebhookRequest,
 } from "./telegram_issues.js";
 import { handleDiscordWebhook } from "./discord_api_handler.js";
+import { syncExecutionPackFromWebhook, verifyWebhookSignature } from "./execution_pack_webhook.js";
 import { applyMigrations } from "./schema_migrations.js";
 
 class AuthError extends Error { }
@@ -581,7 +590,12 @@ export default {
     const ingest = await runScheduledKicadImport(env);
     const verify = await runKicadVerifier(env);
     const curate = await runKicadCurator(env);
-    return { providerLifecycle, ingest, verify, curate };
+    // T31: retencja streamu zdarzeń i surowych odczytów (agregaty dzienne zostają).
+    const eventRetention = resolveEdgeEventRetentionConfig(env);
+    const pruneEvents = await pruneEdgeEvents(env.DB, eventRetention);
+    const readingRetention = resolveSensorReadingRetentionConfig(env);
+    const pruneReadings = await pruneSensorReadings(env.DB, readingRetention);
+    return { providerLifecycle, ingest, verify, curate, pruneEvents, pruneReadings };
   },
 
   async fetch(request, env, ctx) {
@@ -661,6 +675,33 @@ export default {
         return await handleDiscordWebhook(request, env);
       }
 
+      if (request.method === "POST" && url.pathname === "/integrations/github/webhook") {
+        // T30: sync statusów execution_packs z GitHub PR webhooks (HMAC, bez merge).
+        const secret = env.GITHUB_WEBHOOK_SECRET;
+        if (!secret) {
+          return jsonResponse({ error: "GitHub webhook not configured." }, 503);
+        }
+        const rawBody = await request.text();
+        const signature = request.headers.get("X-Hub-Signature-256");
+        if (!(await verifyWebhookSignature(secret, rawBody, signature))) {
+          return jsonResponse({ error: "Invalid signature." }, 401);
+        }
+        let payload;
+        try {
+          payload = JSON.parse(rawBody);
+        } catch {
+          return badRequest("Nieprawidłowy JSON.");
+        }
+        if (!payload.pull_request) {
+          return jsonResponse({ status: "ignored", reason: "not_a_pull_request_event" }, 200);
+        }
+        const result = await syncExecutionPackFromWebhook(env, payload);
+        if (!result.success) {
+          return jsonResponse(result, result.reason === "pack_not_found_for_pr_url" ? 404 : 400);
+        }
+        return jsonResponse(result, 200);
+      }
+
       if (request.method === "GET" && url.pathname === "/health") {
         return jsonResponse({ status: "ok" }, 200);
       }
@@ -671,6 +712,24 @@ export default {
         await requireTrustLevelEditor(request, env);
         const snapshot = await computeAutomationMetrics(env);
         return jsonResponse(snapshot, 200);
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/kicad/ingest-jsonl") {
+        // T21/B1: realny upstream ingestion path. Admin-only (X-Trust-Editor-Secret).
+        // Body: NDJSON z pipelines/import_cern_kicad_library.py. Staging only.
+        await requireTrustLevelEditor(request, env);
+        const text = await request.text();
+        const result = await ingestKicadJsonlPayload(env, text);
+        if (!result.success && result.reason === "invalid_payload") {
+          return jsonResponse(
+            { error: "Invalid JSONL payload", reason: result.reason, errors: result.errors },
+            400
+          );
+        }
+        if (!result.success && result.reason === "empty_payload") {
+          return jsonResponse({ error: "Empty JSONL payload", reason: result.reason }, 400);
+        }
+        return jsonResponse(result, 202);
       }
 
       const deploymentEnvironment = env.DEPLOYMENT_ENVIRONMENT || null;
@@ -896,8 +955,167 @@ export default {
           : null;
         const recommendation = generateRecommendation(observation, lastEvent);
         await saveRecommendation(env, recommendation);
+        // T22: publikuj rekomendację na edge event stream (polling-safe feed).
+        try {
+          await publishEdgeEvent(env, {
+            provider_id: observation.provider.provider_id,
+            kind: "recommendation",
+            severity: "info",
+            payload: recommendation,
+          });
+        } catch (err) {
+          console.error("[edge-event-stream] publish failed:", err);
+        }
         await updateProviderSeen(env, observation.provider.provider_id);
         return jsonResponse(recommendation, 200);
+      }
+
+      if (request.method === "GET" && url.pathname === "/v1/ws/events") {
+        // T22: polling-safe stream zdarzeń dla węzłów edge (alternatywa WebSocket).
+        const query = parseEdgeStreamQuery(url);
+        await requireProviderToken(request, env, query.provider_id);
+        const feed = await listEdgeEventsSince(env.DB, query.provider_id, query.since_id, query.limit);
+        return jsonResponse(feed, 200);
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/agri/policy") {
+        // T27: admin-only upsert polityki uprawy (kontrakt agri_autopilot/schema.json).
+        await requireTrustLevelEditor(request, env);
+        const policy = await readJson(request);
+        const result = await upsertAgriPolicy(env, policy);
+        if (!result.success) {
+          return jsonResponse(
+            { error: "Invalid grow policy", reason: result.reason, errors: result.errors || [] },
+            400
+          );
+        }
+        return jsonResponse(result, 201);
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/agri/evaluate") {
+        // T27/T33/T35: odczyty -> zdarzenia edge. Polityka przez policy_id
+        // LUB aktywna wersja dla grow_cell_id. Opcjonalna instancja
+        // (instance_grow_cell_id) autoryzuje się własnym tokenem i ma własny budżet.
+        const payload = await readJson(request);
+        let policy = payload?.policy_id ? await getAgriPolicy(env.DB, payload.policy_id) : null;
+        if (!policy && payload?.grow_cell_id) {
+          policy = await getActiveAgriPolicy(env.DB, payload.grow_cell_id);
+        }
+        if (!policy) {
+          throw new NotFoundError("Nie znaleziono aktywnej polityki uprawy.");
+        }
+        const instanceGrowCellId = String(payload?.instance_grow_cell_id || "").trim() || policy.grow_cell_id;
+        ensureProviderEnvironmentAllowed(instanceGrowCellId, deploymentEnvironment, allowedProviderEnvironments);
+        await requireProviderToken(request, env, instanceGrowCellId);
+        const result = await runAgriEvaluate(env, policy.id, payload?.readings || {}, { policy, instanceGrowCellId });
+        if (!result.success) {
+          return jsonResponse({ error: "Evaluate failed", reason: result.reason }, 400);
+        }
+        return jsonResponse(result, 200);
+      }
+
+      if (request.method === "GET" && url.pathname === "/v1/agri/metrics") {
+        // T32: dashboard metryk upraw (read-only, admin-only jak /v1/metrics).
+        await requireTrustLevelEditor(request, env);
+        const snapshot = await computeAgriMetrics(env);
+        return jsonResponse(snapshot, 200);
+      }
+
+      const correlationMatch = url.pathname.match(/^\/v1\/agri\/correlation$/);
+      if (request.method === "GET" && correlationMatch) {
+        // T37: korelacja plon<->telemetria dla komórki (auth tokenem providera).
+        const providerId = url.searchParams.get("provider_id") || "";
+        if (!providerId.trim()) {
+          throw new Error("Parametr provider_id jest wymagany.");
+        }
+        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await requireProviderToken(request, env, providerId.trim());
+        const monthsBack = url.searchParams.get("months");
+        const result = await computeGrowCorrelation(env, providerId.trim(), {
+          monthsBack: monthsBack ? Number(monthsBack) : undefined,
+        });
+        return jsonResponse(result, 200);
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/agri/calibration-suggest") {
+        // T38: suggest-only kalibracja pasm. Admin-only; wynik NIGDY nie jest
+        // zapisywany — człowiek tworzy PR przez flow B5/T23/T30.
+        await requireTrustLevelEditor(request, env);
+        const payload = await readJson(request);
+        let policy = null;
+        if (payload?.policy_id) {
+          policy = await getAgriPolicy(env.DB, payload.policy_id);
+        } else if (payload?.grow_cell_id) {
+          policy = await getActiveAgriPolicy(env.DB, payload.grow_cell_id);
+        }
+        if (!policy) {
+          throw new NotFoundError("Nie znaleziono polityki uprawy.");
+        }
+        const correlation = payload?.correlation
+          || await computeGrowCorrelation(env, policy.grow_cell_id, { monthsBack: payload?.months_back });
+        if (!correlation.success) {
+          return jsonResponse({ error: "Correlation unavailable", reason: correlation.reason }, 400);
+        }
+        const suggestionResult = suggestBandAdjustments(policy, correlation, {
+          minMonths: payload?.min_months,
+          minAbsR: payload?.min_abs_r,
+          stepPercent: payload?.step_percent,
+        });
+        return jsonResponse({
+          success: true,
+          suggestion: suggestionResult,
+          pull_request_body: buildCalibrationPrBody(policy, suggestionResult),
+        }, 200);
+      }
+
+      const agriDeactivateMatch = url.pathname.match(/^\/v1\/agri\/policies\/([^/]+)\/deactivate$/);
+      if (request.method === "POST" && agriDeactivateMatch) {
+        // T33: dezaktywacja polityki z wskaźnikiem następcy (rotacja sezonowa).
+        await requireTrustLevelEditor(request, env);
+        const body = await readJson(request).catch(() => ({}));
+        const result = await deactivateAgriPolicy(env, decodeURIComponent(agriDeactivateMatch[1]), body?.superseded_by);
+        if (!result.success) {
+          return jsonResponse(result, result.reason === "not_found_or_inactive" ? 404 : 400);
+        }
+        return jsonResponse(result, 200);
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/agri/telemetry") {
+        // T29: batch NDJSON odczytów czujników -> staging + agregaty dzienne (B4).
+        const providerId = url.searchParams.get("provider_id") || "";
+        if (!providerId.trim()) {
+          throw new Error("Parametr provider_id jest wymagany.");
+        }
+        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await requireProviderToken(request, env, providerId.trim());
+        const text = await request.text();
+        const result = await ingestTelemetry(env, providerId.trim(), text);
+        if (!result.success && result.reason === "invalid_payload") {
+          return jsonResponse({ error: "Invalid telemetry payload", reason: result.reason, errors: result.errors }, 400);
+        }
+        if (!result.success && result.reason === "empty_payload") {
+          return jsonResponse({ error: "Empty telemetry payload", reason: result.reason }, 400);
+        }
+        return jsonResponse(result, 202);
+      }
+
+      if (request.method === "POST" && url.pathname === "/v1/agri/harvest") {
+        // T36: rejestr plonu per komórka -> ledger + agregat miesięczny (pętla uczenia).
+        const providerId = url.searchParams.get("provider_id") || "";
+        if (!providerId.trim()) {
+          throw new Error("Parametr provider_id jest wymagany.");
+        }
+        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await requireProviderToken(request, env, providerId.trim());
+        const record = await readJson(request);
+        const result = await recordHarvest(env, providerId.trim(), record);
+        if (!result.success && result.reason === "invalid_record") {
+          return jsonResponse({ error: "Invalid harvest record", reason: result.reason, errors: result.errors }, 400);
+        }
+        if (!result.success && result.reason === "duplicate_harvest") {
+          return jsonResponse(result, 409);
+        }
+        return jsonResponse(result, 202);
       }
 
       const statusMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/status$/);

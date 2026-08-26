@@ -46,7 +46,9 @@ import { jsonResponse } from "./security_headers.js";
 import { checkPayloadSize } from "./payload_size.js";
 import { handleKicadReviewCommand, handleKicadReviewAction } from "./discord_kicad_actions.js";
 import { handleExecutionPackCommand } from "./execution_pack_initiator.js";
+import { handleGrowAgentCommand } from "./agri_grow_agent_setup.js";
 import { computeAutomationMetrics, formatAutomationMetricsReply } from "./automation_metrics.js";
+import { computeAgriMetrics, formatAgriMetricsReply } from "./agri_metrics.js";
 
 const DISCORD_PLATFORM = "discord";
 
@@ -268,10 +270,21 @@ async function handleCommand(env, message, command) {
     case "pack": {
       return await handleExecutionPackCommand(env, message, DISCORD_PLATFORM);
     }
+    case "grow-agent":
+    case "grow_agent": {
+      // T39: onboarding grow-agenta — drukuje instrukcje PL, NIE zwraca tokenu.
+      return await handleGrowAgentCommand(message);
+    }
     case "metrics": {
       // B4: read-only dashboard metryk AI (H2 roadmapa). Bez sekretów w reply.
       const snapshot = await computeAutomationMetrics(env);
       return { reply_text: formatAutomationMetricsReply(snapshot) };
+    }
+    case "agri-metrics":
+    case "agri_metrics": {
+      // T34: read-only dashboard metryk upraw (telemetria + autopilot).
+      const agriSnapshot = await computeAgriMetrics(env);
+      return { reply_text: formatAgriMetricsReply(agriSnapshot) };
     }
     default: {
       await closeAllUserSessions(env, message.chat_id, message.user_id, DISCORD_PLATFORM);

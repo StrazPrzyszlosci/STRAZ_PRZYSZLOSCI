@@ -1,0 +1,90 @@
+{
+  "policies": [
+    {
+      "id": "grow_policy_aquaponics_greens_01",
+      "grow_cell_id": "phone-aquaponics-observer-01",
+      "crop_profile": "leafy_greens_aquaponics",
+      "location_or_area": "pilot rack 1 (indoor, OZE battery)",
+      "sensors": [
+        "ph",
+        "water_temp_c",
+        "ec_ms_cm",
+        "air_temp_c",
+        "humidity_pct",
+        "light_ppfd"
+      ],
+      "bands": {
+        "ph": { "safe_min": 5.9, "safe_max": 6.5, "alarm_below": 5.5, "alarm_above": 7.0 },
+        "water_temp_c": { "safe_min": 18.0, "safe_max": 24.0, "alarm_below": 15.0, "alarm_above": 28.0 },
+        "ec_ms_cm": { "safe_min": 0.8, "safe_max": 1.8, "alarm_below": 0.4, "alarm_above": 2.5 },
+        "air_temp_c": { "safe_min": 18.0, "safe_max": 26.0, "alarm_below": 10.0, "alarm_above": 32.0 },
+        "humidity_pct": { "safe_min": 50.0, "safe_max": 70.0, "alarm_below": 40.0, "alarm_above": 85.0 },
+        "light_ppfd": { "safe_min": 150.0, "safe_max": 400.0, "alarm_below": 80.0, "alarm_above": 600.0 }
+      },
+      "advisories": [
+        {
+          "action_id": "buffer_dose_ph_up",
+          "trigger": "ph_below_safe_min",
+          "actuation_class": "edge_auto_within_safe_band",
+          "max_per_day": 2,
+          "note": "mikro-dawka buforu tylko w pasmie bezpiecznym; bez pompy dozującej — operator potwierdza w UI"
+        },
+        {
+          "action_id": "reduce_light_hours",
+          "trigger": "air_temp_c_above_safe_max",
+          "actuation_class": "advisory_only",
+          "note": "skrócenie fotoperiodu przez harmonogram lamp (operator)"
+        },
+        {
+          "action_id": "shade_cloth_deploy",
+          "trigger": "light_ppfd_above_safe_max",
+          "actuation_class": "requires_human_approval",
+          "note": "fizyczne rozstawienie cieniówki — tylko człowiek"
+        },
+        {
+          "action_id": "top_up_water_low_ec",
+          "trigger": "ec_ms_cm_below_safe_min",
+          "actuation_class": "advisory_only",
+          "note": "uzupełnienie wody odparowanej przez operatora"
+        }
+      ],
+      "autopilot_limits": { "max_auto_actions_per_day": 6 },
+      "kill_switch_ref": "kill switch: wyłącz zasilacza pompy dozującej (gniazdo R1) + wyciągnij wtyczkę sterownika",
+      "human_control_point": "operator przegląda każde zdarzenie alarm/recommendation przed jakąkolwiek zmianą biologiczną"
+    },
+    {
+      "id": "grow_policy_microgreens_shelf_01",
+      "grow_cell_id": "microgreens-shelf-01",
+      "crop_profile": "microgreens_shelf_low_cost",
+      "location_or_area": "shelf A (recovered e-waste grow light)",
+      "sensors": [
+        "soil_moisture_pct",
+        "air_temp_c",
+        "light_ppfd"
+      ],
+      "bands": {
+        "soil_moisture_pct": { "safe_min": 45.0, "safe_max": 70.0, "alarm_below": 30.0, "alarm_above": 90.0 },
+        "air_temp_c": { "safe_min": 18.0, "safe_max": 25.0, "alarm_below": 12.0, "alarm_above": 30.0 },
+        "light_ppfd": { "safe_min": 100.0, "safe_max": 350.0, "alarm_below": 50.0, "alarm_above": 500.0 }
+      },
+      "advisories": [
+        {
+          "action_id": "manual_watering_reminder",
+          "trigger": "soil_moisture_pct_below_safe_min",
+          "actuation_class": "advisory_only",
+          "note": "podlewanie ręczne konewką; brak aktuatorów na półce"
+        },
+        {
+          "action_id": "lamp_schedule_shift",
+          "trigger": "light_ppfd_above_safe_max",
+          "actuation_class": "edge_auto_within_safe_band",
+          "max_per_day": 1,
+          "note": "przesunięcie harmonogramu lampy w pasmie bezpiecznym"
+        }
+      ],
+      "autopilot_limits": { "max_auto_actions_per_day": 2 },
+      "kill_switch_ref": "kill switch: odłącz listwy zasilającej półki A",
+      "human_control_point": "operator potwierdza każdą zmianę harmonogramu lamp przed zapisem"
+    }
+  ]
+}

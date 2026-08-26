@@ -3,6 +3,8 @@ import { toIsoNow } from "./base_utils.js";
 const DEFAULT_REPO = "StrazPrzyszlosci/STRAZ_PRZYSZLOSCI";
 const PACK_ID_RE = /^[a-z0-9][a-z0-9._-]{2,120}$/i;
 
+export class ExecutionPackNotFoundError extends Error { }
+
 function trimText(value) {
   return String(value || "").trim();
 }
@@ -160,13 +162,172 @@ export function formatExecutionPackStartReply(result) {
   ].join("\n");
 }
 
-export async function handleExecutionPackCommand(env, message, platform = "discord") {
-  const parsed = parseExecutionPackStartCommand(message?.text || "");
-  if (!parsed) {
-    return { reply_text: "Uzycie: `!execution-pack start <pack_id> <reviewer>`" };
-  }
-  const result = await startExecutionPack(env, message, { ...parsed, platform });
-  return { reply_text: formatExecutionPackStartReply(result) };
+// T23 — status flow: started -> closed -> merged. Bot nigdy nie merge'uje;
+// 'merged' to tylko zapis potwierdzenia merge'a wykonanego przez człowieka.
+export const EXECUTION_PACK_STATUS_TRANSITIONS = {
+  started: ["closed"],
+  closed: ["merged"],
+  merged: [],
+};
+
+const GITHUB_PR_URL_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/;
+
+function parseGitHubPrUrl(prUrl) {
+  const match = String(prUrl || "").match(GITHUB_PR_URL_RE);
+  if (!match) return null;
+  return { owner: match[1], repo: match[2], number: Number(match[3]) };
 }
 
-export const __test__ = { actorIdentity, buildCanaryPrBody, canaryBranchName };
+export async function getLatestExecutionPack(env, packId) {
+  if (!env?.DB) return null;
+  const result = await env.DB.prepare(
+    `SELECT id, pack_id, status, reviewer, fork_branch, pr_url, canary_mode, initiated_by, platform, created_at, updated_at
+     FROM execution_packs WHERE pack_id = ? ORDER BY id DESC LIMIT 1`
+  ).bind(packId).first();
+  return result || null;
+}
+
+async function closeGitHubPr(env, prUrl) {
+  if (String(env.EXECUTION_PACK_DRY_RUN || "").toLowerCase() === "true" || env.EXECUTION_PACK_DRY_RUN === "1") {
+    return { closed: true, mode: "dry_run" };
+  }
+  const token = trimText(env.GITHUB_TOKEN || env.EXECUTION_PACK_GITHUB_TOKEN);
+  const pr = parseGitHubPrUrl(prUrl);
+  if (!token || !pr) {
+    return { closed: false, mode: "no_token_or_pr_url" };
+  }
+  const fetchImpl = env.__TEST_FETCH || fetch;
+  const response = await fetchImpl(`https://api.github.com/repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
+      "User-Agent": "straz-przyszlosci-execution-pack-bot",
+    },
+    body: JSON.stringify({ state: "closed" }),
+  });
+  if (!response.ok) {
+    throw new Error(`GitHub PR close failed: ${response.status}`);
+  }
+  // UWAGA: PATCH state=closed zamyka PR bez merge'a. Bot nie wykonuje PUT /merge.
+  return { closed: true, mode: "github" };
+}
+
+async function insertExecutionPackStatusRecord(env, previous, nextStatus, now, extra = {}) {
+  await env.DB.prepare(
+    `INSERT INTO execution_packs
+      (pack_id, status, reviewer, fork_branch, pr_url, canary_mode, initiated_by, platform, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    previous.pack_id,
+    nextStatus,
+    extra.reviewer || previous.reviewer,
+    previous.fork_branch,
+    previous.pr_url,
+    previous.canary_mode === 0 ? 0 : 1,
+    previous.initiated_by,
+    previous.platform,
+    previous.created_at,
+    now
+  ).run();
+}
+
+export function parseExecutionPackStatusCommand(text) {
+  const normalized = trimText(text);
+  const match = normalized.match(/^!(?:execution-pack|execution_pack|pack)\s+(close|merged)\s+([^\s]+)(?:\s+(.+))?$/i);
+  if (!match) return null;
+  return {
+    action: match[1].toLowerCase() === "close" ? "close" : "merged",
+    pack_id: match[2],
+    reviewer: trimText(match[3]),
+  };
+}
+
+export async function updateExecutionPackStatus(env, packId, nextStatus, options = {}) {
+  const normalizedPackId = validateExecutionPackId(packId);
+  if (!EXECUTION_PACK_STATUS_TRANSITIONS.hasOwnProperty(nextStatus)) {
+    throw new Error(`Nieznany status execution_pack: ${nextStatus}. Dozwolone: closed, merged.`);
+  }
+  const previous = options.previous || await getLatestExecutionPack(env, normalizedPackId);
+  if (!previous) {
+    throw new ExecutionPackNotFoundError(`Nie znaleziono execution_pack: ${normalizedPackId}`);
+  }
+  const allowed = EXECUTION_PACK_STATUS_TRANSITIONS[previous.status] || [];
+  if (!allowed.includes(nextStatus)) {
+    throw new Error(
+      `Niedozwolona tranzycja ${previous.status} -> ${nextStatus} dla ${normalizedPackId}. Dozwolone: ${allowed.join(", ") || "brak"}.`
+    );
+  }
+  const now = options.now || toIsoNow();
+
+  if (nextStatus === "closed") {
+    if (previous.pr_url && options.skipGithubClose !== true) {
+      const gh = await closeGitHubPr(env, previous.pr_url);
+      if (gh.closed === false && options.requireGithubClose) {
+        throw new Error("Brak tokenu GitHub lub rozpoznawalnego PR URL — zamknij PR recznie i uzyj '!execution-pack merged'.");
+      }
+    }
+  }
+
+  if (nextStatus === "merged") {
+    if (!previous.pr_url) {
+      throw new Error("Status 'merged' wymaga istniejacego PR URL (start -> PR -> close/merge przez czlowieka).");
+    }
+    const reviewer = trimText(options.reviewer || "");
+    if (!reviewer) {
+      throw new Error("Status 'merged' wymaga potwierdzenia reviewera: '!execution-pack merged <pack_id> <reviewer>'.");
+    }
+  }
+
+  await insertExecutionPackStatusRecord(env, previous, nextStatus, now, { reviewer: options.reviewer });
+  return {
+    pack_id: normalizedPackId,
+    previous_status: previous.status,
+    status: nextStatus,
+    fork_branch: previous.fork_branch,
+    pr_url: previous.pr_url,
+    reviewer: options.reviewer || previous.reviewer,
+    updated_at: now,
+    merged_by_human_only: nextStatus === "merged",
+  };
+}
+
+export function formatExecutionPackStatusReply(result) {
+  const lines = [
+    `execution_pack ${result.pack_id}: ${result.previous_status} -> ${result.status}`,
+    `PR: ${result.pr_url || "brak"}`,
+  ];
+  if (result.status === "merged") {
+    lines.push(`Merge potwierdzony przez czlowieka: ${result.reviewer}`);
+  }
+  if (result.status === "closed") {
+    lines.push("PR zamkniety bez merge (rollback-safe). Bot nie wykonywal merge.");
+  }
+  return lines.join("\n");
+}
+
+
+export async function handleExecutionPackCommand(env, message, platform = "discord") {
+  const parsed = parseExecutionPackStartCommand(message?.text || "");
+  if (parsed) {
+    const result = await startExecutionPack(env, message, { ...parsed, platform });
+    return { reply_text: formatExecutionPackStartReply(result) };
+  }
+  const statusCommand = parseExecutionPackStatusCommand(message?.text || "");
+  if (statusCommand) {
+    try {
+      const result = await updateExecutionPackStatus(env, statusCommand.pack_id, statusCommand.action === "close" ? "closed" : "merged", {
+        reviewer: statusCommand.reviewer,
+      });
+      return { reply_text: formatExecutionPackStatusReply(result) };
+    } catch (err) {
+      return { reply_text: `Blad execution_pack: ${err.message}` };
+    }
+  }
+  return {
+    reply_text: "Uzycie: `!execution-pack start <pack_id> <reviewer>` | `!execution-pack close <pack_id>` | `!execution-pack merged <pack_id> <reviewer>`",
+  };
+}
+
+export const __test__ = { actorIdentity, buildCanaryPrBody, canaryBranchName, parseGitHubPrUrl };

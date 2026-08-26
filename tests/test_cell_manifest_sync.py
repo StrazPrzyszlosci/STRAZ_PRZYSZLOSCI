@@ -15,6 +15,8 @@ EXPECTED_DIRS = {
     "provider_quota_monitor": "provider_quota_monitor",
     "hermes_work_queue": "hermes_work_queue",
     "human_approval": "human_approval",
+    "agri_autopilot": "agri_autopilot",
+    "agri_edge_agent": "agri_grow_agent",
 }
 
 

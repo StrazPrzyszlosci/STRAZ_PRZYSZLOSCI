@@ -869,6 +869,179 @@
         "directory": "human_approval",
         "entry_artifact": "human_approval/validate_record.py"
       }
+    },
+    {
+      "cell_id": "agri_autopilot",
+      "version": "v1",
+      "status": "draft",
+      "purpose": "Autonomous agriculture grow-loop policy: sensor bands + advisory actions with actuation classes. Evaluator emits T22 edge events; autopilot never performs physical_actuation (pump/dosing/heater/valve) without human operator.",
+      "allowed_modes": [
+        "read-only",
+        "suggest-only"
+      ],
+      "input_contract": [
+        {
+          "name": "grow_policy.json",
+          "kind": "repo_file",
+          "required": true,
+          "provenance_required": true
+        },
+        {
+          "name": "sensor readings JSON",
+          "kind": "operator_note",
+          "required": true,
+          "provenance_required": true
+        }
+      ],
+      "output_artifacts": [
+        {
+          "path_or_type": "edge_events (recommendation/alarm/status)",
+          "description": "Events compatible with cloudflare/src/edge_events_stream.js for /v1/ws/events polling",
+          "review_required": true
+        }
+      ],
+      "model_resource_policy": {
+        "default_profile": "selfhost_recovered_low_power_node",
+        "fallback_profile": "free_public_small_model",
+        "may_use_paid": false,
+        "may_use_private_data_on_public_model": false,
+        "energy_justification_required": false
+      },
+      "energy_policy": {
+        "default_class": "low_power_or_oze_preferred",
+        "low_power_first": true,
+        "oze_preferred": true
+      },
+      "human_control_points": [
+        {
+          "point": "operator_reviews_every_alarm_and_auto_action",
+          "reviewer_role": "operator",
+          "blocks": [
+            "physical_actuation",
+            "biology_change"
+          ]
+        }
+      ],
+      "audit_trail": {
+        "must_record_inputs": true,
+        "must_record_tool_versions": true,
+        "must_record_decisions": true,
+        "must_record_artifacts": true
+      },
+      "rollback_plan": {
+        "strategy": "Kill switch ref per policy; evaluator is suggest-only so rollback = ignore events and power off actuators.",
+        "rollback_artifact": "kill_switch_ref in policy record"
+      },
+      "review_gates": [
+        {
+          "gate": "no_physical_actuation_without_human_approval",
+          "reviewer_role": "operator",
+          "blocks": [
+            "physical_actuation",
+            "pump_actuation",
+            "dosing",
+            "heater_actuation",
+            "valve_actuation"
+          ]
+        },
+        {
+          "gate": "daily_autopilot_budget_enforced",
+          "reviewer_role": "system",
+          "blocks": [
+            "unbounded_edge_auto_actions"
+          ]
+        }
+      ],
+      "safety_notes": [
+        "actuation_class physical_actuation is rejected by validator.",
+        "edge_auto_within_safe_band only, with max_per_day and daily budget.",
+        "requires_human_approval actions are never auto-executed."
+      ],
+      "implementation_ref": {
+        "directory": "agri_autopilot",
+        "entry_artifact": "agri_autopilot/validate_policy.py"
+      }
+    },
+    {
+      "cell_id": "agri_edge_agent",
+      "version": "v1",
+      "status": "draft",
+      "purpose": "Edge grow-agent (Termux/proot): polls GET /v1/ws/events with cursor, renders advisory-only events in Polish. Never executes any physical action; kill switch file suspends polling; provider token never logged or persisted.",
+      "allowed_modes": [
+        "read-only",
+        "suggest-only"
+      ],
+      "input_contract": [
+        {
+          "name": "/v1/ws/events payload",
+          "kind": "sensor_data",
+          "required": true,
+          "provenance_required": true
+        },
+        {
+          "name": "provider_id + X-Provider-Token",
+          "kind": "operator_note",
+          "required": true,
+          "provenance_required": false
+        }
+      ],
+      "output_artifacts": [
+        {
+          "path_or_type": "terminal advisory lines",
+          "description": "Rendered [ALARM]/[SUGESTIA]/[AUTO-W-PASMIE] lines; zero actuation",
+          "review_required": false
+        }
+      ],
+      "model_resource_policy": {
+        "default_profile": "selfhost_recovered_low_power_node",
+        "fallback_profile": "free_public_small_model",
+        "may_use_paid": false,
+        "may_use_private_data_on_public_model": false,
+        "energy_justification_required": false
+      },
+      "energy_policy": {
+        "default_class": "owned_hardware_low_cost",
+        "low_power_first": true,
+        "oze_preferred": true
+      },
+      "human_control_points": [
+        {
+          "point": "operator_reads_advisories_and_acts_manually",
+          "reviewer_role": "operator",
+          "blocks": [
+            "physical_actuation"
+          ]
+        }
+      ],
+      "audit_trail": {
+        "must_record_inputs": true,
+        "must_record_tool_versions": true,
+        "must_record_decisions": true,
+        "must_record_artifacts": true
+      },
+      "rollback_plan": {
+        "strategy": "Agent is read-only; rollback = stop process or create kill switch file.",
+        "rollback_artifact": "~/agri_kill_switch"
+      },
+      "review_gates": [
+        {
+          "gate": "no_actuation_by_agent",
+          "reviewer_role": "operator",
+          "blocks": [
+            "physical_actuation",
+            "pump_actuation",
+            "dosing"
+          ]
+        }
+      ],
+      "safety_notes": [
+        "Advisory-only: agent renders events, never drives hardware.",
+        "Kill switch file check before every poll cycle."
+      ],
+      "implementation_ref": {
+        "directory": "agri_grow_agent",
+        "entry_artifact": "agri_grow_agent/agent.py"
+      }
     }
   ]
 }

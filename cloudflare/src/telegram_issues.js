@@ -54,7 +54,9 @@ import { fetchWithTimeout, fetchTelegramFileAsBase64 } from "./base_utils.js";
 import { checkPayloadSize } from "./payload_size.js";
 import { jsonResponse as secureJsonResponse } from "./security_headers.js";
 import { computeAutomationMetrics, formatAutomationMetricsReply } from "./automation_metrics.js";
+import { computeAgriMetrics, formatAgriMetricsReply } from "./agri_metrics.js";
 import { handleExecutionPackCommand } from "./execution_pack_initiator.js";
+import { handleGrowAgentCommand } from "./agri_grow_agent_setup.js";
 
 function jsonResponse(payload, status = 200, env = null, request = null) {
   return secureJsonResponse(payload, status, env, request);
@@ -1619,6 +1621,16 @@ async function processCommandMessage(env, message, command) {
       status: "command_execution_pack_start",
       notification_sent: notificationSent,
     };
+  } else if (command === "grow-agent" || command === "grow_agent") {
+    // T39: onboarding grow-agenta — instrukcje PL bez tokenu.
+    const reply = await handleGrowAgentCommand(message);
+    const notificationSent = await sendTelegramReply(env, message, reply.reply_text, getMainMenuKeyboard());
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "command_grow_agent_setup",
+      notification_sent: notificationSent,
+    };
   } else if (command === "metrics") {
     // B4: read-only dashboard metryk AI (H2 roadmapa). Bez sekretów w reply.
     const snapshot = await computeAutomationMetrics(env);
@@ -1628,6 +1640,17 @@ async function processCommandMessage(env, message, command) {
       update_id: message.update_id,
       message_id: message.message_id,
       status: "command_metrics",
+      notification_sent: notificationSent,
+    };
+  } else if (command === "agri-metrics" || command === "agri_metrics") {
+    // T34: read-only dashboard metryk upraw (telemetria + autopilot).
+    const agriSnapshot = await computeAgriMetrics(env);
+    const agriReplyText = formatAgriMetricsReply(agriSnapshot);
+    const notificationSent = await sendTelegramReply(env, message, agriReplyText, getMainMenuKeyboard());
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "command_agri_metrics",
       notification_sent: notificationSent,
     };
   }

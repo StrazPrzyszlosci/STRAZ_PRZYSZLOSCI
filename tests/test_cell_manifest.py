@@ -24,6 +24,8 @@ EXPECTED_CELL_IDS = {
     "provider_quota_monitor",
     "hermes_work_queue",
     "human_approval",
+    "agri_autopilot",
+    "agri_edge_agent",
 }
 
 
