@@ -162,6 +162,39 @@ function parseAllowedProviderEnvironments(deploymentEnvironment, configuredValue
   return result;
 }
 
+/**
+ * Strażnik ID komórek agri (FIX 2026-10-02, muse-1).
+ *
+ * Kontekst: kanoniczne grow_cell_id (np. phone-aquaponics-observer-01) nie
+ * niosą segmentu środowiska, więc validateProviderId je odrzuca — cała pętla
+ * agri (telemetria/evaluate/harvest/trendy/korelacja) i rejestracja komórek
+ * zwracały 400 "Drugi segment provider_id...".
+ *
+ * Zasada: ID w formacie providera idą starą ścieżką BEZ ZMIAN (w tym gating
+ * środowiskowy). Fallback dla reszty: komórka przepuszczana tylko jeśli jest
+ * zarejestrowana w agri_grow_policies (polityka = rejestr komórek); inaczej
+ * oryginalny błąd formatu. Błąd ForbiddenError (zły env) NIGDY nie wpada
+ * w fallback — gatingu wdrożeniowego nie da się ominąć nieformatowym ID.
+ */
+async function ensureAgriCellAllowed(db, providerId, deploymentEnvironment, allowedProviderEnvironments) {
+  try {
+    return ensureProviderEnvironmentAllowed(providerId, deploymentEnvironment, allowedProviderEnvironments);
+  } catch (error) {
+    if (error instanceof ForbiddenError) throw error;
+    if (!db) throw error;
+    let cell = null;
+    try {
+      cell = await db.prepare(
+        `SELECT grow_cell_id FROM agri_grow_policies WHERE grow_cell_id = ? LIMIT 1`
+      ).bind(providerId).first();
+    } catch {
+      throw error;
+    }
+    if (!cell) throw error;
+    return "agri-cell";
+  }
+}
+
 function ensureProviderEnvironmentAllowed(providerId, deploymentEnvironment, allowedEnvironments) {
   const providerEnvironment = getProviderEnvironment(providerId);
   if (allowedEnvironments === null) {
@@ -760,8 +793,24 @@ export default {
         env.ALLOWED_PROVIDER_ENVIRONMENTS || ""
       );
       if (request.method === "POST" && url.pathname === "/v1/providers/register") {
-        const provider = validateProviderDescriptor(await readJson(request));
-        ensureProviderEnvironmentAllowed(
+        const payload = await readJson(request);
+        let provider;
+        try {
+          provider = validateProviderDescriptor(payload);
+        } catch (descriptorError) {
+          // Komórki agri nie spełniają formatu provider_id (brak segmentu
+          // środowiska) — rejestracja możliwa, jeśli komórka istnieje
+          // w agri_grow_policies (polityka = rejestr komórek).
+          const cellId = typeof payload?.provider_id === "string" ? payload.provider_id.trim() : "";
+          if (!cellId) throw descriptorError;
+          const cell = await env.DB.prepare(
+            `SELECT grow_cell_id FROM agri_grow_policies WHERE grow_cell_id = ? LIMIT 1`
+          ).bind(cellId).first();
+          if (!cell) throw descriptorError;
+          provider = payload;
+        }
+        await ensureAgriCellAllowed(
+          env.DB,
           provider.provider_id,
           deploymentEnvironment,
           allowedProviderEnvironments
@@ -788,7 +837,8 @@ export default {
       const rotateMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/tokens\/rotate$/);
       if (request.method === "POST" && rotateMatch) {
         const providerId = rotateMatch[1];
-        ensureProviderEnvironmentAllowed(
+        await ensureAgriCellAllowed(
+          env.DB,
           providerId,
           deploymentEnvironment,
           allowedProviderEnvironments
@@ -805,7 +855,8 @@ export default {
       const heartbeatMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/heartbeat$/);
       if (request.method === "POST" && heartbeatMatch) {
         const providerId = heartbeatMatch[1];
-        ensureProviderEnvironmentAllowed(
+        await ensureAgriCellAllowed(
+          env.DB,
           providerId,
           deploymentEnvironment,
           allowedProviderEnvironments
@@ -845,7 +896,8 @@ export default {
       const trustLevelMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/trust-level$/);
       if (request.method === "PATCH" && trustLevelMatch) {
         const providerId = trustLevelMatch[1];
-        ensureProviderEnvironmentAllowed(
+        await ensureAgriCellAllowed(
+          env.DB,
           providerId,
           deploymentEnvironment,
           allowedProviderEnvironments
@@ -1027,7 +1079,7 @@ export default {
           throw new NotFoundError("Nie znaleziono aktywnej polityki uprawy.");
         }
         const instanceGrowCellId = String(payload?.instance_grow_cell_id || "").trim() || policy.grow_cell_id;
-        ensureProviderEnvironmentAllowed(instanceGrowCellId, deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, instanceGrowCellId, deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, instanceGrowCellId);
         const result = await runAgriEvaluate(env, policy.id, payload?.readings || {}, { policy, instanceGrowCellId });
         if (!result.success) {
@@ -1050,7 +1102,7 @@ export default {
         if (!providerId.trim()) {
           throw new Error("Parametr provider_id jest wymagany.");
         }
-        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, providerId.trim());
         const monthsBack = url.searchParams.get("months");
         const result = await computeGrowCorrelation(env, providerId.trim(), {
@@ -1153,7 +1205,7 @@ export default {
         if (!providerId.trim()) {
           throw new Error("Parametr provider_id jest wymagany.");
         }
-        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, providerId.trim());
         const text = await request.text();
         const result = await ingestTelemetry(env, providerId.trim(), text);
@@ -1172,7 +1224,7 @@ export default {
         if (!providerId.trim()) {
           throw new Error("Parametr provider_id jest wymagany.");
         }
-        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, providerId.trim());
         const record = await readJson(request);
         const result = await recordHarvest(env, providerId.trim(), record);
@@ -1193,7 +1245,7 @@ export default {
         if (!providerId.trim()) {
           throw new Error("Parametr provider_id jest wymagany.");
         }
-        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, providerId.trim());
         const result = await computeHarvestTrends(env, providerId.trim(), {
           monthsBack: url.searchParams.get("months"),
