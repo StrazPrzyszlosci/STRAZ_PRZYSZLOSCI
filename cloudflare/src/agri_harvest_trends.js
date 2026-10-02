@@ -28,7 +28,10 @@ function toText(value) {
 export function normalizeMonthsBack(raw) {
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_MONTHS_BACK;
-  return Math.min(MAX_MONTHS_BACK, Math.max(MIN_MONTHS_BACK, Math.floor(parsed)));
+  return Math.min(
+    MAX_MONTHS_BACK,
+    Math.max(MIN_MONTHS_BACK, Math.floor(parsed)),
+  );
 }
 
 /**
@@ -37,7 +40,7 @@ export function normalizeMonthsBack(raw) {
  */
 export function linearRegression(points) {
   const clean = (Array.isArray(points) ? points : []).filter(
-    (p) => p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y))
+    (p) => p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)),
   );
   const n = clean.length;
   if (n < 2) return null;
@@ -80,7 +83,13 @@ export function buildMonthlySeries(rows) {
     const crop = toText(row?.crop_profile).trim();
     const month = toText(row?.harvested_at).slice(0, 7);
     const mass = Number(row?.mass_g);
-    if (!crop || !/^\d{4}-\d{2}$/.test(month) || !Number.isFinite(mass) || mass <= 0) continue;
+    if (
+      !crop ||
+      !/^\d{4}-\d{2}$/.test(month) ||
+      !Number.isFinite(mass) ||
+      mass <= 0
+    )
+      continue;
     if (!crops.has(crop)) crops.set(crop, new Map());
     const months = crops.get(crop);
     months.set(month, (months.get(month) || 0) + mass);
@@ -130,7 +139,9 @@ export function computeCropTrends(series) {
   for (const [crop, points] of Object.entries(series)) {
     const total = points.reduce((sum, p) => sum + p.mass_g, 0);
     const mean = points.length ? total / points.length : 0;
-    const fit = linearRegression(points.map((p, index) => ({ x: index, y: p.mass_g })));
+    const fit = linearRegression(
+      points.map((p, index) => ({ x: index, y: p.mass_g })),
+    );
     trends[crop] = {
       months: points.length,
       total_g: total,
@@ -152,11 +163,16 @@ export async function computeHarvestTrends(env, providerId, options = {}) {
   const res = await env.DB.prepare(
     `SELECT crop_profile, harvested_at, mass_g FROM harvest_records
      WHERE grow_cell_id = ?
-     ORDER BY harvested_at ASC`
-  ).bind(growCellId).all();
+     ORDER BY harvested_at ASC`,
+  )
+    .bind(growCellId)
+    .all();
   const rows = res?.results || [];
   const fullSeries = buildMonthlySeries(rows);
-  const { series, cutoffMonth, maxMonth } = cutSeriesToWindow(fullSeries, monthsBack);
+  const { series, cutoffMonth, maxMonth } = cutSeriesToWindow(
+    fullSeries,
+    monthsBack,
+  );
   const trends = computeCropTrends(series);
   const cropCount = Object.keys(series).length;
   return {
@@ -168,8 +184,9 @@ export async function computeHarvestTrends(env, providerId, options = {}) {
     crop_count: cropCount,
     series,
     trends,
-    note: cropCount === 0
-      ? "Brak wpisów plonu dla tej komórki — najpierw zgłoś zbiory przez POST /v1/agri/harvest."
-      : "Trend opisuje przeszłość (regresja liniowa miesięcznych sum), nie gwarantuje przyszłych plonów.",
+    note:
+      cropCount === 0
+        ? "Brak wpisów plonu dla tej komórki — najpierw zgłoś zbiory przez POST /v1/agri/harvest."
+        : "Trend opisuje przeszłość (regresja liniowa miesięcznych sum), nie gwarantuje przyszłych plonów.",
   };
 }
