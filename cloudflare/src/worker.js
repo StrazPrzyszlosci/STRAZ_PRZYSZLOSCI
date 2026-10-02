@@ -28,6 +28,8 @@ import {
 import { handleDiscordWebhook } from "./discord_api_handler.js";
 import { syncExecutionPackFromWebhook, verifyWebhookSignature } from "./execution_pack_webhook.js";
 import { applyMigrations } from "./schema_migrations.js";
+import { resolveBackgroundGuardConfig, tryAcquireBackgroundLease } from "./background_guard.js";
+import { checkFloatingIpHealth } from "./floating_ip_health.js";
 
 class AuthError extends Error { }
 class ConflictError extends Error { }
@@ -588,16 +590,30 @@ function shouldApplyGlobalRateLimit(request, url, env) {
 export default {
   async scheduled(_event, env, _ctx) {
     await applyMigrations(env.DB);
-    const providerLifecycle = await autoDeactivateInactiveProviders(env);
-    const ingest = await runScheduledKicadImport(env);
-    const verify = await runKicadVerifier(env);
-    const curate = await runKicadCurator(env);
+    // === HARDENING background-guard START ===
+    // Single-flight dla zadań tła: nakładające się invokacje crona pomijają
+    // zadania z aktywną dzierżawą (fail-open — brak D1 = wszystkie biegną).
+    const guardConfig = resolveBackgroundGuardConfig(env);
+    const backgroundSkipped = [];
+    const runGuarded = async (taskName, fn) => {
+      const lease = await tryAcquireBackgroundLease(env.DB, taskName, guardConfig);
+      if (!lease.acquired) {
+        backgroundSkipped.push({ task: taskName, reason: lease.reason });
+        return { skipped: true, reason: lease.reason };
+      }
+      return await fn();
+    };
+    const providerLifecycle = await runGuarded("provider-lifecycle", () => autoDeactivateInactiveProviders(env));
+    const ingest = await runGuarded("kicad-import", () => runScheduledKicadImport(env));
+    const verify = await runGuarded("kicad-verify", () => runKicadVerifier(env));
+    const curate = await runGuarded("kicad-curate", () => runKicadCurator(env));
+    // === HARDENING background-guard END ===
     // T31: retencja streamu zdarzeń i surowych odczytów (agregaty dzienne zostają).
     const eventRetention = resolveEdgeEventRetentionConfig(env);
-    const pruneEvents = await pruneEdgeEvents(env.DB, eventRetention);
+    const pruneEvents = await runGuarded("prune-edge-events", () => pruneEdgeEvents(env.DB, eventRetention));
     const readingRetention = resolveSensorReadingRetentionConfig(env);
-    const pruneReadings = await pruneSensorReadings(env.DB, readingRetention);
-    return { providerLifecycle, ingest, verify, curate, pruneEvents, pruneReadings };
+    const pruneReadings = await runGuarded("prune-sensor-readings", () => pruneSensorReadings(env.DB, readingRetention));
+    return { providerLifecycle, ingest, verify, curate, pruneEvents, pruneReadings, backgroundSkipped };
   },
 
   async fetch(request, env, ctx) {
@@ -705,7 +721,11 @@ export default {
       }
 
       if (request.method === "GET" && url.pathname === "/health") {
-        return jsonResponse({ status: "ok" }, 200);
+        // === HARDENING floating-ip-health START ===
+        // Liveness (zawsze 200) + flaga ready dla monitoringu floating-IP.
+        const health = await checkFloatingIpHealth(env);
+        return jsonResponse({ status: "ok", ready: health.ready, db: health.db, version: health.version, now: health.now }, 200);
+        // === HARDENING floating-ip-health END ===
       }
 
       if (request.method === "GET" && url.pathname === "/v1/metrics") {
