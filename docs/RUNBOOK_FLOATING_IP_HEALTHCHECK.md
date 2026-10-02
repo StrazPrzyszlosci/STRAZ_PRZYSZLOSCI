@@ -1,33 +1,76 @@
 # RUNBOOK: floating-IP healthcheck + rate-limity zadań tła
 
-Status: moduły gotowe (`background_rate_limiter.js`, `floating_ip_healthcheck.js`),
-podpięcie w `worker.js` (cron `scheduled()` + endpoint admin-only) dla operatora przy deployu.
+Stan: moduły gotowe, NIEPODPIĘTE w `worker.js` (celowo — podpięcie przy `wrangler deploy`,
+decyzja operatora). Ten runbook mówi jak je włączyć i jak czytać sygnały.
 
-## 1. Rate-limity zadań tła
+## 1. Po co to jest
 
-- Bramka per zadanie w oknie 1h (domyślnie maks. 6 uruchomień), klucze `bg:<zadanie>:<okno>`
-  w istniejącej tabeli `telegram_chat_limits` — zero nowych migracji.
-- Konfiguracja per zadanie przez env: `BG_<ZADANIE>_WINDOW_MS`, `BG_<ZADANIE>_MAX_RUNS`
-  (np. `BG_PRUNE_MAX_RUNS=2`). Zadania: `kicad_import`, `verifier`, `curator`, `prune`, `lifecycle`.
-- Fail-open przy awarii D1 (jak limiter globalny Z85): cron nie staje, błąd w logach.
-- Gate interwałowy bez D1: `shouldRunBackgroundTask(lastRunAtMs, minIntervalMs)`.
+- Bez healthchecka floating-IP milcząco wypada z rotacji: ruch idzie w próżnię,
+  a cron/retencja T31 i webhooki B5/T23/T30 milkną bez jednego loga.
+- Bez limiterów tła zawieszony cron albo podwójny trigger potrafi zwielokrotnić
+  obciążenie D1 (import KiCad, verifier, curator, pruning T31, lifecycle).
 
-Docelowe podpięcie w `scheduled()` (osobny commit, własny blok z markerami):
-przed każdym zadaniem `checkBackgroundTaskAllowance(env.DB, "<zadanie>")` → przy
-`allowed:false` pomiń zadanie i zaloguj `retry_after_seconds`.
+## 2. Moduły (read-only, testowane)
 
-## 2. Floating-IP healthcheck
+| Moduł | Plik | Testy |
+|---|---|---|
+| Bramka tła per zadanie (D1, fail-open) | `cloudflare/src/background_rate_limiter.js` | `tests/background_rate_limiter_test.mjs` |
+| Healthcheck floating-IP (fail-safe, nigdy nie rzuca) | `cloudflare/src/floating_ip_healthcheck.js` | `tests/floating_ip_healthcheck_test.mjs` |
+| Strażnik lease single-flight | `cloudflare/src/background_guard.js` | `tests/background_guard_test.mjs` |
 
-- `checkFloatingIpHealth(fetcher, url, { timeoutMs })` — wstrzykiwalny fetcher
-  (prod: `fetchWithTimeout`), nigdy nie rzuca; wynik `{healthy, reason, statusCode, latencyMs}`.
-- Docelowo: cron co N minut + endpoint admin-only `GET /v1/ops/floating-ip/health`
-  (sekret `X-Trust-Editor-Secret`); przy 3 kolejnych `UNHEALTHY` — alert do operatora,
-  NIE automatyczny failover (actuation gate, jak kalibracja T38: człowiek decyduje).
-- URL healthchecka bez tokenów; odpowiedź przycinana przed logowaniem.
+Limity tła używają ISTNIEJĄCEJ tabeli `telegram_chat_limits` (klucze `bg:…`) —
+zero nowych migracji D1 (wzór limitera globalnego Z85).
 
-## 3. Weryfikacja
+## 3. Konfiguracja (env Workera)
 
 ```bash
-node --test tests/background_rate_limiter_test.mjs tests/floating_ip_healthcheck_test.mjs
-# 14 pass / 0 fail
+# Limiter globalny per zadanie (nadpisywalne per task: BG_<TASK>_WINDOW_MS / BG_<TASK>_MAX_RUNS,
+# gdzie <TASK> to nazwa zadania upper-snake, np. BG_KICAD_IMPORT_WINDOW_MS)
+BG_DEFAULT_WINDOW_MS=3600000   # domyślnie 1h
+BG_DEFAULT_MAX_RUNS=6           # domyślnie 6 uruchomień / okno
+
+# Healthcheck: URL-e po przecinku konfigurowane przy deployu (BEZ tokenów w URL!);
+# timeout: FLOATING_IP_HEALTH_TIMEOUT_MS (default 10000, min 1000)
 ```
+
+Sekrety (tokeny GitHub/providerów) rotować wg `docs/RUNBOOK_ROTACJI_SEKRETOW.md` —
+URL-e healthchecka NIGDY nie zawierają sekretów (moduł ucina body do 2000 znaków
+i nie loguje nagłówków).
+
+## 4. Podpięcie w `scheduled()` (szkic dla operatora, NIE aplikować zdalnie)
+
+```js
+import { checkBackgroundTaskAllowance } from "./background_rate_limiter.js";
+import { checkFloatingIpHealth, formatFloatingIpHealthSummary } from "./floating_ip_healthcheck.js";
+import { fetchWithTimeout } from "./base_utils.js";
+
+// Na początku scheduled():
+const gate = await checkBackgroundTaskAllowance(env.DB, "nightly_kicad_import");
+if (!gate.allowed) {
+  console.log(`[cron] skip nightly_kicad_import: ${gate.reason}, retry za ${gate.retry_after_seconds}s`);
+  return;
+}
+// Osobny lekki cron lub koniec scheduled():
+const health = await checkFloatingIpHealth(
+  (url, opts, ms) => fetchWithTimeout(url, opts, ms),
+  env.FLOATING_IP_HEALTH_URL
+);
+console.log(formatFloatingIpHealthSummary(health));
+// health.healthy === false → alert do operatora (Discord/Telegram), NIE auto-failover:
+// przełączenie IP to decyzja człowieka (actuation gate).
+```
+
+## 5. Interpretacja sygnałów
+
+- `background_rate_limited` + `retry_after_seconds` — zdrowy objaw (bramka działa); jeśli
+  permanentnie, zwiększ `BG_<TASK>_MAX_RUNS` albo podziel zadanie.
+- `db_error` / `no_db` — bramka OTWARTA (fail-open): cron leci dalej. Sprawdź D1.
+- `healthy:false reason=http_XXX` — backend za floating-IP odpowiada błędem HTTP.
+- `healthy:false reason=payload_down|unexpected_body` — HTTP 200, ale treść zła (fałszywy OK).
+- `healthy:false reason=fetch_error` — IP nieosiągalne / timeout → kandydat do rotacji.
+
+## 6. Czego NIE robi automatyzacja (bramki)
+
+- Bot/agent NIGDY nie przełącza floating-IP sam (actuation gate, decyzja operatora).
+- Healthcheck NIGDY nie rzuca wyjątkami (zwraca `unhealthy` — monitoring ma świecić, nie padać).
+- Limiter NIGDY nie blokuje przy awarii D1 (fail-open — cron nie staje).

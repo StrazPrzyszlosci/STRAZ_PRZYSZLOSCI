@@ -1,7 +1,9 @@
 # CLAIM hardening-background — muse-spark
 - Zadanie: API/worker hardening — resztka: rate-limity zadań tła + floating-IP healthcheck
   (secret-rotation DONE i expiry DONE u innego agenta — nie dotykam)
-- Status: in_progress
+- Status: done (podział: kod 4 plików — implementacja równoległego agenta, zweryfikowana
+  read-only: node 14 pass/0 fail, czeka na JEGO commit — nie dotykane; docs: runbook
+  `docs/RUNBOOK_FLOATING_IP_HEALTHCHECK.md` — mój, zcommitowany tu)
 - Start: 2026-10-02
 - Branch/worktree: codex/HARDENING-bg-rate-floating-health
 - Dotknięte pliki: NOWE `cloudflare/src/background_rate_limiter.js`,
