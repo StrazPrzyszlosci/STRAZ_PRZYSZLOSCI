@@ -1,6 +1,7 @@
 # CLAIM T44 — muse-4
 - Zadanie: T44 (refactor: wspólne resolveCalibrationSuggestion dla preview T43 i apply T42 — usunięcie ~30 linii duplikacji ładowania polityki/korelacji/sugestii; zero zmian zachowania)
-- Status: in_progress
+- Status: done (refactor + test resolvera; 318 OK + 384/0 w worktree; handoff PO_T44)
+- Weryfikacja: jw.
 - Start: 2026-10-02
 - Branch/worktree: codex/T44-calibration-dedupe-muse-4 w `.kilo/worktrees/muse-4` (IZOLACJA — własny worktree, koniec wojen edycji)
 - Dotknięte pliki: `cloudflare/src/execution_pack_initiator.js` (tylko sekcje T42/T43 — moje),
