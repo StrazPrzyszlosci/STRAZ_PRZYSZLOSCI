@@ -183,6 +183,22 @@ describe("worker agri routes (T40/T41 fetch-level)", () => {
     assert.equal(res.status, 400);
   });
 
+  it("preserves deployment gating: compliant prod ID on demo-only worker stays 403", async () => {
+    const env = {
+      DB: createMockDb({ providerTokenHash: await sha256hex(PROVIDER_TOKEN) }),
+      ALLOWED_PROVIDER_ENVIRONMENTS: "demo",
+    };
+    const res = await worker.fetch(
+      get("/v1/agri/harvest/trends?provider_id=cell-prod-node-01", {
+        "X-Provider-Token": PROVIDER_TOKEN,
+      }),
+      env,
+      {}
+    );
+    // ForbiddenError (zły env) nie wpada w fallback komórek.
+    assert.equal(res.status, 403);
+  });
+
   it("GET /v1/agri/harvest/trends rejects unknown cell without env segment with 400", async () => {
     const env = {
       DB: createMockDb({ providerTokenHash: await sha256hex(PROVIDER_TOKEN) }),

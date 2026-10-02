@@ -175,6 +175,13 @@ function parseAllowedProviderEnvironments(deploymentEnvironment, configuredValue
  * zarejestrowana w agri_grow_policies (polityka = rejestr komórek); inaczej
  * oryginalny błąd formatu. Błąd ForbiddenError (zły env) NIGDY nie wpada
  * w fallback — gatingu wdrożeniowego nie da się ominąć nieformatowym ID.
+ *
+ * OGRANICZENIE (2026-10-02, muse-1): wszystkie env dzielą jedno D1
+ * (wrangler.toml: ten sam database_id dla preview/staging/prod), więc
+ * komórki NIE mają izolacji środowiskowej na poziomie danych — token
+ * komórki działa w każdym env. Gating env dla komórek nie istnieje
+ * (brak segmentu env w ID). Separacja D1 per env to zadanie operatora;
+ * do tego czasu metryki demo/prod lądują we wspólnej automation_metrics.
  */
 async function ensureAgriCellAllowed(db, providerId, deploymentEnvironment, allowedProviderEnvironments) {
   try {
