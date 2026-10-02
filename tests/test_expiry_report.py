@@ -74,7 +74,13 @@ class ExpiryReportTest(unittest.TestCase):
             self.assertEqual(main([str(expired_path)]), 1)
 
             warn_only_path = Path(tmp) / "warn.json"
-            warn_only_path.write_text(json.dumps({"records": [record("soon_record", 20)]}), encoding="utf-8")
+            # Rekord "wkrótce wygasający" musi być liczony względem RZECZYWISTEGO
+            # teraz (main() używa datetime.now), nie względem zamrożonego NOW
+            # z tego testu — inaczej po dacie NOW+20d test staje się time-bombem.
+            from datetime import timedelta as _td
+
+            warn_expires = (datetime.now(timezone.utc) + _td(days=20)).isoformat()
+            warn_only_path.write_text(json.dumps({"records": [{"id": "soon_record", "expires_at": warn_expires}]}), encoding="utf-8")
             # Ostrzeżenie nie wywala exit code — dopóki nic nie wygasło.
             self.assertEqual(main([str(warn_only_path), "--warn-days", "30"]), 0)
 
