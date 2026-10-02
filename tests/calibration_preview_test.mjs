@@ -5,6 +5,7 @@ import {
   handleCalibrationCommand,
   parseCalibrationPreviewCommand,
   previewCalibration,
+  resolveCalibrationSuggestion,
 } from "../cloudflare/src/execution_pack_initiator.js";
 
 const policy = {
@@ -59,6 +60,24 @@ describe("T43 calibration preview", () => {
     const result = await previewCalibration({ DB: null }, {}, { policy_id: policy.id, policy, correlation: weakCorrelation });
     assert.equal(result.status, "no_suggestions");
     assert.match(formatCalibrationPreviewReply(result), /read-only|nie utworzono/i);
+  });
+
+  it("resolves suggestion pipeline shared by preview and apply (T44)", async () => {
+    const resolved = await resolveCalibrationSuggestion(
+      { DB: null }, policy.id, { policy, correlation: strongCorrelation }
+    );
+    assert.equal(resolved.policy.id, policy.id);
+    assert.equal(resolved.correlation.success, true);
+    assert.equal(resolved.suggestionResult.suggestions.length, 1);
+
+    await assert.rejects(
+      () => resolveCalibrationSuggestion({ DB: null }, "ghost_policy", {}),
+      /Nie znaleziono polityki/
+    );
+    await assert.rejects(
+      () => resolveCalibrationSuggestion({ DB: null }, "  ", { policy, correlation: strongCorrelation }),
+      /policy_id/
+    );
   });
 
   it("routes preview through bot handler with usage fallback", async () => {

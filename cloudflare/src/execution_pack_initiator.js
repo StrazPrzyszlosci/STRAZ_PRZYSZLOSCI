@@ -427,19 +427,19 @@ function buildCalibrationDraftBody({ policy, suggestionResult, patch, reviewer, 
   ].filter((line) => line !== "").join("\n");
 }
 
-export async function startCalibrationPack(env, message, options = {}) {
-  const policyId = trimText(options.policy_id);
-  if (!policyId) {
-    throw new Error("Uzycie: `!calibration apply <policy_id> [reviewer]`.");
+/**
+ * T44 — wspólne rozwiązanie sugestii kalibracji dla preview (T43) i apply (T42).
+ * Czysty pipeline: polityka → korelacja T37 → sugestia T38. Rzuca Error z komunikatem
+ * gotowym do reply bota. Wstrzykiwalne policy/correlation dla testów (zero D1 w teście).
+ */
+export async function resolveCalibrationSuggestion(env, policyId, options = {}) {
+  const id = trimText(policyId);
+  if (!id) {
+    throw new Error("Brak policy_id (wewnętrzny błąd wywołania).");
   }
-  const reviewer = resolveReviewer(env, options.reviewer);
-  const now = options.now || toIsoNow();
-  const platform = options.platform || "discord";
-  const actor = actorIdentity(message, platform);
-
-  const policy = options.policy || (env.DB ? await getAgriPolicy(env.DB, policyId) : null);
+  const policy = options.policy || (env.DB ? await getAgriPolicy(env.DB, id) : null);
   if (!policy) {
-    throw new Error(`Nie znaleziono polityki uprawy: ${policyId}.`);
+    throw new Error(`Nie znaleziono polityki uprawy: ${id}.`);
   }
   const correlation = options.correlation
     || await computeGrowCorrelation(env, policy.grow_cell_id, { monthsBack: options.monthsBack });
@@ -451,6 +451,20 @@ export async function startCalibrationPack(env, message, options = {}) {
     minAbsR: options.minAbsR,
     stepPercent: options.stepPercent,
   });
+  return { policy, correlation, suggestionResult };
+}
+
+export async function startCalibrationPack(env, message, options = {}) {
+  const policyId = trimText(options.policy_id);
+  if (!policyId) {
+    throw new Error("Uzycie: `!calibration apply <policy_id> [reviewer]`.");
+  }
+  const reviewer = resolveReviewer(env, options.reviewer);
+  const now = options.now || toIsoNow();
+  const platform = options.platform || "discord";
+  const actor = actorIdentity(message, platform);
+
+  const { policy, suggestionResult } = await resolveCalibrationSuggestion(env, policyId, options);
   if (!suggestionResult.suggestions.length) {
     return {
       status: "no_suggestions",
@@ -555,20 +569,7 @@ export async function previewCalibration(env, message, options = {}) {
   if (!policyId) {
     throw new Error("Uzycie: `!calibration preview <policy_id>`.");
   }
-  const policy = options.policy || (env.DB ? await getAgriPolicy(env.DB, policyId) : null);
-  if (!policy) {
-    throw new Error(`Nie znaleziono polityki uprawy: ${policyId}.`);
-  }
-  const correlation = options.correlation
-    || await computeGrowCorrelation(env, policy.grow_cell_id, { monthsBack: options.monthsBack });
-  if (!correlation || correlation.success !== true) {
-    throw new Error(`Korelacja niedostepna dla ${policy.grow_cell_id}: ${correlation?.reason || "unknown"}.`);
-  }
-  const suggestionResult = suggestBandAdjustments(policy, correlation, {
-    minMonths: options.minMonths,
-    minAbsR: options.minAbsR,
-    stepPercent: options.stepPercent,
-  });
+  const { policy, suggestionResult } = await resolveCalibrationSuggestion(env, policyId, options);
   const view = buildCalibrationView(policy, suggestionResult);
   const text = view.text || view.review_text || "";
   const capped = text.length > 1800 ? `${text.slice(0, 1799)}…` : text;
