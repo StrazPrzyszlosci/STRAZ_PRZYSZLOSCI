@@ -519,9 +519,18 @@ export function formatCalibrationApplyReply(result) {
 }
 
 export async function handleCalibrationCommand(env, message, platform = "discord") {
+  const preview = parseCalibrationPreviewCommand(message?.text || "");
+  if (preview) {
+    try {
+      const result = await previewCalibration(env, message, { ...preview, platform });
+      return { reply_text: formatCalibrationPreviewReply(result) };
+    } catch (err) {
+      return { reply_text: `Blad kalibracji: ${err.message}` };
+    }
+  }
   const parsed = parseCalibrationApplyCommand(message?.text || "");
   if (!parsed) {
-    return { reply_text: "Uzycie: `!calibration apply <policy_id> [reviewer]` (manualny trigger draft-PR, suggest-only)." };
+    return { reply_text: "Uzycie: `!calibration preview <policy_id>` | `!calibration apply <policy_id> [reviewer]` (suggest-only)." };
   }
   try {
     const result = await startCalibrationPack(env, message, { ...parsed, platform });
@@ -530,4 +539,63 @@ export async function handleCalibrationCommand(env, message, platform = "discord
     return { reply_text: `Blad kalibracji: ${err.message}` };
   }
 }
+// === T43 calibration preview START ===
+// Read-only podglad diff w bocie: `!calibration preview <policy_id>`.
+// ZERO zapisow (brak packa, brak PR) — czysta wizualizacja T40 do szybkiego review.
+
+export function parseCalibrationPreviewCommand(text) {
+  const normalized = trimText(text);
+  const match = normalized.match(/^!calibration(?:_preview)?\s+preview\s+([^\s]+)\s*$/i);
+  if (!match) return null;
+  return { action: "preview", policy_id: match[1] };
+}
+
+export async function previewCalibration(env, message, options = {}) {
+  const policyId = trimText(options.policy_id);
+  if (!policyId) {
+    throw new Error("Uzycie: `!calibration preview <policy_id>`.");
+  }
+  const policy = options.policy || (env.DB ? await getAgriPolicy(env.DB, policyId) : null);
+  if (!policy) {
+    throw new Error(`Nie znaleziono polityki uprawy: ${policyId}.`);
+  }
+  const correlation = options.correlation
+    || await computeGrowCorrelation(env, policy.grow_cell_id, { monthsBack: options.monthsBack });
+  if (!correlation || correlation.success !== true) {
+    throw new Error(`Korelacja niedostepna dla ${policy.grow_cell_id}: ${correlation?.reason || "unknown"}.`);
+  }
+  const suggestionResult = suggestBandAdjustments(policy, correlation, {
+    minMonths: options.minMonths,
+    minAbsR: options.minAbsR,
+    stepPercent: options.stepPercent,
+  });
+  const view = buildCalibrationView(policy, suggestionResult);
+  const text = view.text || view.review_text || "";
+  const capped = text.length > 1800 ? `${text.slice(0, 1799)}…` : text;
+  return {
+    status: suggestionResult.suggestions.length ? "preview" : "no_suggestions",
+    policy_id: suggestionResult.policy_id || policy.id || policyId,
+    grow_cell_id: suggestionResult.grow_cell_id || policy.grow_cell_id || null,
+    suggestion_count: suggestionResult.suggestions.length,
+    skipped_count: (suggestionResult.skipped || []).length,
+    text: capped,
+    suggest_only: true,
+    auto_applied: false,
+  };
+}
+
+export function formatCalibrationPreviewReply(result) {
+  if (result.status === "no_suggestions") {
+    return [
+      `Podglad kalibracji ${result.policy_id}: brak sugestii powyzej progow.`,
+      "Nic nie utworzono (ani pack, ani PR) — podglad jest read-only.",
+    ].join("\n");
+  }
+  return [
+    `Podglad kalibracji (read-only): ${result.policy_id} — sugestie: ${result.suggestion_count}.`,
+    result.text,
+    "Aby otworzyc draft-PR: `!calibration apply <policy_id> [reviewer]`.",
+  ].join("\n");
+}
+// === T43 calibration preview END ===
 // === T42 calibration draft-PR END ===
