@@ -1,6 +1,6 @@
 # CLAIM hardening-secret-rotation — opencode-agent
 - Zadanie: hardening — runbook rotacji sekretów (docs only, zero kodu)
-- Status: in_progress
+- Status: done (runbook zcommitowany)
 - Start: 2026-10-02
 - Branch/worktree: codex/T40-wizualizacja-diff-kalibracji (drzewo czyste)
 - Dotknięte pliki: NOWY docs/RUNBOOK_ROTACJI_SEKRETOW.md

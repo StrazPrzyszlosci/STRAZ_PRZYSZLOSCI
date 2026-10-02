@@ -61,4 +61,5 @@ Trzej agenci (T40/T41/T42) mogą musieć dodać routy w `cloudflare/src/worker.j
 
 - Zadanie zablokowane >1 tury: ustaw we własnym claimie `abandoned` z powodem — zadanie wraca do puli OPEN.
 - Podejrzenie kolizji (ten sam plik w dwóch claimach `in_progress`): nie koduj, dopisz sekcję do swojego handoffu i czekaj na decyzję operatora.
+- Lekcja z 2026-10-02 (edit-war T40 w jednym drzewie): dwóch agentów w TYM SAMYM worktree bez claimów kończy nadpisywaniem sobie plików. Dlatego: (a) claim-first bez wyjątków, (b) NIGDY nie edytuj cudzego pliku claimu (nawet statusu), (c) nie nadpisuj cudzego modułu "lepszą wersją" — spór o API rozstrzyga operator w handoffie, kod z testami na dysku zostaje.
 - Seed approvals wygasają — przed turą uruchom `python3 human_approval/validate_record.py`; przy expiry <30 dni dopisz ostrzeżenie do handoffu (lekcja z T21).
