@@ -65,8 +65,14 @@ class ExpiryReportTest(unittest.TestCase):
 
     def test_main_exit_codes(self):
         with tempfile.TemporaryDirectory() as tmp:
+            # Fixture'y main() MUSZĄ być liczone względem RZECZYWISTEGO teraz
+            # (main() używa datetime.now) — kotwica w zamrożonym NOW to time-bomb.
+            from datetime import timedelta as _td
+
+            now = datetime.now(timezone.utc)
             ok_path = Path(tmp) / "ok.json"
-            ok_path.write_text(json.dumps({"records": [record("ok_record", 120)]}), encoding="utf-8")
+            ok_expires = (now + _td(days=120)).isoformat()
+            ok_path.write_text(json.dumps({"records": [{"id": "ok_record", "expires_at": ok_expires}]}), encoding="utf-8")
             self.assertEqual(main([str(ok_path), "--warn-days", "30"]), 0)
 
             expired_path = Path(tmp) / "expired.json"
