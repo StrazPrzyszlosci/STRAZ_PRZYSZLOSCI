@@ -1,6 +1,6 @@
 # CLAIM hardening-ci-test-gate — opencode-agent
 - Zadanie: hardening CI — bramka testów w deploy_worker.yml (deploy leciał bez testów)
-- Status: in_progress
+- Status: done (job test + needs w deployu, YAML zwalidowany)
 - Start: 2026-10-02
 - Branch/worktree: codex/T40-wizualizacja-diff-kalibracji (drzewo czyste)
 - Dotknięte pliki: .github/workflows/deploy_worker.yml (tylko ten)
