@@ -1,4 +1,8 @@
 import { toIsoNow } from "./base_utils.js";
+import { getAgriPolicy } from "./agri_evaluate.js";
+import { computeGrowCorrelation } from "./agri_correlation.js";
+import { buildCalibrationPrBody, suggestBandAdjustments } from "./agri_calibration.js";
+import { buildCalibrationView } from "./agri_calibration_view.js";
 
 const DEFAULT_REPO = "StrazPrzyszlosci/STRAZ_PRZYSZLOSCI";
 const PACK_ID_RE = /^[a-z0-9][a-z0-9._-]{2,120}$/i;
@@ -112,7 +116,7 @@ async function createGitHubCanaryPr(env, request) {
       "User-Agent": "straz-przyszlosci-execution-pack-bot",
     },
     body: JSON.stringify({
-      title: `CANARY execution_pack: ${request.packId}`,
+      title: request.title || `CANARY execution_pack: ${request.packId}`,
       head: request.branch,
       base: "main",
       body: request.body,
@@ -331,3 +335,199 @@ export async function handleExecutionPackCommand(env, message, platform = "disco
 }
 
 export const __test__ = { actorIdentity, buildCanaryPrBody, canaryBranchName, parseGitHubPrUrl };
+
+// === T42 calibration draft-PR START ===
+// Automatyczny draft-PR z kalibracja pasm (T38) + wizualizacja (T40).
+// Wylacznie manualny trigger `!calibration apply <policy_id> [reviewer]`
+// przez flow B5/T23 (ledger execution_packs + draft PR + webhook sync T30).
+// ZELAZNE: suggest-only (propozycja w body PR, zero auto-apply),
+// bot NIGDY nie merge'uje (draft:true, brak PUT /merge), human review wymagany.
+
+const CALIBRATION_PACK_PREFIX = "calibration";
+
+export function parseCalibrationApplyCommand(text) {
+  const normalized = trimText(text);
+  const match = normalized.match(/^!calibration(?:_apply)?\s+apply\s+([^\s]+)(?:\s+(.+))?$/i);
+  if (!match) return null;
+  return {
+    action: "apply",
+    policy_id: match[1],
+    reviewer: trimText(match[2]),
+  };
+}
+
+function sanitizeCalibrationPolicyPart(policyId) {
+  const safe = trimText(policyId).replace(/[^a-z0-9._-]+/gi, "-").replace(/-+/g, "-").replace(/^[-.]+|[-.]+$/g, "");
+  return (safe || "policy").slice(0, 90);
+}
+
+export function calibrationPackId(policyId, nowIso) {
+  const stamp = String(nowIso || toIsoNow()).replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  const value = `${CALIBRATION_PACK_PREFIX}-${sanitizeCalibrationPolicyPart(policyId)}-${stamp}`.slice(0, 120);
+  return validateExecutionPackId(value);
+}
+
+function calibrationBranchName(policyId, nowIso) {
+  const stamp = String(nowIso || toIsoNow()).replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  return `canary/calibration/${sanitizeCalibrationPolicyPart(policyId)}/${stamp}`;
+}
+
+/**
+ * Czysty patch proponowanych pasm do pliku seed_policy.json (podglad w body PR).
+ * Niczego nie zapisuje — zwraca JSON do wklejenia przez czlowieka.
+ */
+export function buildCalibrationSeedPolicyPatch(policy, suggestionResult) {
+  const suggestions = Array.isArray(suggestionResult?.suggestions) ? suggestionResult.suggestions : [];
+  const band_patches = suggestions.map((s) => ({
+    sensor: s.sensor,
+    direction: s.direction,
+    pearson_r: s.pearson_r,
+    months_with_data: s.months_with_data,
+    current_band: s.current_band,
+    proposed_band: s.proposed_band,
+  }));
+  const proposed_bands = {};
+  for (const entry of band_patches) {
+    proposed_bands[entry.sensor] = entry.proposed_band;
+  }
+  return {
+    policy_id: suggestionResult?.policy_id || policy?.id || null,
+    grow_cell_id: suggestionResult?.grow_cell_id || policy?.grow_cell_id || null,
+    band_patches,
+    skipped: Array.isArray(suggestionResult?.skipped) ? suggestionResult.skipped : [],
+    patch_json: JSON.stringify({ policy_id: policy?.id || null, proposed_bands }, null, 2),
+  };
+}
+
+function buildCalibrationDraftBody({ policy, suggestionResult, patch, reviewer, actor, branch }) {
+  const base = buildCalibrationPrBody(policy, suggestionResult);
+  const view = buildCalibrationView(policy, suggestionResult);
+  const markdown = view.markdown || view.review_markdown || "";
+  return [
+    `CALIBRATION DRAFT-PR (suggest-only) dla polityki \`${patch.policy_id}\` / komorki \`${patch.grow_cell_id}\`.`,
+    "",
+    base,
+    "",
+    markdown ? `${markdown}` : "",
+    "",
+    "Proponowany patch `seed_policy.json` (do recznego naniesienia przez czlowieka):",
+    "```json",
+    patch.patch_json,
+    "```",
+    "",
+    "Safety gates:",
+    "- propozycja NIE zostala zapisana w D1 ani seed_policy.json przez bota;",
+    "- PR jest DRAFT; bot nie merge'uje (`no_auto_merge`, `no_direct_push`, brak PUT /merge);",
+    "- wymagany human review i reczny merge (flow B5/T23/T30);",
+    "- korelacja Pearsona nie dowodzi przyczynowosci.",
+    "",
+    `Reviewer: ${reviewer}`,
+    `Initiated by: ${actor}`,
+    `Branch: ${branch}`,
+  ].filter((line) => line !== "").join("\n");
+}
+
+export async function startCalibrationPack(env, message, options = {}) {
+  const policyId = trimText(options.policy_id);
+  if (!policyId) {
+    throw new Error("Uzycie: `!calibration apply <policy_id> [reviewer]`.");
+  }
+  const reviewer = resolveReviewer(env, options.reviewer);
+  const now = options.now || toIsoNow();
+  const platform = options.platform || "discord";
+  const actor = actorIdentity(message, platform);
+
+  const policy = options.policy || (env.DB ? await getAgriPolicy(env.DB, policyId) : null);
+  if (!policy) {
+    throw new Error(`Nie znaleziono polityki uprawy: ${policyId}.`);
+  }
+  const correlation = options.correlation
+    || await computeGrowCorrelation(env, policy.grow_cell_id, { monthsBack: options.monthsBack });
+  if (!correlation || correlation.success !== true) {
+    throw new Error(`Korelacja niedostepna dla ${policy.grow_cell_id}: ${correlation?.reason || "unknown"}.`);
+  }
+  const suggestionResult = suggestBandAdjustments(policy, correlation, {
+    minMonths: options.minMonths,
+    minAbsR: options.minAbsR,
+    stepPercent: options.stepPercent,
+  });
+  if (!suggestionResult.suggestions.length) {
+    return {
+      status: "no_suggestions",
+      pack_id: null,
+      policy_id: policy.id || policyId,
+      grow_cell_id: policy.grow_cell_id,
+      skipped_count: suggestionResult.skipped.length,
+      suggest_only: true,
+      auto_applied: false,
+    };
+  }
+
+  const patch = buildCalibrationSeedPolicyPatch(policy, suggestionResult);
+  const packId = options.pack_id || calibrationPackId(policy.id || policyId, now);
+  const branch = calibrationBranchName(policy.id || policyId, now);
+  const body = buildCalibrationDraftBody({ policy, suggestionResult, patch, reviewer, actor, branch });
+  const pr = await createGitHubCanaryPr(env, {
+    packId,
+    reviewer,
+    actor,
+    branch,
+    body,
+    title: `CALIBRATION (draft, suggest-only): ${patch.policy_id}`,
+  });
+  const record = {
+    pack_id: packId,
+    status: "started",
+    reviewer,
+    fork_branch: branch,
+    pr_url: pr.pr_url,
+    initiated_by: actor,
+    platform,
+    created_at: now,
+    updated_at: now,
+  };
+  await insertExecutionPackRecord(env, record);
+  return {
+    ...record,
+    github_mode: pr.mode,
+    policy_id: patch.policy_id,
+    grow_cell_id: patch.grow_cell_id,
+    suggestion_count: patch.band_patches.length,
+    skipped_count: patch.skipped.length,
+    suggest_only: true,
+    auto_applied: false,
+  };
+}
+
+export function formatCalibrationApplyReply(result) {
+  if (result.status === "no_suggestions") {
+    return [
+      `Kalibracja ${result.policy_id}: brak sugestii powyzej progow (pominiete: ${result.skipped_count}).`,
+      "Draft-PR nie utworzony — za malo danych lub slaba korelacja. Sprobuj po nowych zbiorach (T36).",
+      "Gate: suggest-only; nic nie zapisano.",
+    ].join("\n");
+  }
+  return [
+    `CALIBRATION draft-PR (suggest-only): ${result.policy_id}`,
+    `Sugestie: ${result.suggestion_count} (pominiete: ${result.skipped_count})`,
+    `Status: ${result.status}`,
+    `Reviewer: ${result.reviewer}`,
+    `Branch: ${result.fork_branch}`,
+    `PR: ${result.pr_url || "do utworzenia przez operatora/offline job (brak tokenu GitHub w bocie)"}`,
+    "Gate: draft only, bot nie merge'uje i nic nie aplikuje; wymagany human review + reczny merge.",
+  ].join("\n");
+}
+
+export async function handleCalibrationCommand(env, message, platform = "discord") {
+  const parsed = parseCalibrationApplyCommand(message?.text || "");
+  if (!parsed) {
+    return { reply_text: "Uzycie: `!calibration apply <policy_id> [reviewer]` (manualny trigger draft-PR, suggest-only)." };
+  }
+  try {
+    const result = await startCalibrationPack(env, message, { ...parsed, platform });
+    return { reply_text: formatCalibrationApplyReply(result) };
+  } catch (err) {
+    return { reply_text: `Blad kalibracji: ${err.message}` };
+  }
+}
+// === T42 calibration draft-PR END ===

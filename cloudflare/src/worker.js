@@ -11,8 +11,10 @@ import { runAgriEvaluate, upsertAgriPolicy, getAgriPolicy, getActiveAgriPolicy, 
 import { computeAgriMetrics } from "./agri_metrics.js";
 import { ingestTelemetry, pruneSensorReadings, resolveSensorReadingRetentionConfig } from "./sensor_telemetry.js";
 import { recordHarvest } from "./harvest_ledger.js";
+import { computeHarvestTrends } from "./agri_harvest_trends.js";
 import { computeGrowCorrelation } from "./agri_correlation.js";
 import { buildCalibrationPrBody, suggestBandAdjustments } from "./agri_calibration.js";
+import { buildCalibrationView } from "./agri_calibration_view.js";
 import { runKicadVerifier } from "./kicad_verifier.js";
 import { runKicadCurator } from "./kicad_curator.js";
 import {
@@ -1068,6 +1070,51 @@ export default {
         }, 200);
       }
 
+      // === T40 calibration view START ===
+      // Wizualizacja diff kalibracji (stare→nowe pasmo) do review PR.
+      // Read-only, admin-only, suggest-only — nie zapisuje do D1.
+      if (request.method === "GET" && url.pathname === "/v1/agri/calibration-view") {
+        await requireTrustLevelEditor(request, env);
+        const policyId = url.searchParams.get("policy_id") || "";
+        const growCellId = url.searchParams.get("grow_cell_id") || "";
+        let policy = null;
+        if (policyId.trim()) {
+          policy = await getAgriPolicy(env.DB, policyId.trim());
+        } else if (growCellId.trim()) {
+          policy = await getActiveAgriPolicy(env.DB, growCellId.trim());
+        }
+        if (!policy) {
+          throw new NotFoundError("Nie znaleziono polityki uprawy (podaj policy_id lub grow_cell_id).");
+        }
+        const monthsBack = url.searchParams.get("months_back");
+        const correlation = await computeGrowCorrelation(env, policy.grow_cell_id, {
+          monthsBack: monthsBack ? Number(monthsBack) : undefined,
+        });
+        if (!correlation.success) {
+          return jsonResponse({ error: "Correlation unavailable", reason: correlation.reason }, 400);
+        }
+        const suggestionResult = suggestBandAdjustments(policy, correlation, {
+          minMonths: url.searchParams.get("min_months") ? Number(url.searchParams.get("min_months")) : undefined,
+          minAbsR: url.searchParams.get("min_abs_r") ? Number(url.searchParams.get("min_abs_r")) : undefined,
+          stepPercent: url.searchParams.get("step_percent") ? Number(url.searchParams.get("step_percent")) : undefined,
+        });
+        const view = buildCalibrationView(policy, suggestionResult);
+        // Normalizacja kształtu (dwie implementacje view w historii tury):
+        // konsumenci czytają text/markdown; starszy wariant zwraca review_text/review_markdown.
+        const viewNormalized = {
+          ...view,
+          text: view.text || view.review_text || "",
+          markdown: view.markdown || view.review_markdown || "",
+        };
+        return jsonResponse({
+          success: true,
+          suggestion: suggestionResult,
+          view: viewNormalized,
+          pull_request_body: buildCalibrationPrBody(policy, suggestionResult),
+        }, 200);
+      }
+      // === T40 calibration view END ===
+
       const agriDeactivateMatch = url.pathname.match(/^\/v1\/agri\/policies\/([^/]+)\/deactivate$/);
       if (request.method === "POST" && agriDeactivateMatch) {
         // T33: dezaktywacja polityki z wskaźnikiem następcy (rotacja sezonowa).
@@ -1117,6 +1164,26 @@ export default {
         }
         return jsonResponse(result, 202);
       }
+
+      // === T41 harvest trends START ===
+      // Trendy plonów: serie sezonowe + regresja liniowa per crop_profile.
+      // Read-only, provider-auth — niczego nie zapisuje.
+      if (request.method === "GET" && url.pathname === "/v1/agri/harvest/trends") {
+        const providerId = url.searchParams.get("provider_id") || "";
+        if (!providerId.trim()) {
+          throw new Error("Parametr provider_id jest wymagany.");
+        }
+        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await requireProviderToken(request, env, providerId.trim());
+        const result = await computeHarvestTrends(env, providerId.trim(), {
+          monthsBack: url.searchParams.get("months"),
+        });
+        if (!result.success) {
+          return jsonResponse({ error: "Harvest trends unavailable", reason: result.reason }, 400);
+        }
+        return jsonResponse(result, 200);
+      }
+      // === T41 harvest trends END ===
 
       const statusMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/status$/);
       if (request.method === "GET" && statusMatch) {

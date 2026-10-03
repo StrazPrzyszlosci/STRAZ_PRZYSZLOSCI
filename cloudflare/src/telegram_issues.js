@@ -55,7 +55,7 @@ import { checkPayloadSize } from "./payload_size.js";
 import { jsonResponse as secureJsonResponse } from "./security_headers.js";
 import { computeAutomationMetrics, formatAutomationMetricsReply } from "./automation_metrics.js";
 import { computeAgriMetrics, formatAgriMetricsReply } from "./agri_metrics.js";
-import { handleExecutionPackCommand } from "./execution_pack_initiator.js";
+import { handleCalibrationCommand, handleExecutionPackCommand } from "./execution_pack_initiator.js";
 import { handleGrowAgentCommand } from "./agri_grow_agent_setup.js";
 
 function jsonResponse(payload, status = 200, env = null, request = null) {
@@ -1619,6 +1619,16 @@ async function processCommandMessage(env, message, command) {
       update_id: message.update_id,
       message_id: message.message_id,
       status: "command_execution_pack_start",
+      notification_sent: notificationSent,
+    };
+  } else if (command === "calibration" || command === "calibration_apply") {
+    // T42: manualny trigger draft-PR z kalibracja (suggest-only, no_auto_merge).
+    const reply = await handleCalibrationCommand(env, message, "telegram");
+    const notificationSent = await sendTelegramReply(env, message, reply.reply_text, getMainMenuKeyboard());
+    return {
+      update_id: message.update_id,
+      message_id: message.message_id,
+      status: "command_calibration_apply",
       notification_sent: notificationSent,
     };
   } else if (command === "grow-agent" || command === "grow_agent") {
