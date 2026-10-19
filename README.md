@@ -168,9 +168,6 @@ Uruchomiliśmy zrzutkę na dokończenie i skalowanie naszego systemu **Trash-to-
 
 **[👉 KLIKNIJ TUTAJ, ABY WESPRZEĆ ZRZUTKĘ](https://www.zrzutka.pl/pkkmk5)**
 
-[![Plakat Zrzutki](docs/assets/poster.png)](docs/assets/poster.pdf)
-*Kliknij w plakat, aby pobrać go w formacie PDF.*
-
 # Strategia Marketingowa i Budowa Społeczności
 
 
