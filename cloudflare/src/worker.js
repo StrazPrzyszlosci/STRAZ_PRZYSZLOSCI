@@ -28,6 +28,8 @@ import {
 import { handleDiscordWebhook } from "./discord_api_handler.js";
 import { syncExecutionPackFromWebhook, verifyWebhookSignature } from "./execution_pack_webhook.js";
 import { applyMigrations } from "./schema_migrations.js";
+import { resolveBackgroundGuardConfig, tryAcquireBackgroundLease } from "./background_guard.js";
+import { checkFloatingIpHealth } from "./floating_ip_health.js";
 
 class AuthError extends Error { }
 class ConflictError extends Error { }
@@ -158,6 +160,46 @@ function parseAllowedProviderEnvironments(deploymentEnvironment, configuredValue
     result.add(environment);
   }
   return result;
+}
+
+/**
+ * Strażnik ID komórek agri (FIX 2026-10-02, muse-1).
+ *
+ * Kontekst: kanoniczne grow_cell_id (np. phone-aquaponics-observer-01) nie
+ * niosą segmentu środowiska, więc validateProviderId je odrzuca — cała pętla
+ * agri (telemetria/evaluate/harvest/trendy/korelacja) i rejestracja komórek
+ * zwracały 400 "Drugi segment provider_id...".
+ *
+ * Zasada: ID w formacie providera idą starą ścieżką BEZ ZMIAN (w tym gating
+ * środowiskowy). Fallback dla reszty: komórka przepuszczana tylko jeśli jest
+ * zarejestrowana w agri_grow_policies (polityka = rejestr komórek); inaczej
+ * oryginalny błąd formatu. Błąd ForbiddenError (zły env) NIGDY nie wpada
+ * w fallback — gatingu wdrożeniowego nie da się ominąć nieformatowym ID.
+ *
+ * OGRANICZENIE (2026-10-02, muse-1): wszystkie env dzielą jedno D1
+ * (wrangler.toml: ten sam database_id dla preview/staging/prod), więc
+ * komórki NIE mają izolacji środowiskowej na poziomie danych — token
+ * komórki działa w każdym env. Gating env dla komórek nie istnieje
+ * (brak segmentu env w ID). Separacja D1 per env to zadanie operatora;
+ * do tego czasu metryki demo/prod lądują we wspólnej automation_metrics.
+ */
+async function ensureAgriCellAllowed(db, providerId, deploymentEnvironment, allowedProviderEnvironments) {
+  try {
+    return ensureProviderEnvironmentAllowed(providerId, deploymentEnvironment, allowedProviderEnvironments);
+  } catch (error) {
+    if (error instanceof ForbiddenError) throw error;
+    if (!db) throw error;
+    let cell = null;
+    try {
+      cell = await db.prepare(
+        `SELECT grow_cell_id FROM agri_grow_policies WHERE grow_cell_id = ? LIMIT 1`
+      ).bind(providerId).first();
+    } catch {
+      throw error;
+    }
+    if (!cell) throw error;
+    return "agri-cell";
+  }
 }
 
 function ensureProviderEnvironmentAllowed(providerId, deploymentEnvironment, allowedEnvironments) {
@@ -588,16 +630,30 @@ function shouldApplyGlobalRateLimit(request, url, env) {
 export default {
   async scheduled(_event, env, _ctx) {
     await applyMigrations(env.DB);
-    const providerLifecycle = await autoDeactivateInactiveProviders(env);
-    const ingest = await runScheduledKicadImport(env);
-    const verify = await runKicadVerifier(env);
-    const curate = await runKicadCurator(env);
+    // === HARDENING background-guard START ===
+    // Single-flight dla zadań tła: nakładające się invokacje crona pomijają
+    // zadania z aktywną dzierżawą (fail-open — brak D1 = wszystkie biegną).
+    const guardConfig = resolveBackgroundGuardConfig(env);
+    const backgroundSkipped = [];
+    const runGuarded = async (taskName, fn) => {
+      const lease = await tryAcquireBackgroundLease(env.DB, taskName, guardConfig);
+      if (!lease.acquired) {
+        backgroundSkipped.push({ task: taskName, reason: lease.reason });
+        return { skipped: true, reason: lease.reason };
+      }
+      return await fn();
+    };
+    const providerLifecycle = await runGuarded("provider-lifecycle", () => autoDeactivateInactiveProviders(env));
+    const ingest = await runGuarded("kicad-import", () => runScheduledKicadImport(env));
+    const verify = await runGuarded("kicad-verify", () => runKicadVerifier(env));
+    const curate = await runGuarded("kicad-curate", () => runKicadCurator(env));
+    // === HARDENING background-guard END ===
     // T31: retencja streamu zdarzeń i surowych odczytów (agregaty dzienne zostają).
     const eventRetention = resolveEdgeEventRetentionConfig(env);
-    const pruneEvents = await pruneEdgeEvents(env.DB, eventRetention);
+    const pruneEvents = await runGuarded("prune-edge-events", () => pruneEdgeEvents(env.DB, eventRetention));
     const readingRetention = resolveSensorReadingRetentionConfig(env);
-    const pruneReadings = await pruneSensorReadings(env.DB, readingRetention);
-    return { providerLifecycle, ingest, verify, curate, pruneEvents, pruneReadings };
+    const pruneReadings = await runGuarded("prune-sensor-readings", () => pruneSensorReadings(env.DB, readingRetention));
+    return { providerLifecycle, ingest, verify, curate, pruneEvents, pruneReadings, backgroundSkipped };
   },
 
   async fetch(request, env, ctx) {
@@ -705,7 +761,11 @@ export default {
       }
 
       if (request.method === "GET" && url.pathname === "/health") {
-        return jsonResponse({ status: "ok" }, 200);
+        // === HARDENING floating-ip-health START ===
+        // Liveness (zawsze 200) + flaga ready dla monitoringu floating-IP.
+        const health = await checkFloatingIpHealth(env);
+        return jsonResponse({ status: "ok", ready: health.ready, db: health.db, version: health.version, now: health.now }, 200);
+        // === HARDENING floating-ip-health END ===
       }
 
       if (request.method === "GET" && url.pathname === "/v1/metrics") {
@@ -740,8 +800,24 @@ export default {
         env.ALLOWED_PROVIDER_ENVIRONMENTS || ""
       );
       if (request.method === "POST" && url.pathname === "/v1/providers/register") {
-        const provider = validateProviderDescriptor(await readJson(request));
-        ensureProviderEnvironmentAllowed(
+        const payload = await readJson(request);
+        let provider;
+        try {
+          provider = validateProviderDescriptor(payload);
+        } catch (descriptorError) {
+          // Komórki agri nie spełniają formatu provider_id (brak segmentu
+          // środowiska) — rejestracja możliwa, jeśli komórka istnieje
+          // w agri_grow_policies (polityka = rejestr komórek).
+          const cellId = typeof payload?.provider_id === "string" ? payload.provider_id.trim() : "";
+          if (!cellId) throw descriptorError;
+          const cell = await env.DB.prepare(
+            `SELECT grow_cell_id FROM agri_grow_policies WHERE grow_cell_id = ? LIMIT 1`
+          ).bind(cellId).first();
+          if (!cell) throw descriptorError;
+          provider = payload;
+        }
+        await ensureAgriCellAllowed(
+          env.DB,
           provider.provider_id,
           deploymentEnvironment,
           allowedProviderEnvironments
@@ -768,7 +844,8 @@ export default {
       const rotateMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/tokens\/rotate$/);
       if (request.method === "POST" && rotateMatch) {
         const providerId = rotateMatch[1];
-        ensureProviderEnvironmentAllowed(
+        await ensureAgriCellAllowed(
+          env.DB,
           providerId,
           deploymentEnvironment,
           allowedProviderEnvironments
@@ -785,7 +862,8 @@ export default {
       const heartbeatMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/heartbeat$/);
       if (request.method === "POST" && heartbeatMatch) {
         const providerId = heartbeatMatch[1];
-        ensureProviderEnvironmentAllowed(
+        await ensureAgriCellAllowed(
+          env.DB,
           providerId,
           deploymentEnvironment,
           allowedProviderEnvironments
@@ -825,7 +903,8 @@ export default {
       const trustLevelMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/trust-level$/);
       if (request.method === "PATCH" && trustLevelMatch) {
         const providerId = trustLevelMatch[1];
-        ensureProviderEnvironmentAllowed(
+        await ensureAgriCellAllowed(
+          env.DB,
           providerId,
           deploymentEnvironment,
           allowedProviderEnvironments
@@ -1007,7 +1086,7 @@ export default {
           throw new NotFoundError("Nie znaleziono aktywnej polityki uprawy.");
         }
         const instanceGrowCellId = String(payload?.instance_grow_cell_id || "").trim() || policy.grow_cell_id;
-        ensureProviderEnvironmentAllowed(instanceGrowCellId, deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, instanceGrowCellId, deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, instanceGrowCellId);
         const result = await runAgriEvaluate(env, policy.id, payload?.readings || {}, { policy, instanceGrowCellId });
         if (!result.success) {
@@ -1030,7 +1109,7 @@ export default {
         if (!providerId.trim()) {
           throw new Error("Parametr provider_id jest wymagany.");
         }
-        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, providerId.trim());
         const monthsBack = url.searchParams.get("months");
         const result = await computeGrowCorrelation(env, providerId.trim(), {
@@ -1133,7 +1212,7 @@ export default {
         if (!providerId.trim()) {
           throw new Error("Parametr provider_id jest wymagany.");
         }
-        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, providerId.trim());
         const text = await request.text();
         const result = await ingestTelemetry(env, providerId.trim(), text);
@@ -1152,7 +1231,7 @@ export default {
         if (!providerId.trim()) {
           throw new Error("Parametr provider_id jest wymagany.");
         }
-        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, providerId.trim());
         const record = await readJson(request);
         const result = await recordHarvest(env, providerId.trim(), record);
@@ -1173,7 +1252,7 @@ export default {
         if (!providerId.trim()) {
           throw new Error("Parametr provider_id jest wymagany.");
         }
-        ensureProviderEnvironmentAllowed(providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
+        await ensureAgriCellAllowed(env.DB, providerId.trim(), deploymentEnvironment, allowedProviderEnvironments);
         await requireProviderToken(request, env, providerId.trim());
         const result = await computeHarvestTrends(env, providerId.trim(), {
           monthsBack: url.searchParams.get("months"),

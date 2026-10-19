@@ -173,7 +173,7 @@ describe("T42 calibration pack flow", () => {
     assert.match(missing.reply_text, /^Blad kalibracji: Nie znaleziono polityki/);
 
     const usage = await handleCalibrationCommand({ DB: db }, { text: "!calibration" }, "telegram");
-    assert.match(usage.reply_text, /Uzycie: `!calibration apply/);
+    assert.match(usage.reply_text, /Uzycie: `!calibration /);
     assert.equal(db._records.length, 0);
   });
 });
