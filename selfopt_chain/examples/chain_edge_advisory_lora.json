@@ -1,0 +1,56 @@
+{
+  "chain_id": "edge_advisory_lora_demo",
+  "nodes": [
+    {
+      "id": "summarize_telemetry",
+      "kind": "summarize",
+      "privacy": "public",
+      "complexity": "light",
+      "requires": ["text"],
+      "prompt": "Podsumuj telemetrie z wezla edge i wskaz odchylenia od pasma:",
+      "next": "classify_alert"
+    },
+    {
+      "id": "classify_alert",
+      "kind": "classify",
+      "privacy": "public",
+      "complexity": "light",
+      "requires": ["text"],
+      "prompt": "Ustal stan pola: czy telemetria zawiera alarm (!ALARM/ALARM/SOS)?",
+      "conditional": [
+        {"when_output": "ALARM", "next": "escalate"},
+        {"when_output": "OK", "next": "ok_summary"}
+      ]
+    },
+    {
+      "id": "escalate",
+      "kind": "draft",
+      "privacy": "public",
+      "complexity": "medium",
+      "requires": ["text"],
+      "prompt": "Sporzadz krotkie advisory ALARM dla operatora w terenie (deadmesh):",
+      "next": "dispatch"
+    },
+    {
+      "id": "ok_summary",
+      "kind": "summarize",
+      "privacy": "public",
+      "complexity": "light",
+      "requires": ["text"],
+      "prompt": "Sporzadz rutynowe podsumowanie statusu OK:",
+      "next": "dispatch"
+    },
+    {
+      "id": "dispatch",
+      "type": "dispatch",
+      "destination": "MESHTASTIC",
+      "channel": 0,
+      "ttl_minutes": 30,
+      "next": "__end__"
+    }
+  ],
+  "entry": "summarize_telemetry",
+  "payload": {
+    "telemetry": "temp 27.1C wilgotnosc 61% ph 6.4 ALARM: czujnik pompy B zgubil sygnal na 40 minut"
+  }
+}

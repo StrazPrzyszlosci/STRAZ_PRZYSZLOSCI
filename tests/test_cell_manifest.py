@@ -26,6 +26,7 @@ EXPECTED_CELL_IDS = {
     "human_approval",
     "agri_autopilot",
     "agri_edge_agent",
+    "selfopt_chain",
 }
 
 
