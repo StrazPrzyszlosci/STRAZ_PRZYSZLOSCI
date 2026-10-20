@@ -55,6 +55,37 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   (rebase wgrał je bez konfliktu). Commit i push na main wykonane przez nadzorcę
   (instancje mają zakaz git).
 
+### Noc 2026-10-20 (NOC-5, start 05:37, kontynuacja po NOC-1)
+
+- Kontekst: biegi NOC-2..NOC-4 nie zostawiły śladu w state.json farmy ani w git logu —
+  3 zadania z propozycji NOC-1 pozostały niewykonane; NOC-5 wykonał je w całości.
+- Readiness: probe Muse znowu „Model unavailable" (znany trwały stan, NIE 429) → własny
+  probe `nvidia/z-ai/glm-5.3-flash` (PTY, `probe_glm_noc5.py`) → PROBE_OK. Sync z remote:
+  `git fetch` + `git log HEAD..origin/main` puste (klon aktualny).
+- **3 instancje równolegle** (run `20261020-053750`), wszystkie `done`: A-os-zywnosc (~15 min,
+  nowy plik PROJEKTY/25_pilot_automatyzacji_zywnosci.md, 106 linii + mermaid), B-contributing
+  (10,2 min, naprawa uszkodzonego przejścia sekcja1→2: odtworzony nagłówek „## 2. Wnoszenie
+  zmian (Fork & Pull Request)", sklejone urwane zdanie; nowa „## 5. Checklista Opiekuna
+  Projektu" + wzory Issue/PR + nazewnictwo gałęzi dla treści), C-marketing (10,0 min,
+  sekcje „6. Kolejność uruchamiania działań" i „7. Wzięcie odpowiedzialności za obszar").
+- Weryfikacja nadzorcy: wszystkie linki wewnętrzne istnieją (fish_pond_v1.yaml,
+  fish_pond_api_v1.yaml, agri_grow_agent/README.md, agri_autopilot/README.md, 00/01/06/08/10/21/24);
+  cytowane treści zgodne ze źródłami (kontrakt danych i polityka odczytów w 01, receptury
+  JSON/YAML i owocnikowanie w 24, zależność energia→żywność wprost w ROADMAPA l.77).
+  Dwa „podejrzenia" okazały się grounded: `.github/ISSUE_TEMPLATE` realnie istnieje (6 szablonów),
+  a README w części „Zapotrzebowanie marketingowe" mówi wprost o „zasadach odpowiedzialności
+  za wybrany obszar". Stopka „Nawet kod już jest, brakuje tylko Ciebie" = konwencja plików
+  projektowych (24, 08); zasada „kod już istnieje… czeka na adaptację" = README l.19.
+- Odrzucone/poprawione: 1 korekta — link „autopilota odczytów" → „autopilota uprawy"
+  (źródło: agri_autopilot/README.md). Brak halucynacji do usunięcia.
+- Integracja przez nadzorcę: README — link w „*Inspiracje:*" osi 1 (Żywność) + pozycja 25
+  na liście „Projekty Pilotażowe i Inspiracje". Commit i push na main (instancje mają zakaz git).
+- Lekcja techniczna: instancje na starcie dostawały „File not found" przy ścieżkach relatywnych
+  (sesja opencode nie od razu widziała cwd repo; C raportował „startował w scratch") —
+  po przejściu na ścieżki absolutne pracowały poprawnie. Następnym razem podawać w prompcie
+  jawną ścieżkę absolutną repo. Uwaga: w cronie blokowane są `python3 -c` i heredoc python —
+  tylko skrypty z plików.
+
 ## Zasady jakości (obowiązują każdą instancję)
 
 - Jeden plik docelowy na instancję, praca w katalogu repo, ZAKAZ poleceń git i modyfikacji
@@ -66,13 +97,16 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-1. **OS-ŻYWNOŚĆ**: nowy plik z rozwinięciem pierwszej osi — koncepcje pilotażu zautomatyzowanej
-   produkcji (aquaponika sterowana AI wg README), moduły, zależności od osi Energia/Zasoby.
-   Bez liczb i dat — opis koncepcyjny.
-2. **CONTRIBUTING.md — rozszerzenie**: checklist Opiekuna Projektu (kryteria z README:
-   najwięcej dokonań i zaangażowania), przykłady dobrego Issue i dobrego PR, nazewnictwo
-   gałęzi z przykładami dla tekstów (nie tylko kodu).
-3. **MARKETING.md — rozszerzenie**: względna sekwencja działań (najpierw treści repo →
-   potem media relations → B2B/sponsoring jako ostatni etap, zgodnie z obecną sekcją 5),
-   definiowanie „odpowiedzialności za obszar" z README.
-   (Fallback po kolei na `nvidia/z-ai/glm-5.3-flash`; przy błędach 429/limit → 1 instancja.)
+1. **OS-MEDYCYNA**: nowy plik PROJEKTY/26_pilot_ai_w_medycynie.md — koncepcja pilotażu dla
+   osi 2 (Medycyna: diagnostyka, telemedycyna, logistyka ochrony zdrowia wg README), po
+   wzorcu pliku 25 (moduły koncepcyjne, zależności od innych osi, miejsce w fazach ROADMAPA).
+   Wyłącznie opis koncepcyjny — bez jakichkolwiek twierdzeń medycznych, skuteczności czy
+   liczb; czerpać z osi 2 README i fundamentów (00).
+2. **REKRUTACJA_ANKIETA.md — rozszerzenie**: sekcja „Szybkich Ścieżek" (CONTRIBUTING §4
+   odsyła do niej) — dodać ścieżki dla treści i marketingu spójne z MARKETING.md §6–7
+   (wzięcie odpowiedzialności za obszar) i z nazewnictwem gałęzi dla treści z CONTRIBUTING §5.
+3. **ROADMAPA.md — rozszerzenie**: sekcja „Synergie osi" — jak pilotaż 25 łączy Żywność,
+   Energię i Zasoby (wzorzec krzyżowania osi z l.121 ROADMAPA), z odsyłaczami do realnych
+   plików; bez zmian w istniejących fazach.
+   (Fallback po kolei na `nvidia/z-ai/glm-5.3-flash`; przy błędach 429/limit → 1 instancja.
+   W prompcie podać absolutną ścieżkę repo — lekka lekcja z NOC-5.)
