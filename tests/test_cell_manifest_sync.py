@@ -17,6 +17,7 @@ EXPECTED_DIRS = {
     "human_approval": "human_approval",
     "agri_autopilot": "agri_autopilot",
     "agri_edge_agent": "agri_grow_agent",
+    "selfopt_chain": "selfopt_chain",
 }
 
 

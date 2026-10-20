@@ -1,0 +1,42 @@
+{
+  "chain_id": "resource_triage_demo",
+  "nodes": [
+    {
+      "id": "classify",
+      "kind": "classify",
+      "privacy": "public",
+      "complexity": "light",
+      "requires": ["text"],
+      "prompt": "Zaklasyfikuj sygnal zasobu (e-waste / compute / logistyka):"
+    },
+    {
+      "id": "extract",
+      "kind": "extract",
+      "privacy": "public",
+      "complexity": "medium",
+      "requires": ["text", "json"],
+      "prompt": "Wyciagnij kluczowe pola rekordu zasobu i zwroc JSON:"
+    },
+    {
+      "id": "draft",
+      "kind": "draft",
+      "privacy": "public",
+      "complexity": "medium",
+      "requires": ["text", "json"],
+      "prompt": "Zredaguj krotki opis potencjalu zasobu dla dossier:"
+    },
+    {
+      "id": "review",
+      "kind": "review",
+      "privacy": "public",
+      "complexity": "light",
+      "requires": ["text"],
+      "prompt": "Zweryfikuj opis pod katem braku danych i ryzyk:"
+    }
+  ],
+  "pipeline": ["classify", "extract", "draft", "review"],
+  "payload": {
+    "signal": "oddam za darmo dzwieki TV LED 55 calow, Krakow, odbior osobisty",
+    "source": "grupa_sasiedzka"
+  }
+}
