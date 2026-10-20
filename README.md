@@ -285,6 +285,8 @@ Jeżeli chcesz wejść do systemu jako provider danych lub węzeł pomiarowy, u�
 
 * **[Nowy provider danych / węzeł pomiarowy](.github/ISSUE_TEMPLATE/provider_danych.md)**
 
+Droga, jaką zamierzamy wspólnie przejść – od krystalizacji idei, przez pierwsze projekty pilotażowe, po samonapędzającą się gospodarkę finansującą **Dochód Gwarantowany** – opisuje **[Mapa drogowa (ROADMAPA.md)](ROADMAPA.md)**.
+
 **Dołącz, jeśli chcesz współtworzyć przyszłość Polskiej Gospodarki!**
 
 **Strona internetowa inicjatywy:** [https://www.strazprzyszlosci.pl](https://www.strazprzyszlosci.pl)
