@@ -33,6 +33,7 @@ Aby realnie odpowiedzieć na najpilniejsze problemy gospodarcze i społeczne, na
 1. **Żywność:** Automatyzacja, robotyzacja i optymalizacja produkcji rolno-spożywczej (np. inteligentna produkcja i dystrybucja, która obniża koszty wyżywienia społeczeństwa).
    *   *Inspiracje:* [Inteligentna Akwakultura](PROJEKTY/01_inteligentna_akwakultura.md), [Wirtualne Ogrodzenia](PROJEKTY/02_wirtualne_ogrodzenia.md), [Monitoring Porodów z Edge AI](PROJEKTY/03_ai_monitoring_porodow.md), [Automatyzacja Hodowli Grzybów](PROJEKTY/24_automatyzacja_hodowli_grzybow.md), [Zintegrowany Pilotaż Automatyzacji Produkcji Żywności](PROJEKTY/25_pilot_automatyzacji_zywnosci.md).
 2. **Medycyna:** Zastosowanie AI w diagnostyce, telemedycynie, wynajdywaniu terapii oraz w logistyce ochrony zdrowia, podnosząc skuteczność i dostępność dla każdego obywatela.
+   *   *Inspiracje:* [Koncepcyjny Pilotaż AI w Medycynie](PROJEKTY/26_pilot_ai_w_medycynie.md).
 3. **Energia:** Opracowanie systemów planowania, magazynowania i dystrybucji zielonej oraz konwencjonalnej energii, by zminimalizować jej straty i zoptymalizować gospodarkę sieciową.
    *   *Inspiracje:* [Laserowy Recykling Paneli PV](PROJEKTY/05_recykling_pv_laserem.md).
 4. **Optymalizacja zużycia zasobów strategicznych:** Racjonalne, poparte zaawansowaną analizą danych, zarządzanie wodą, surowcami i ziemią, eliminujące gospodarkę rabunkową.
@@ -75,6 +76,7 @@ W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiąza
 *   **[23. Katalog części STEP (step.parts)](PROJEKTY/23_katalog_czesci_step_open_source.md)** – Około 12 000 modeli STEP open source (złącza, profile, napędy, robotyka) do zespołów CAD, prototypów i produkcji CNC/3D.
 *   **[24. Automatyzacja Hodowli Grzybów (Mycodo / MycoClimate)](PROJEKTY/24_automatyzacja_hodowli_grzybow.md)** – Wykorzystanie AI i IoT do precyzyjnej uprawy pieczarek, boczniaków oraz trudnego w hodowli żółciaka siarkowego na bazie otwartych repozytoriów.
 *   **[25. Zintegrowany Pilotaż Automatyzacji Produkcji Żywności](PROJEKTY/25_pilot_automatyzacji_zywnosci.md)** – Wspólny wzorzec autonomicznego węzła produkcji żywności łączący zalążki akwakultury i hodowli grzybów: warstwa sensoryczna i sterowanie (Home Assistant, ESPHome), warstwa decyzyjna AI na krawędzi oraz pętla nauki z telemetrii, z jawnymi zależnościami od osi Energia i Zasoby.
+*   **[26. Koncepcyjny Pilotaż AI w Medycynie](PROJEKTY/26_pilot_ai_w_medycynie.md)** – Przeniesienie wspólnego wzorca warstw (sensoryczna, decyzyjna AI na krawędzi, pętla nauki z telemetrii) na grunt ochrony zdrowia: telemedycyna i logistyka ochrony zdrowia działające także bez Internetu (Mesh LoRa), z decyzją końcową zawsze po stronie człowieka-specjalisty.
 
 
 **Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**

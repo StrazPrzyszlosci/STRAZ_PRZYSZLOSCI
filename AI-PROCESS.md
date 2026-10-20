@@ -86,6 +86,30 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   jawną ścieżkę absolutną repo. Uwaga: w cronie blokowane są `python3 -c` i heredoc python —
   tylko skrypty z plików.
 
+### Noc 2026-10-20 (NOC-22, start 22:26 — pierwszy pełny bieg nocy)
+
+- Readiness: probe Muse znów „Model unavailable" (trwały stan) → własny probe `nvidia/z-ai/glm-5.3-flash`
+  → PROBE_OK. Sync z remote: `git log HEAD..origin/main` puste (klon aktualny).
+- **3 instancje równolegle** (run `20261020-222638`), wszystkie `done`: A-os-medycyna (9,0 min, nowy
+  plik PROJEKTY/26_pilot_ai_w_medycynie.md, 116 linii + mermaid), B-ankieta-sciezki (8,2 min,
+  nowa sekcja „## 5. Szybkie Ścieżki — zacznij DZISIAJ" na końcu REKRUTACJA_ANKIETA.md — naprawia
+  wiszące odwołanie z CONTRIBUTING §4 pkt 2), C-roadmapa-synergie (12,8 min, sekcja poprzeczna
+  „## Synergie osi" w ROADMAPA między Fazą 3 a „Czego NIE robimy").
+- Weryfikacja nadzorcy: wszystkie linki istnieją (15/15 w pliku 26; 05/04/06/12/10/00/25 w ROADMAPA;
+  01/05 w ankiecie; szablon „Pomysł / propozycja rozwiązania" w .github/ISSUE_TEMPLATE realnie
+  istnieje). Konkretne twierdzenia potwierdzone u źródła: kontrakt `POST /v1/recommendations/fish-pond`
+  w pliku 01 ma dokładnie pola risk_level/recommendation/confidence/reason_codes (l.108-114);
+  „wynik analizy, nie surowy strumień" = l.140/121 pliku 01; TFLite+ONNX = l.13-14 pliku 00;
+  kierunki Medycyny w Fazie 1 przytoczone niemal słowo w słowo z ROADMAPA l.58-65;
+  „energia warunkiem pracy systemów obliczeniowych" = ROADMAPA l.77; tytuły 03/09 dokładne.
+- Odrzucone/halucynacje: brak do usunięcia. Drobne korekty nadzorcy: (1) „Opis projektu" →
+  „Opis Projektu" w 26 (spójność z wzorcem 25); (2) integracja README — oś 2 (Medycyna) zyskała
+  podpunkt *Inspiracje* z linkiem do 26 + pozycja 26 na liście „Projekty Pilotażowe i Inspiracje".
+- Commit i push na main przez nadzorcę (instancje mają zakaz git).
+- Lekcja: wzorzec promptów z NOC-5 (ZAKAZY + absolutna ścieżka + weryfikacja listą katalogu)
+  działa — zero halucynacji w 3/3 instancjach; sekcja B pokazała wartość cross-checku odwołań
+  (CONTRIBUTING → ankieta): przy dopisywaniu sekcji szukać też „wiszących" odwołań do naprawienia.
+
 ## Zasady jakości (obowiązują każdą instancję)
 
 - Jeden plik docelowy na instancję, praca w katalogu repo, ZAKAZ poleceń git i modyfikacji
@@ -97,16 +121,22 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-1. **OS-MEDYCYNA**: nowy plik PROJEKTY/26_pilot_ai_w_medycynie.md — koncepcja pilotażu dla
-   osi 2 (Medycyna: diagnostyka, telemedycyna, logistyka ochrony zdrowia wg README), po
-   wzorcu pliku 25 (moduły koncepcyjne, zależności od innych osi, miejsce w fazach ROADMAPA).
-   Wyłącznie opis koncepcyjny — bez jakichkolwiek twierdzeń medycznych, skuteczności czy
-   liczb; czerpać z osi 2 README i fundamentów (00).
-2. **REKRUTACJA_ANKIETA.md — rozszerzenie**: sekcja „Szybkich Ścieżek" (CONTRIBUTING §4
-   odsyła do niej) — dodać ścieżki dla treści i marketingu spójne z MARKETING.md §6–7
-   (wzięcie odpowiedzialności za obszar) i z nazewnictwem gałęzi dla treści z CONTRIBUTING §5.
-3. **ROADMAPA.md — rozszerzenie**: sekcja „Synergie osi" — jak pilotaż 25 łączy Żywność,
-   Energię i Zasoby (wzorzec krzyżowania osi z l.121 ROADMAPA), z odsyłaczami do realnych
-   plików; bez zmian w istniejących fazach.
+1. **OS-ENERGIA**: nowy plik PROJEKTY/27_pilot_sieci_energetycznej.md — koncepcyjny pilotaż dla
+   osi 3 (Energia) według kierunków wypisanych w ROADMAPA (sekcja „### Energia" Fazy 1:
+   prognozowanie zapotrzebowania, sterowanie magazynowaniem OZE, planowanie wytwarzania),
+   po wzorcu plików 25/26 (warstwy, mermaid, miejsce w fazach). Inspiracje wyłącznie z realnych
+   plików: 05 (recykling PV), 04 (off-grid z paneli solarnych), 06 (smartfony jako sterowniki);
+   zależność od pilotaży 25/26 (energia warunkiem produkcji i obliczeń — ROADMAPA l.77). Bez
+   żadnych danych technicznych, których nie ma w repo (żadnych kWh, napięć, kosztów).
+2. **CONTRIBUTING.md — nowa sekcja „## 6. Przegląd zmian (review)"**: jak współtwórcy wzajemnie
+   przeglądają Issues i PR-y w duchu Złotych zasad (sekcja 3) i zasady „Oceniamy pomysły i kod,
+   nie ludzi" (plik 25, l.89): co sprawdzić przed zatwierdzeniem (czytelność, mały zakres, linki
+   do realnych plików), jak pisać recenzję życzliwie i konkretnie, co z tym, gdy PR czeka na
+   decyzję Opiekuna. Wyłącznie procesy wynikające z istniejących zasad — bez wynajdywania
+   hierarchii, terminów ani progów liczbowych.
+3. **MARKETING.md — nowa sekcja „## 8. Ewidencja efektów i ciągłość obszarów"**: jak dokumentować
+   efekty działań marketingowych (ślad w Issues/PR — spójne z §7 i ze ŚCIEŻKĄ B ankiety), jak
+   przekazywać obszar kolejnej osobie (ciągłość odpowiedzialności), bez metryk liczbowych,
+   terminów i zewnętrznych narzędzi.
    (Fallback po kolei na `nvidia/z-ai/glm-5.3-flash`; przy błędach 429/limit → 1 instancja.
    W prompcie podać absolutną ścieżkę repo — lekka lekcja z NOC-5.)
