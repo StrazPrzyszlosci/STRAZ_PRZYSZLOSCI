@@ -123,6 +123,47 @@ Zasada **Nazewnictwo** z sekcji 3 obowiązuje nie tylko programistów! Artykuły
 
 Nazywaj gałęzie tak, aby każdy współtwórca – bez zadawania pytań – wiedział, co w nich powstaje.
 
+## 6. Przegląd zmian (review)
+
+Przeglądanie cudzych Pull Requestów i Issues to nie urzędowa formalność, lecz kolejna forma wkładu w **WSPÓLNE DOBRO**. Przypomnij sobie kolejność z sekcji 1 i 2: najpierw Issues – *„serce naszego projektu"* – karmią burzę mózgów i analizę, w kolejnym etapie zmiana trafia do osobnej gałęzi i Pull Requesta, inni twórcy przeglądają ją i komentują, a na końcu dopracowana zmiana zostaje połączona z głównym projektem i zaczyna służyć wszystkim. Każdy merytoryczny komentarz w tym procesie to cenny wkład w **NARODOWY WYSIŁEK INTELEKTUALNY**. Kompas jest ten sam, co w całym repozytorium – **Złote zasady** (sekcja 3): *„Oceniamy pomysły i kod, nie ludzi"*, a w tym samym duchu pisze zintegrowany pilotaż automatyzacji produkcji żywności ([PROJEKTY/25_pilot_automatyzacji_zywnosci.md](PROJEKTY/25_pilot_automatyzacji_zywnosci.md)): *„Oceniamy pomysły i kod, nie ludzi — a liczy się wyłącznie dokonanie."* Jeżeli recenzujesz – działasz na rzecz WSPÓLNEGO DOBRA. Jeżeli Twoja zmiana jest recenzowana – możesz być spokojny: dyskutujemy tu o pomysłach i kodzie, nigdy o ludziach.
+
+### Co sprawdzić przed zatwierdzeniem Pull Requesta lub Issue
+
+Zanim zatwierdzisz cudzą zmianę, przejdź po kolei poniższe punkty – są odbiciem wzorów z sekcji 5:
+
+* **Czytelność opisu:** autor opisał, co zmienia i dlaczego – tak, aby zrozumiał to czytelnik bez zaglądania w pliki (wzór dobrego Pull Requesta z sekcji 5).
+* **Mały i spójny zakres:** jedna zmiana, jeden cel; jeśli zgłoszenie ciągnie za sobą kilka wielkich tematów naraz, życzliwie zaproponuj podzielenie ich na kolejne etapy – dokładnie tak, jak radzi wzór z sekcji 5.
+* **Poprawność linków:** każdy link w opisie i treści prowadzi do pliku lub folderu, który REALNIE istnieje w repozytorium. Otwórz go przed zatwierdzeniem – martwy link łatwo przeoczyć, a naprawia się go jedną drobną poprawką opisu.
+* **Zgodność z nazewnictwem gałęzi z sekcji 5:** w Pull Requeście sprawdź, czy nazwa gałęzi mówi jasno, co w niej powstaje – dla kodu, artykułów i dokumentów (np. `artykul-...`, `dokument-...`) – tak aby każdy współtwórca, bez zadawania pytań, wiedział, co w niej powstaje.
+
+### Jak pisać recenzję życzliwie i konkretnie
+
+* **Odnosimy się do zmiany, nie do osoby.** Zamiast oceniać autora, opisz, co dany fragment kodu lub dokumentu robi, czego brakuje albo co można uprościć. Oceniamy pomysły i kod – nie ludzi (sekcja 3).
+* **Proponujemy zamiast rozkazywać.** Zamiast „zmień to" napisz „co powiesz na..." albo „rozważ, czy...". To wprost zasada **Zademonstruj rozwiązanie** z sekcji 3: jeśli wskazujesz problem, zaproponuj od razu rozwiązanie.
+* **Przemyśl cel komentarza, zanim go napiszesz.** Wspólnie poszukujemy logiki i precyzji (sekcja 3) – komentarz, który nic nie wnosi do zmiany, przestaje być wkładem, a zaczyna być szumem.
+* Dbaj o kulturę języka tak samo, jak w każdej innej dyskusji w repozytorium.
+
+### Gdy zmiana czeka na decyzję Opiekuna
+
+W miarę rozwoju inicjatywy decyzje o kierunku zmian należą do **Opiekunów** – wyłanianych wyłącznie spośród najbardziej zaangażowanych twórców (sekcja 5). Jeśli Twoja zmiana albo Twoja recenzja czeka na ich decyzję:
+
+* Zachowaj cierpliwość – nie ponaglaj i nie podważaj decyzji w komentarzach; dyskusja służy merytoryce, a nie presji.
+* Pomóż dyskretnie w dyskusji: odpowiadaj na pytania, dodawaj analizę i kontekst, wspieraj nowych współtwórców przy ich pierwszym Pull Requeście – dokładnie tak, jak zachęca checklista Opiekuna z sekcji 5.
+* Pamiętaj, że cierpliwa, merytoryczna pomoc też jest dokonaniem. U nas liczą się wyłącznie dokonania, a **Intelekt wyprzedza Kapitał** – najcenniejszy wkład to bezcenny, realny wysiłek intelektualny.
+
+### Gotowe szablony zgłoszeń
+
+Nie musisz zaczynać od pustej strony. Folder `.github/ISSUE_TEMPLATE` naszego repozytorium (ten sam, który wskazuje sekcja 5) zawiera gotowe szablony zgłoszeń:
+
+* [Nowy Strażnik](.github/ISSUE_TEMPLATE/nowy_straznik.md)
+* [Pomysł / propozycja rozwiązania](.github/ISSUE_TEMPLATE/pomysl_rozwiazanie.md)
+* [Zastrzeżenie / uwaga / ryzyko](.github/ISSUE_TEMPLATE/zastrzezenie_uwaga.md)
+* [Provider danych / węzeł pomiarowy](.github/ISSUE_TEMPLATE/provider_danych.md)
+* [Utrata dostępu providera](.github/ISSUE_TEMPLATE/utrata_dostepu_providera.md)
+* [Volunteer Problem Report](.github/ISSUE_TEMPLATE/volunteer_problem_report.md)
+
+Pull Requesty natomiast opisuj według wzoru **„Wzór dobrego Pull Requesta"** z sekcji 5: najpierw krótki opis, potem mały i spójny zakres, a na końcu odwołanie do Złotych zasad.
+
 ---
 
 Cieszymy się, że chcesz z nami wspólnie pracować nad systemem budującym WSPÓLNE DOBRO NARODOWE!

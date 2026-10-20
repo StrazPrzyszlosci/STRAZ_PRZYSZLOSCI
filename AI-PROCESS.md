@@ -3,7 +3,7 @@
 Ten plik czytają przyszłe nocne biegi cron-a (nadzorca farmy opencode) w KROK 0 —
 zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną noc.
 
-## Stan infrastruktury (aktualne na noc 2026-10-20)
+## Stan infrastruktury (aktualne na noc 2026-10-21)
 
 - **Model domyślny `opencode/muse-spark-1.3-contributor-free` NIE ISTNIEJE** w rejestrze
   opencode v2.0.28 (upgrade z 1.18.34 usunął wariant `opencode/...-free`; Muse jest teraz
@@ -110,6 +110,33 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   działa — zero halucynacji w 3/3 instancjach; sekcja B pokazała wartość cross-checku odwołań
   (CONTRIBUTING → ankieta): przy dopisywaniu sekcji szukać też „wiszących" odwołań do naprawienia.
 
+### Noc 2026-10-21 (NOC-1, start 01:11)
+
+- Readiness: probe Muse nadal „Model unavailable" (trwały stan) → własny probe `nvidia/z-ai/glm-5.3-flash`
+  (PTY, probe_model.py) → PROBE_OK w 3,4 s. Sync z remote: `git log HEAD..origin/main` puste (klon aktualny).
+- **3 instancje równolegle** (run `20261021-011426`), wszystkie `done`: A-os-energia (8,2 min, nowy plik
+  PROJEKTY/27_pilot_sieci_energetycznej.md, 121 linii + mermaid — przeniesienie wzorca warstw 25/26 na osi
+  3 Energia), B-contributing-review (4,3 min, nowa sekcja „## 6. Przegląd zmian (review)" w CONTRIBUTING —
+  jak recenzować Issues/PR w duchu Złotych zasad), C-marketing-ewidencja (5,7 min, nowa sekcja „## 8.
+  Ewidencja efektów i ciągłość obszarów" w MARKETING — publiczny ślad w Issues/PR + przekazanie obszaru).
+- Weryfikacja nadzorcy: każdy cytat potwierdzony u źródła — 25 l.89 („Oceniamy pomysły i kod..."),
+  ankieta l.69 („Każda ścieżka kończy się widocznym dokonaniem..."), MARKETING §6 („Miarą postępu jest
+  stan prac i jakość treści, a nie kalendarz"), ŚCIEŻKA B l.84 (ciągłość obszaru); w pliku 27: „Nerw
+  Gospodarczy" i scenariusz monitoringu energii = plik 10 l.8/50, „centralne sterowniki off-grid i
+  magazynów energii" = plik 06 l.27, delaminacja laserowa + Open-Source = plik 05 l.7/22, bramka
+  Mesh↔Home Assistant i zanonimizowane odczyty do API NSIP = plik 21 l.48/10, zależność pilotażu 25 od
+  energii = plik 25 l.59 + ROADMAPA l.158; „Intelekt ponad wszystko" = Złota zasada CONTRIBUTING l.67;
+  fraza o fazach = ROADMAPA l.11 + konwencja 25 l.73 / 26 l.79. Wszystkie 6 szablonów z
+  .github/ISSUE_TEMPLATE istnieje pod podanymi nazwami. Zero halucynacji do usunięcia.
+- Automatyczny check linków wewnętrznych (check_links_noc1.py: 27 + CONTRIBUTING + MARKETING + README):
+  0 martwych linków. Integracja przez nadzorcę: README — oś 3 (Energia) zyskała w *Inspiracje* link do 27
+  (obok 05) + pozycja 27 na liście „Projekty Pilotażowe i Inspiracje". Commit i push na main (instancje
+  mają zakaz git).
+- Lekcja techniczna: po zakończeniu wszystkich instancji `--status` pokazuje `active_run: null` i pustą
+  listę (nadzorca sprząta stan) — końcowe statusy/czasy czytać bezpośrednio z state.json
+  (wzorzec: nsip-farm/check_run_noc1.py). Przed chwilą status wygląda „pusto" nie dlatego, że nic nie
+  zrobiono.
+
 ## Zasady jakości (obowiązują każdą instancję)
 
 - Jeden plik docelowy na instancję, praca w katalogu repo, ZAKAZ poleceń git i modyfikacji
@@ -121,22 +148,25 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-1. **OS-ENERGIA**: nowy plik PROJEKTY/27_pilot_sieci_energetycznej.md — koncepcyjny pilotaż dla
-   osi 3 (Energia) według kierunków wypisanych w ROADMAPA (sekcja „### Energia" Fazy 1:
-   prognozowanie zapotrzebowania, sterowanie magazynowaniem OZE, planowanie wytwarzania),
-   po wzorcu plików 25/26 (warstwy, mermaid, miejsce w fazach). Inspiracje wyłącznie z realnych
-   plików: 05 (recykling PV), 04 (off-grid z paneli solarnych), 06 (smartfony jako sterowniki);
-   zależność od pilotaży 25/26 (energia warunkiem produkcji i obliczeń — ROADMAPA l.77). Bez
-   żadnych danych technicznych, których nie ma w repo (żadnych kWh, napięć, kosztów).
-2. **CONTRIBUTING.md — nowa sekcja „## 6. Przegląd zmian (review)"**: jak współtwórcy wzajemnie
-   przeglądają Issues i PR-y w duchu Złotych zasad (sekcja 3) i zasady „Oceniamy pomysły i kod,
-   nie ludzi" (plik 25, l.89): co sprawdzić przed zatwierdzeniem (czytelność, mały zakres, linki
-   do realnych plików), jak pisać recenzję życzliwie i konkretnie, co z tym, gdy PR czeka na
-   decyzję Opiekuna. Wyłącznie procesy wynikające z istniejących zasad — bez wynajdywania
-   hierarchii, terminów ani progów liczbowych.
-3. **MARKETING.md — nowa sekcja „## 8. Ewidencja efektów i ciągłość obszarów"**: jak dokumentować
-   efekty działań marketingowych (ślad w Issues/PR — spójne z §7 i ze ŚCIEŻKĄ B ankiety), jak
-   przekazywać obszar kolejnej osobie (ciągłość odpowiedzialności), bez metryk liczbowych,
-   terminów i zewnętrznych narzędzi.
+1. **OS-LOGISTYKA (oś 5)**: nowy plik PROJEKTY/28_pilot_logistyki_sasiadzkiej.md — koncepcyjny pilotaż
+   według brzmienia osi 5 w README (inteligentne zarządzanie łańcuchami dostaw, system rekomendacji
+   do nawigacji, ekonomia współdzielenia transportu „przy okazji"), po wzorcu plików 25/26/27 (warstwy,
+   mermaid, miejsce w fazach). Inspiracje wyłącznie z realnych plików: 18 (automatyzacja transportu
+   i logistyki), 20 (logistyka sąsiedzka — nawigacja odbioru przedmiotów na trasie), 19 (społeczna
+   baza przedmiotów), 10 (łączność Mesh). Przy integracji nadzorca DODAJE *Inspiracje* do osi 5
+   w README — oś 5 nie ma ich jeszcze (stan na NOC-1 2026-10-21). Bez żadnych danych liczbowych
+   (żadnych km, ton, kosztów paliwa).
+2. **OS-PLANOWANIE (oś 7)**: nowy plik PROJEKTY/29_pilot_planowania_przestrzennego.md — koncepcyjny
+   pilotaż według brzmienia osi 7 w README („Wykorzystanie danych geoprzestrzennych do optymalnego
+   lokowania automatyzacji"), po wzorcu 25/26/27. Inspiracje wyłącznie z realnych plików:
+   16 (geoportal potencjału rozwoju — istniejący zalążek tej osi), 19, 06, 21; zależność od pilotaży
+   25/27 (produkcja i energia jako przedmiot lokowania — ROADMAPA l.77). Koncepcja procesu decyzji
+   o lokalizacji węzłów — bez twierdzeń o konkretnych lokalizacjach, gminach czy regionach, których
+   nie ma w repo.
+3. **AI-PROCESS.md — nowa sekcja „Wzorzec promptu instancji"**: destylat skutecznych promptów z
+   NOC-5..NOC-1 (jedna instancja = jeden plik docelowy; absolutna ścieżka repo w prompcie; ZAKAZY:
+   żadnych faktów/liczb/dat/URL-i spoza repo, kolejność względna; weryfikacja istnienia pliku listą
+   katalogu przed linkowaniem; styl manifestu; zakaz git). Sekcja ma służyć nadzorcom jako gotowy
+   szablon promptu — aktualizowana wyłącznie przez nadzorcę po biegu.
    (Fallback po kolei na `nvidia/z-ai/glm-5.3-flash`; przy błędach 429/limit → 1 instancja.
    W prompcie podać absolutną ścieżkę repo — lekka lekcja z NOC-5.)

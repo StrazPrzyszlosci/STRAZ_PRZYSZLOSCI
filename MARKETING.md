@@ -61,6 +61,28 @@ Zgłoszenie nie jest formalnością ani wnioskiem o zgodę — jest publiczną d
 
 Odpowiedzialność za obszar jest pierwszym ogniwem łańcucha prowadzącego do nobilitacji Opiekuna Projektu. Zgodnie z README, Opiekunowie będą wyłaniani wyłącznie spośród najbardziej zaangażowanych twórców — tych, którzy wykażą się największą pracą i realnymi dokonaniami na rzecz repozytorium. Rzetelne, długofalowe prowadzenie własnego obszaru jest właśnie takim dokonaniem: to naturalna droga, w której odpowiedzialność wzięta dziś może stać się zaszczytem jutra. W tej przestrzeni liczą się wyłącznie dokonania, kompetencje i idea.
 
+## 8. Ewidencja efektów i ciągłość obszarów
+
+Dokumentowanie efektów nie jest formalnością — jest służbą dla **WSPÓLNEGO DOBRA**. Obszar wzięty na siebie według sekcji 7 staje się widoczny dla społeczności dopiero wtedy, gdy zostawia po sobie ślad w tym samym miejscu, w którym zgłaszało się jego przejęcie: w Issues i Pull Requestach. Ankieta rekrutacyjna (REKRUTACJA_ANKIETA.md) zapowiada to przy Szybkich Ścieżkach wprost: *Każda ścieżka kończy się widocznym dokonaniem: Pull Requestem albo zgłoszeniem w Issues, czyli cegłą w fundamencie WSPÓLNEGO DOBRA.* Sekcja 7 wskazuje tę samą naturalną drogę: od zgłoszenia w Issues, przez efekty pokazywane w Pull Requestach, po obszar prowadzony konsekwentnie i widocznie dla całej społeczności. Publiczny ślad jest dowodem dokonania — nie obietnicą, że praca trwa, lecz zapisem tego, co już powstało. W tej inicjatywie liczą się wyłącznie dokonania: praca, o której wiadomo tylko jej autorowi, nie buduje zaufania i nie zasila **NARODOWEGO WYSIŁKU INTELEKTUALNEGO**, a praca udokumentowana w repozytorium zostaje i przemawia sama za siebie — także wtedy, gdy jej autor odpoczywa.
+
+**Co i jak ewidencjonować?** Każde działanie z obszarów opisanych w sekcjach 1–5 — od strategii komunikacji i mediów (sekcje 1–2), przez treści i pozycjonowanie (sekcje 3–4), po relacje partnerskie (sekcja 5) — opisuj w Issues albo w Pull Requeście, według konwencji przyjętych w tym repozytorium:
+
+* **Zgłoszenia w Issues:** opieraj się na gotowych szablonach z folderu `.github/ISSUE_TEMPLATE` tego repozytorium (do zgłoszeń pomysłowych służy szablon „Pomysł / propozycja rozwiązania") i układaj treść według wzoru dobrego Issue z CONTRIBUTING.md: **Kontekst**, **Proponowane rozwiązanie**, **Czego potrzebujesz**.
+* **Pull Requesty:** opisuj zmiany według wzoru dobrego Pull Requesta z CONTRIBUTING.md — co zmieniasz i dlaczego, w zakresie małym i spójnym (jedna zmiana, jeden cel), a duże pomysły dziel na kolejne etapy.
+* **Sztandary wspólne:** konstruktywność (oceniamy pomysły i kod, nie ludzi), intelekt ponad wszystko, jasne nazwy gałęzi i commitów oraz zasada „Zademonstruj rozwiązanie" — te same, którymi CONTRIBUTING.md kieruje każdą pracę w repozytorium.
+
+Ewidencja efektów nie wymaga metryk liczbowych ani zewnętrznych narzędzi analitycznych. Jedynym rejestrem jest samo repozytorium: opisuj stan prac i jakość treści, a nie liczby — dokładnie tak, jak w sekcji 6 miarą postępu jest stan prac i jakość treści, a nie kalendarz. Jeśli działanie nie daje się pokazać jako zmiana w plikach, pokaż je w Issues: opis tego, co powstało i co z tego wynika, jest pełnoprawną ewidencją efektu.
+
+**Jak przekazać obszar kolejnej osobie?** Odpowiedzialność według sekcji 7 nie kończy się wraz z pojedynczym zadaniem — ale nie urywa się także wtedy, gdy dotychczasowa osoba przekazuje ją dalej. Przekazanie obszaru odbywa się w tym samym publicznym rejestrze, w znanej już kolejności względnej:
+
+1. **Najpierw** — dotychczasowa osoba spisuje w Issues stan obszaru: co zostało zrobione, co jest w toku, jakie decyzje zapadły i gdzie w Issues oraz Pull Requestach szukać śladów wcześniejszych prac.
+2. **W kolejnym etapie** — nowa osoba ogłasza wzięcie odpowiedzialności dokładnie według sekcji 7: otwiera odpowiednie Issues / Pull Request i wskazuje, który obszar przejmuje, jak zamierza go prowadzić i co już w jego ramach zrobiła, jeśli praca trwa.
+3. **Na końcu** — dotychczasowa osoba potwierdza przekazanie w tej samej dyskusji i pozostaje do dyspozycji pytań, aby wiedza o obszarze nie zginęła.
+
+Tak prowadzona ciągłość realizuje to, co ŚCIEŻKA B ankiety nazywa dbaniem o obszar: bieżącą dyskusję w Issues i wspieranie kolejnych osób, które dołączą do Twojego pola działania.
+
+**Ewidencja a droga do nobilitacji.** Sekcja 7 nazywa odpowiedzialność za obszar pierwszym ogniwem łańcucha prowadzącego do nobilitacji Opiekuna Projektu i przypomina za README, że Opiekunowie będą wyłaniani wyłącznie spośród najbardziej zaangażowanych twórców — tych, którzy wykażą się największą pracą i realnymi dokonaniami na rzecz repozytorium. Publiczna ewidencja efektów jest właśnie tym, co pozwala społeczności te dokonania zobaczyć. Nie wyznaczamy tu żadnych terminów i niczego nie obiecujemy na zapas: nobilitacja przychodzi w miarę rozwoju inicjatywy — po dokonaniach, nigdy przed nimi. Prowadź więc swój obszar rzetelnie, pokazuj efekty w Issues i Pull Requestach i przekazuj go z troską o ciągłość — a zaszczyt przyjdzie wtedy, gdy uprawnią go dokonania, nie obietnice. Tak rozumiemy hasło **Intelekt wyprzedza Kapitał**: najcenniejszy wkład to bezcenny, realny wysiłek intelektualny, służący **WSPÓLNEMU DOBROWI** i **NARODOWEMU WYSIŁKOWI INTELEKTUALNEMU**.
+
 ---
 *Intelekt wyprzedza kapitał!*
 **Jak dołączyć?**
