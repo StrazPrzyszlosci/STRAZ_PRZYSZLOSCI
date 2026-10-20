@@ -23,3 +23,4 @@ __pycache__/
 *.pyc
 .wrangler/
 PROJEKTY/13_baza_czesci_recykling/cern_kicad_import_preview/
+scratch/selfopt/

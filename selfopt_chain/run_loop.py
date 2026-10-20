@@ -250,11 +250,13 @@ def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: 
 
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     status = "ok"
+    final_outputs: dict[str, Any] = {}
     try:
         graph = build_chain_graph(chain, runner)
         state: dict[str, Any] = {"payload": chain.get("payload", {})}
         final = graph.invoke(state)
         nodes_run = len(final.get("outputs", {}))
+        final_outputs = final.get("outputs", {})
     except GraphError as exc:
         status = f"failed: {exc}"
         nodes_run = 0
@@ -262,6 +264,7 @@ def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: 
     if runner.routing and all(not r["ok"] for r in runner.routing):
         status = "failed: wszystkie wywolania modeli nieudane"
     tracer.run_end(status, nodes_run)
+    (out_dir / "final_outputs.json").write_text(json.dumps(final_outputs, ensure_ascii=False, indent=2), encoding="utf-8")
     finished = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     insights = extract_insights(tracer.dump())
@@ -291,7 +294,7 @@ def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: 
         "insights_count": len(insights),
         "policy": "suggest-only",
         "auto_applied": False,
-        "artifacts": ["traces.jsonl", "run_receipt.json", "optimization_proposals.md"],
+        "artifacts": ["traces.jsonl", "run_receipt.json", "optimization_proposals.md", "final_outputs.json"],
         "spool_dir": str(effective_spool_dir) if spool else None,
     }
     (out_dir / "run_receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -49,6 +49,38 @@ python3 selfopt_chain/run_loop.py --chain selfopt_chain/examples/chain_edge_advi
 SELFOPT_NETWORK=1 python3 selfopt_chain/run_loop.py --chain ... --engine free-api
 ```
 
+## Agent orkiestrator (rezydent, T49)
+
+Uruchomiony orkiestrator **na żywo realizuje wizję repo**: automatycznie używa
+darmowych modeli AI (router jakość↔szybkość + budżety) i rozwija procesy
+zamiany dostępnych zasobów (np. elektrośmieci) w nowe zdolności systemu —
+węzły sensoryczne, węzły selfhost, komunikację mesh, stanowiska bench —
+które służą ludziom (żywność, energia, suwerenność cyfrowa).
+
+Cykl: kill-switch → bramka quota (tylko free-api: `quota_snapshot` z
+provider_quota_monitor musi być ok) → zbiór zadań (rekordy `resource_scout`,
+inbox LoRa EDGE→HUB, bootstrap demo) → łańcuch AI per zasób →
+**draft rozbudowy zdolności** w `scratch/selfopt/procdev_queue/` wg
+`selfopt_chain/capability_map.json` (zasób → zdolność → PROJEKTY/komórki →
+następny proces). Wszystko suggest-only: człowiek review'uje, nic nie jest
+auto-zaaplikowane; budżety dobowe per model są persystowane.
+
+```bash
+# demonstracja offline (mock, jeden cykl):
+python3 selfopt_chain/orchestrator.py --once
+# daemon offline co 5 min:
+python3 selfopt_chain/orchestrator.py --interval 300
+# daemon na darmowych API (operator uzupełnia sekrety + quota_snapshot):
+SELFOPT_NETWORK=1 GEMINI_API_KEY=... GROQ_API_KEY=... \
+  python3 selfopt_chain/orchestrator.py --engine free-api --interval 300
+# stop:
+touch scratch/selfopt/KILL_SWITCH   # (albo SIGTERM)
+```
+
+Stan daemona (`scratch/selfopt/`): `orchestrator_state.json` (budżety, dedup),
+`cycles/cycle_<n>.json` (receipty), `procdev_queue/*.md` (propozycje do review),
+`runs/` (pełne ślady per zadanie), `stopped.json` (powód zatrzymania).
+
 Artefakty runu (domyślnie `scratch/selfopt/<chain>_<ts>/`):
 - `traces.jsonl` — pełny ślad wykonania (audit_trail),
 - `run_receipt.json` — status, routing, budżety quota, `auto_applied: false`,
