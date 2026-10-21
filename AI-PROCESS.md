@@ -177,6 +177,44 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
 - Lekcja techniczna: plan.json wymaga PŁASKIEJ tablicy zadań (wpis w „Stan infrastruktury"); pierwsza
   wersja planu NOC-3 jako obiekt byłaby odrzucona przez nsip_farm_run.py przy starcie.
 
+### Noc 2026-10-21 (NOC-5, start 05:15 — kontynuacja po NOC-3; NOC-4 nie zostawił śladu)
+
+- Kontekst: bieg NOC-4 nie zostawił śladu w state.json ani w git logu — 3 zadania z propozycji
+  NOC-3 pozostały niewykonane; NOC-5 wykonał je w całości.
+- Readiness: probe Muse nadal „Model unavailable" (trwały stan) → własny probe `nvidia/z-ai/glm-5.3-flash`
+  (wzorzec probe_glm_noc5.py) → PROBE_OK. Binarka w scratch żywa (readiness rc=0). Sync z remote:
+  `git log HEAD..origin/main` puste (klon aktualny).
+- **3 instancje równolegle** (run `20261021-052126`), wszystkie `done`: A-os-zasoby (17,7 min, nowy plik
+  PROJEKTY/30_pilot_gospodarki_zasobami.md, 137 linii + mermaid — przeniesienie wzorca warstw 25–28 na oś 4,
+  z resource scoutingiem z 17/19/15), B-os-finanse (12,8 min, nowy plik PROJEKTY/31_pilot_finansowania_
+  inicjatywy.md, 138 linii + mermaid — oś 6 jako proces: dane wejściowe → dopasowanie kryteriów AI →
+  weryfikacja przez ludzi), C-contributing-wzorzec (9,3 min, nowa sekcja „## 7. Od pomysłu do pilotażu
+  (wzorzec 25–29)" na końcu CONTRIBUTING, 32 linie — edycja wyłącznie dodająca).
+- Weryfikacja nadzorcy: dwie tury automatycznych checków fraz (check_verify_noc5b.py 67/71 OK;
+  check_verify2_noc5b.py 45/47 OK) + kontekstowe grepy dla 6 „BRAK". Potwierdzone exact m.in.: kierunki
+  osi 4 = ROADMAPA l.83–85, „dorobek tej osi bezpośrednio wzmacnia produkcję żywności (woda, ziemia) oraz
+  gospodarkę energetyczną (surowce)" = l.87, elementy spinające (logistyka + Finanse „zasilająca rozwój
+  kolejnych projektów") = l.166, kierunki osi Finanse = l.103–105, „Ta oś jest pomostem…" = l.107, Faza 3
+  „Do tej fazy nie przechodzimy obietnicami, lecz zasobami", kontrakt danych 01 (reason_codes),
+  pętla/donorzy/kwalifikacje z 17, „znana ścieżka wykorzystania zasobu" = plik 15 l.29 (ŹRÓDŁO BEZ
+  DIAKRYTYKÓW — zwykły grep z polskimi znakami go pomijał), konwencja „pełnoprawny wkład… bez własnego
+  sprzętu" = 25 l.89 (identycznie 26/27/28/29), „roić jak w ulu" = CONTRIBUTING l.12 + 25 l.81, „Miarą
+  postępu jest stan prac i jakość treści, a nie kalendarz" = MARKETING l.34, zrzutka Trash-to-Cash /
+  opłaty API / wycena e-odpadów / formalizacja = README, warstwy nazwane w 25/26/28/29 exact.
+- Korekty nadzorcy (2, minimalne diffy): (1) plik 30 — „nie profilowaniu reklamowemu" → „a nie monetyzacji
+  przez komercyjne korporacje" (źródło: plik 19 l.5 „monetyzowane przez komercyjne korporacje"; w 19 nie ma
+  słowa o reklamie); (2) plik 31 — cytat MARKETING „a nie liczby" → „a nie kalendarz" (exact z l.34).
+  Brak halucynacji faktów, dat, kwot, linków i nazw organizacji do usunięcia.
+- Automatyczny check linków wewnętrznych (check_links_noc5b.py: 30 + 31 + CONTRIBUTING + README):
+  271 linków, 0 martwych.
+- Integracja przez nadzorcę: README — oś 4 += 30 doklejone do istniejącej listy *Inspiracje* (05/04/06/12),
+  oś 6 zyskała nowy podpunkt *Inspiracje* z linkiem do 31 (wzorzec z NOC-22 dla osi bez listy), lista
+  „Projekty Pilotażowe i Inspiracje" += pozycje 30 i 31. Commit i push na main (instancje mają zakaz git).
+- Lekcja techniczna: część źródeł repo jest zapisana bez polskich diakrytyków (np. plik 15: „sciezka",
+  „podaz") — weryfikując cytaty, po nieudanym grepsie z ogonkami szukać frazy bez nich lub po słowach
+  kluczowych, zanim frazę oznaczy się jako wymyśloną. Druga lekcja: instancja potrafi „poprawić" cytat
+  (31: „kalendarz"→„liczby") — weryfikacji podlegają także fragmenty podane jako cytaty wprost.
+
 ## Wzorzec promptu instancji (szablon dla nadzorcy)
 
 Destylat skutecznych promptów instancji z nocnych biegów 2026-10-20/21 (NOC-1, NOC-5, NOC-22).
@@ -257,27 +295,23 @@ WYMAGANIA JAKOŚCI:
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-Stan po NOC-3: osie 1/2/3/5/7 mają pliki-pilotaże (25–29); wzorzec promptu w AI-PROCESS gotowy.
+Stan po NOC-5: wszystkie 7 osi z README ma pliki-pilotaże (25–31); CONTRIBUTING ma sekcje 1–7;
+wzorzec promptu i wzorzec weryfikacji nadzorcy opisane w AI-PROCESS.
 
-1. **OS-ZASOBY (oś 4)**: nowy plik PROJEKTY/30_pilot_gospodarki_zasobami.md — koncepcyjny pilotaż
-   według brzmienia osi 4 w README („Racjonalne, poparte zaawansowaną analizą danych, zarządzanie
-   wodą, surowcami i ziemią, eliminujące gospodarkę rabunkową"), po wzorcu 25–29 (warstwy, mermaid,
-   miejsce w fazach). Inspiracje wyłącznie z realnych plików (zweryfikować ls-em): 17 (autonomiczne
-   przetwarzanie elektrośmieci na hardware — materialny pilot resource scoutingu), 19 (społeczna baza
-   przedmiotów), 05 (recykling PV laserem), 15 (analiza social media dla recyklingu). Bez danych
-   liczbowych. Przy integracji nadzorca dokleja *Inspiracje* do osi 4 w README (oś 4 ma już listę
-   05/04/06/12) + pozycja 30 na liście „Projekty Pilotażowe i Inspiracje".
-2. **OS-FINANSE (oś 6)**: nowy plik PROJEKTY/31_pilot_finansowania_inicjatywy.md — koncepcyjny
-   pilotaż według brzmienia osi 6 w README („Pozyskiwanie środków strategicznych, inteligentny wybór
-   programów grantowych i inwestycji"), po wzorcu 25–29; inspiracje: ROADMAPA Faza 3 („Finansowanie
-   Dochodu Gwarantowanego (UBI)", ok. l.132–142), MARKETING §5 („Współpraca B2B / Sponsoring
-   (w późniejszym etapie)"), README oś 6. TWARDE ZAKAZY: żadnych nazw konkretnych programów,
-   instytucji, kwot, procentów ani dat — koncepcja procesu (kryteria wyboru, kolejność względna,
-   weryfikacja przez ludzi), nie katalog grantów.
-3. **CONTRIBUTING.md — nowa sekcja „## 7. Od pomysłu do pilotażu (wzorzec 25–29)"**: ścieżka
-   twórcy od Issue, przez koncepcję pisaną wspólnym wzorcem warstw (sensoryczno-sterująca /
-   decyzyjna AI na krawędzi / pętla nauki z telemetrii — jak 25–29), po PR i integrację;
-   edycja wyłącznie dodająca na końcu pliku (po „## 6. Przegląd zmian (review)"); grounded
-   w CONTRIBUTING §1–6 i plikach 25–29; bez wymyślania etapów, których nie ma w repo.
-   (Fallback po kolei na `nvidia/z-ai/glm-5.3-flash`; przy błędach 429/limit → 1 instancja.
-   W prompcie podać absolutną ścieżkę repo; plan.json = płaska tablica zadań.)
+1. **ROADMAPA — rozszerzenie „Synergie osi" o pilotaże 30/31**: nowa podsekcja (edycja wyłącznie
+   dodająca, przed „Synergie jako zaproszenie dla twórców" lub po) dokumentująca spięcia nowych
+   pilotaży z resztą: zasoby ↔ żywność/energia (ROADMAPA l.87 exact: „Dorobek tej osi bezpośrednio
+   wzmacnia produkcję żywności (woda, ziemia) oraz gospodarkę energetyczną (surowce)"), finanse ↔
+   gotowość koncepcyjna projektów (l.103–105, l.107 „pomost"). Inspiracje: 30, 31, istniejąca
+   sekcja „Synergie osi" (l.158–170), pliki 25–29. Bez danych liczbowych.
+2. **MARKETING — nowa sekcja „## 9. Jak opowiadać o pilotażach (25–31)"**: jak komunikować
+   zewnętrznie nowo powstałe koncepcje pilotażów — grounded wyłącznie w MARKETING 1–8 (miara postępu
+   l.34, „Partnerów przyciąga nie obietnica, lecz dokonanie", ewidencja §8, kolejność §6) i w
+   konwencjach plików 25–31 (stopka, „Nawet tu kod już jest"); edycja dodająca na końcu pliku;
+   szukać „wiszących" odwołań, które nowa sekcja naprawia. Bez wymyślania kanałów, liczb i dat.
+3. **AI-PROCESS — nowa sekcja „## Wzorzec weryfikacji nadzorcy"**: destylat procedury z NOC-5
+   (dwie tury check fraz u źródeł → kontekstowe grepy dla „BRAK" → uwaga na źródła bez diakrytyków
+   → check linków wewnętrznych → korekty minimalnym diffem → integracja README doklejana do
+   istniejących list). Wstawiona przed „## Zasady jakości", edycja wyłącznie dodająca.
+   (Model: `nvidia/z-ai/glm-5.3-flash`; przy błędach 429/limit → 1 instancja. W prompcie podać
+   absolutną ścieżkę repo; plan.json = płaska tablica zadań; instancje mają zakaz git.)
