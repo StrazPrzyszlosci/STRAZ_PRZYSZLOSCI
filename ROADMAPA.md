@@ -171,6 +171,21 @@ Każde połączenie osi to gotowe pole dla **NARODOWEGO WYSIŁKU INTELEKTUALNEGO
 
 Tak krok po kroku budujemy nie zbiór projektów, lecz system, w którym każdy wzmacnia wszystkie pozostałe – na rzecz **WSPÓLNEGO DOBRA NARODOWEGO**.
 
+### Kolejne spięcia osi: pilotaże gospodarki zasobami i finansowania
+
+„Miejsce na kolejne koncepcje", które zostawia po sobie przykład pilotażu żywnościowego, oraz zaproszenie z poprzedniej podsekcji mają już pierwsze odpowiedzi: w repozytorium istnieją dwie nowe koncepcje pilotażowe, wpinające się w spięcia opisane w tej sekcji – jedna po stronie osi czwartej, druga po stronie szóstej.
+
+[Koncepcyjny Pilotaż Gospodarki Zasobami Strategicznymi](PROJEKTY/30_pilot_gospodarki_zasobami.md) realizuje wprost zdanie z opisu osi czwartej w Fazie 1: **„Dorobek tej osi bezpośrednio wzmacnia produkcję żywności (woda, ziemia) oraz gospodarkę energetyczną (surowce)"**. Jego sekcja „Zależności od pozostałych osi i pilotaży" prowadzi to spięcie w cztery strony naraz:
+
+* **Żywność (oś pierwsza):** pilotaż przyjmuje telemetrię zużycia – wody w akwakulturze oraz substratów w hodowli grzybów – dostarczaną przez [Zintegrowany Pilotaż Automatyzacji Produkcji Żywności](PROJEKTY/25_pilot_automatyzacji_zywnosci.md), a w kolejnym etapie oddaje tej osi wspólne narzędzia analityczne i modele wspierające decyzje o alokacji zasobów między węzłami;
+* **Energia (oś trzecia):** surowce z odzysku wzmacniają gospodarkę energetyczną, a [Koncepcyjny Pilotaż Sieci Energetycznej](PROJEKTY/27_pilot_sieci_energetycznej.md), mierząc własne zużycie energii, ma w kolejnym etapie współpracować ze wspólnymi narzędziami analitycznymi tej osi;
+* **Logistyka (oś piąta):** alokacja zasobów między węzłami wymaga przeniesienia ich w przestrzeni – fizyczną stronę rekomendacji osi czwartej realizują narzędzia logistyczne spięte w [Koncepcyjnym Pilotażu Logistyki Sąsiedzkiej](PROJEKTY/28_pilot_logistyki_sasiadzkiej.md);
+* **Planowanie przestrzenne (oś siódma):** decyzje o ziemi – jednym z zasobów tej osi – opierają się na danych geoprzestrzennych oraz procesie decyzji o lokalizacji węzłów opisanym w [Koncepcyjnym Pilotażu Planowania Przestrzennego](PROJEKTY/29_pilot_planowania_przestrzennego.md).
+
+Procesową realizacją drugiego z elementów spinających jest [Koncepcyjny Pilotaż Finansowania Inicjatywy](PROJEKTY/31_pilot_finansowania_inicjatywy.md). Opis osi szóstej w Fazie 1 wyznacza jej kierunki – opracowanie metod oceny, które projekty uruchamiać w pierwszej kolejności, przygotowanie projektów z pozostałych osi do rozmów o wsparciu oraz budowa fundamentów relacji partnerskich, przy czym współpraca B2B i sponsoring to, jak zaznacza sama mapa, działania późniejszego etapu – a diagnoza brzmi: **ta oś jest pomostem między koncepcją a uruchomieniem produkcji**. Pilotaż buduje ten pomost jako powtarzalny proces dla projektów z pozostałych osi: koncepcje pilotaży [25](PROJEKTY/25_pilot_automatyzacji_zywnosci.md), [26](PROJEKTY/26_pilot_ai_w_medycynie.md), [27](PROJEKTY/27_pilot_sieci_energetycznej.md), [28](PROJEKTY/28_pilot_logistyki_sasiadzkiej.md) i [29](PROJEKTY/29_pilot_planowania_przestrzennego.md) zasilają go spisem potrzeb oraz stanem prac, analiza AI dopasowuje kryteria i proponuje uszeregowanie projektów, a weryfikacja i ostateczna decyzja zawsze pozostają po stronie człowieka i społeczności.
+
+Obie koncepcje domykają obieg, który ta sekcja przywołuje za podrozdziałem **„Od projektów do systemu"**: produkcja żywności korzysta z optymalizacji zużycia zasobów, a finanse zasilają rozwój kolejnych projektów. Pilotaż gospodarki zasobami nadaje pierwszej z tych relacji konkretny wzorzec – pomiar, rekomendacja, decyzja człowieka, a wypracowany wniosek wraca do wspólnej bazy wiedzy – natomiast pilotaż finansowania jest, jak sam o sobie pisze, koncepcją pierwszego ogniwa obiegu, w którym „finanse zasilają rozwój kolejnych projektów". I w jednym, i w drugim obowiązuje ta sama zasada przejęta przez oba pilotaże: AI rekomenduje, a decyzja zawsze należy do człowieka – tak, aby każde nowe spięcie osi pracowało na rzecz **WSPÓLNEGO DOBRA NARODOWEGO**.
+
 ## Czego NIE robimy
 
 Granice są równie ważne jak kierunek. Aby nie rozwodnić siły inicjatywy, konsekwentnie wykluczamy:

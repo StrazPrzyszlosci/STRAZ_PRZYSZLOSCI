@@ -284,6 +284,55 @@ WYMAGANIA JAKOŚCI:
 7. **Styl i hasła podane wprost w prompcie** — polski, manifest spójny z README, akcentowane
    hasła; instancje piszą wtedy jednym głosem.
 
+## Wzorzec weryfikacji nadzorcy
+
+Destylat procedury sprawdzania pracy instancji przez nadzorców farmy, z biegów nocy 2026-10-21
+(NOC-1, NOC-3, NOC-5). Uzupełnia „Wzorzec promptu instancji”: tamten szablon mówi, jak zlecić
+pracę, ten — jak ją sprawdzić, zanim trafi do commita. Kolejne biegi mają tu gotową checklistę:
+zadanie jest domknięte dopiero po przejściu wszystkich kroków. Commit i push na main wykonuje
+wyłącznie nadzorca (instancje mają zakaz git).
+
+1. **Przegląd KAŻDEGO diffu wzrokiem — przed dopuszczeniem do commita.** `git status --porcelain`
+   pokazuje pełny zestaw nowych i zmienionych plików, `git diff` — każdy dopisany i usunięty
+   wiersz. Instancja może dotykać wyłącznie swojego pliku docelowego; każdy inny ślad w statusie
+   wymaga wyjaśnienia, zanim cokolwiek pójdzie dalej.
+2. **Automatyczne checki fraz u źródeł — dwie tury skryptu.** Spisać listę fraz cytowanych
+   w nowych plikach i porównać je ze źródłami skryptem (wzorzec: `check_verify_noc5b.py`;
+   w NOC-5 dwie tury: `check_verify_noc5b.py` 67/71 OK, `check_verify2_noc5b.py` 45/47 OK).
+   Frazy oznaczone BRAK podlegają jeszcze kontekstowemu grepowi u źródła — dopiero po nim frazę
+   uznaje się za wymyśloną; sam BRAK nie jest werdyktem.
+3. **UWAGA: część źródeł repo jest zapisana bez polskich diakrytyków** (lekcja z pilota 15:
+   „sciezka”, „podaz”). Po nieudanym grepsie z ogonkami szukać tej samej frazy bez diakrytyków
+   lub po słowach kluczowych — bez tego kroku grounded fraza zostanie błędnie uznana za
+   halucynację.
+4. **Weryfikacji podlegają także fragmenty podane jako cytaty wprost.** Instancja potrafi
+   „poprawić” cytat (lekcja z pilota 31: „kalendarz” → „liczby”) — każdy cytat porównać z linią
+   źródła (plik + numer linii); cudzysłów nie gwarantuje wierności.
+5. **Automatyczny check linków wewnętrznych skryptem** (wzorzec: `check_links_noc5b.py`;
+   w NOC-5: 271 linków, 0 martwych) — dla WSZYSTKICH nowych i zmienionych plików biegu
+   (w NOC-1 `check_links_noc1.py`: 27 + CONTRIBUTING + MARKETING + README; w NOC-3
+   `check_links_noc3.py`: 28 + 29 + AI-PROCESS). Zero martwych linków to warunek dopuszczenia
+   do integracji.
+6. **Korekty nadzorcy wyłącznie minimalnym diffem.** Poprawia się wiersz, nie plik (w NOC-5
+   dwie korekty: plik 30 — „nie profilowaniu reklamowemu” → „a nie monetyzacji przez komercyjne
+   korporacje”, źródło: plik 19 l.5; plik 31 — cytat MARKETING „a nie liczby” → „a nie kalendarz”,
+   exact z l.34). Po każdej korekcie powtórzyć checki fraz i linków na dotkniętym pliku.
+7. **Integracja z README przez doklejenie linków do ISTNIEJĄCYCH list.** Najpierw sprawdzić
+   w aktualnym README, czy dana oś ma już listę *Inspiracje* (lekcja z NOC-3: propozycja
+   „oś 5 nie ma jeszcze Inspiracji” okazała się nieaktualna — nadzorca dokleił link do
+   istniejącej listy zamiast tworzyć nową). Oś bez listy dostaje nowy podpunkt *Inspiracje*
+   (wzorzec z NOC-22). Każdy nowy pilotaż dopisać też na liście „Projekty Pilotażowe
+   i Inspiracje”. Uwaga na fuzzy patch przy integracji — w NOC-3 skrócił label „Smartfony jako
+   Sterowniki Edge Computing”; przywrócono oryginał.
+8. **Statusy końcowe instancji czytać bezpośrednio ze state.json.** Po zakończeniu wszystkich
+   instancji `--status` pokazuje `active_run: null` i pustą listę (nadzorca sprząta stan) —
+   „pusto” nie znaczy, że nic nie zrobiono. Końcowe statusy i czasy czytać ze state.json
+   (wzorzec: `nsip-farm/check_run_noc1.py`).
+
+Nadzorcę obowiązuje tu ta sama dyscyplina, co instancje („Zasady jakości” poniżej): rzetelna
+weryfikacja u źródeł jest częścią NARODOWEGO WYSIŁKU INTELEKTUALNEGO — praca instancji staje się
+WSPÓLNYM DOBREM dopiero wtedy, gdy nadzorca potwierdzi ją krok po kroku.
+
 ## Zasady jakości (obowiązują każdą instancję)
 
 - Jeden plik docelowy na instancję, praca w katalogu repo, ZAKAZ poleceń git i modyfikacji
