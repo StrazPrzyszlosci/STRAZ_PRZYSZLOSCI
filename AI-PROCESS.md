@@ -215,6 +215,32 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   kluczowych, zanim frazę oznaczy się jako wymyśloną. Druga lekcja: instancja potrafi „poprawić" cytat
   (31: „kalendarz"→„liczby") — weryfikacji podlegają także fragmenty podane jako cytaty wprost.
 
+### Noc 2026-10-21 (NOC-22, start 22:26 — pierwszy pełny bieg nocy 21/22)
+
+- Readiness: probe Muse nadal „Model unavailable" (trwały stan) → własny probe `nvidia/z-ai/glm-5.3-flash`
+  (probe_glm_noc5.py) → PROBE_OK. Sync z remote: `git log HEAD..origin/main` puste (klon aktualny).
+- **3 instancje równolegle** (run `20261021-225451`), wszystkie `done`: A-roadmapa-synergie-30-31 (nowa podsekcja
+  „### Kolejne spięcia osi: pilotaże gospodarki zasobami i finansowania" na końcu „## Synergie osi" — odpowiedź na
+  „miejsce na kolejne koncepcje" z przykładu pilotażu żywnościowego), B-marketing-opowiadanie (nowa sekcja
+  „## 9. Jak opowiadać o pilotażach (25–31)" w MARKETING, między §8 a stopką pliku), C-ai-process-weryfikacja
+  (nowa sekcja „## Wzorzec weryfikacji nadzorcy" przed „## Zasady jakości" — destylat procedury NOC-5 jako checklista).
+- Weryfikacja nadzorcy: dwie tury checków fraz (check_verify1_noc22b.py 48/51 OK; 3 BRAK okazały się artefaktami
+  wzorca checku — potwierdzone grepami kontekstowymi; check_verify2_noc22b.py po korektach 12/12 OK) + check
+  linków wewnętrznych (26 linków, 0 martwych). Potwierdzone u źródeł m.in.: cytat osi 4 = ROADMAPA l.87,
+  kierunki osi 6 = l.103–105, „pomost" = l.107, „pierwsze ogniwa obiegu" = 31 l.87, moduły 1–3 w 31 (potrzeby/stan
+  prac, dopasowanie kryteriów i uszeregowanie, decyzja człowieka), telemetria wody/substratów, surowce z odzysku,
+  „fizyczna strona rekomendacji", dane geoprzestrzenne = 30 §Zależności (l.69–80); cytaty z MARKETING §6/§8 exact;
+  ścieżka „od krystalizacji idei…" = README l.297; tytuły H1 25–31 exact; skrypty-referencje istnieją w FARM DIR.
+- Korekty nadzorcy (2, minimalne diffy): (1) MARKETING §9 — stopka pilotażu 25 ma wariant „Nawet kod już jest,
+  brakuje tylko Ciebie." (bez „tu"), a 26–31 „Nawet tu kod już jest — brakuje tylko Ciebie." — dopisano oba warianty
+  z przypisaniem; (2) ROADMAPA — „koncepcją pierwszego ogniwa obiegu wsparcia" → „…obiegu, w którym „finanse
+  zasilają rozwój kolejnych projektów"" (exact z 31 l.87; nazwa „obieg wsparcia" nie występuje u źródła).
+- README: bez integracji — bieg nie tworzył nowych plików-pilotaży; README już linkuje ROADMAPA (l.297)
+  i MARKETING (l.198). Commit i push na main przez nadzorcę (instancje mają zakaz git).
+- Lekcja: (a) cytat „w stylu X" opisujący serię plików — sprawdzić WSZYSTKIE warianty stopki przed uogólnieniem
+  (25 vs 26–31); (b) nazwa własna pośrednia („obieg wsparcia") nieuzasadniona, gdy źródło daje opis, a nie nazwę —
+  wymieniać na exact ze źródła.
+
 ## Wzorzec promptu instancji (szablon dla nadzorcy)
 
 Destylat skutecznych promptów instancji z nocnych biegów 2026-10-20/21 (NOC-1, NOC-5, NOC-22).
@@ -344,23 +370,22 @@ WSPÓLNYM DOBREM dopiero wtedy, gdy nadzorca potwierdzi ją krok po kroku.
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-Stan po NOC-5: wszystkie 7 osi z README ma pliki-pilotaże (25–31); CONTRIBUTING ma sekcje 1–7;
-wzorzec promptu i wzorzec weryfikacji nadzorcy opisane w AI-PROCESS.
+Stan po NOC-22 (2026-10-21): wszystkie 7 osi z README ma pliki-pilotaże (25–31); ROADMAPA „Synergie osi"
+dokumentuje spięcia pilotaży 30/31; MARKETING ma sekcje 1–9; CONTRIBUTING 1–7; AI-PROCESS ma wzorzec
+promptu i wzorzec weryfikacji nadzorcy.
 
-1. **ROADMAPA — rozszerzenie „Synergie osi" o pilotaże 30/31**: nowa podsekcja (edycja wyłącznie
-   dodająca, przed „Synergie jako zaproszenie dla twórców" lub po) dokumentująca spięcia nowych
-   pilotaży z resztą: zasoby ↔ żywność/energia (ROADMAPA l.87 exact: „Dorobek tej osi bezpośrednio
-   wzmacnia produkcję żywności (woda, ziemia) oraz gospodarkę energetyczną (surowce)"), finanse ↔
-   gotowość koncepcyjna projektów (l.103–105, l.107 „pomost"). Inspiracje: 30, 31, istniejąca
-   sekcja „Synergie osi" (l.158–170), pliki 25–29. Bez danych liczbowych.
-2. **MARKETING — nowa sekcja „## 9. Jak opowiadać o pilotażach (25–31)"**: jak komunikować
-   zewnętrznie nowo powstałe koncepcje pilotażów — grounded wyłącznie w MARKETING 1–8 (miara postępu
-   l.34, „Partnerów przyciąga nie obietnica, lecz dokonanie", ewidencja §8, kolejność §6) i w
-   konwencjach plików 25–31 (stopka, „Nawet tu kod już jest"); edycja dodająca na końcu pliku;
-   szukać „wiszących" odwołań, które nowa sekcja naprawia. Bez wymyślania kanałów, liczb i dat.
-3. **AI-PROCESS — nowa sekcja „## Wzorzec weryfikacji nadzorcy"**: destylat procedury z NOC-5
-   (dwie tury check fraz u źródeł → kontekstowe grepy dla „BRAK" → uwaga na źródła bez diakrytyków
-   → check linków wewnętrznych → korekty minimalnym diffem → integracja README doklejana do
-   istniejących list). Wstawiona przed „## Zasady jakości", edycja wyłącznie dodająca.
-   (Model: `nvidia/z-ai/glm-5.3-flash`; przy błędach 429/limit → 1 instancja. W prompcie podać
-   absolutną ścieżkę repo; plan.json = płaska tablica zadań; instancje mają zakaz git.)
+1. **PROJEKTY/32 — koncepcyjny pilotaż węzła zintegrowanego (spięcie 25+27+30)**: pierwszy pilotaż
+   poprzeczny — węzeł produkcji żywności (25) zasilany energią wg 27 i zarządzany zasobami wg 30
+   (woda/substraty, wspólna telemetria); uzasadnienie: nowa podsekcja „Kolejne spięcia osi" w ROADMAPA
+   oraz „miejsce na kolejne koncepcje". Wzorzec struktury: warstwy 25–31, mermaid, miejsce w fazach z
+   ROADMAPA; inspiracje (verify ls-em): 25, 27, 30, 06, 10, 12. BEZ danych liczbowych, BEZ lokalizacji.
+2. **REKRUTACJA_ANKIETA — ŚCIEŻKA D: dane i analiza**: §5 ma dziś ŚCIEŻKI A (treści), B (marketing),
+   C (kod) — brak ścieżki dla osi 4 (zasoby) i 7 (planowanie przestrzenne). Nowa ŚCIEŻKA D wg konwencji
+   A–C (zakończenie widocznym dokonaniem; por. ŚCIEŻKA B o ciągłości obszaru); inspiracje (verify ls-em):
+   16, 19, 21, 29, 30; edycja dodająca na końcu §5, nie ruszać istniejących ŚCIEŻEK.
+3. **CONTRIBUTING — podsekcja w §7 „Od pomysłu do pilotażu (wzorzec 25–29)"**: dopisek (edycja wyłącznie
+   dodająca, bez zmiany nagłówka §7) pokazujący wzorzec w praktyce na 30/31 — 31 jako pilotaż czysto
+   procesowy (dane wejściowe → analiza AI → decyzja człowieka), 30 jako pilotaż zasobowy z pętlą nauki;
+   inspiracje: 30, 31, 25 (konwencja „pełnoprawny wkład… bez własnego sprzętu").
+   (Model: `nvidia/z-ai/glm-5.3-flash`; przy 429/limit → 1 instancja. Plan.json = płaska tablica; absolutna
+   ścieżka repo; instancje mają zakaz git; weryfikacja wg „## Wzorzec weryfikacji nadzorcy".)
