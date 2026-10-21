@@ -167,3 +167,35 @@ Pull Requesty natomiast opisuj według wzoru **„Wzór dobrego Pull Requesta"**
 ---
 
 Cieszymy się, że chcesz z nami wspólnie pracować nad systemem budującym WSPÓLNE DOBRO NARODOWE!
+
+---
+
+## 7. Od pomysłu do pilotażu (wzorzec 25–29)
+
+Pilotaże [25. Zintegrowany Pilotaż Automatyzacji Produkcji Żywności](PROJEKTY/25_pilot_automatyzacji_zywnosci.md), [26. Koncepcyjny Pilotaż AI w Medycynie](PROJEKTY/26_pilot_ai_w_medycynie.md), [27. Koncepcyjny Pilotaż Sieci Energetycznej](PROJEKTY/27_pilot_sieci_energetycznej.md), [28. Koncepcyjny Pilotaż Logistyki Sąsiedzkiej](PROJEKTY/28_pilot_logistyki_sasiadzkiej.md) i [29. Koncepcyjny Pilotaż Planowania Przestrzennego i Rozwoju](PROJEKTY/29_pilot_planowania_przestrzennego.md) zaczynają się od tych samych słów: *„Pilotaż nie zaczyna od zera"*. Wszystkie powstają w oparciu o jeden, powtarzalny szkielet — **wspólny wzorzec warstw: warstwa sensoryczno-sterująca / decyzyjna AI na krawędzi / pętla nauki z telemetrią** — a każdy z nich jest, jak sami piszą, *„produktem burzy mózgów, analizy i planowania — precyzyjną koncepcją, która powstaje intelektem, nie budżetem"*. Poniżej znajdziesz tę samą ścieżkę przetłumaczoną na język współtworzenia z sekcji 1–6: od Twojego pierwszego zgłoszenia w Issues, przez napisanie koncepcji pilotażu, po Pull Request, przegląd i integrację z głównym projektem.
+
+### Krok 1: Zgłoś pomysł w Issues (szablony z `.github/ISSUE_TEMPLATE`)
+
+Zacznij dokładnie tak, jak każe sekcja 1: Issues to *„serce naszego projektu"*. Zanim klikniesz **"New Issue"**, wybierz gotowy szablon z folderu `.github/ISSUE_TEMPLATE` (pełną listę szablonów z linkami znajdziesz w sekcji 6) i ułóż zgłoszenie według **Wzoru dobrego Issue** z sekcji 5: **Kontekst**, **Proponowane rozwiązanie**, **Czego potrzebujesz**. Pamiętaj o zasadzie **Zademonstruj rozwiązanie** z sekcji 3 — a pytania i zastrzeżenia innych współtwórców traktuj jako darmową analizę, nie przeszkodę. Wspólna burza mózgów w dyskusji to dokładnie ten etap, dzięki któremu pilotaże 25–29 mogły powstać intelektem, nie budżetem.
+
+### Krok 2: Napisz koncepcję pilotażu według wspólnego wzorca warstw
+
+Gdy dyskusja dojrzeje, w późniejszym etapie zapisz koncepcję jako dokument projektu w folderze `PROJEKTY/` — i prowadź czytelnika przez te same trzy warstwy, które spajają pilotaże 25–29:
+
+* **Warstwa sensoryczno-sterująca:** co węzeł mierzy i czym steruje. W pilotażach warstwa ta opiera się na fundamentach zebranych w repozytorium — Home Assistant jako lokalny mózg automatyzacji, ESPHome do firmware'u czujników i elementów wykonawczych, MQTT jako lekki protokół komunikacji urządzeń IoT — a sprzęt bierze z odzysku: stare smartfony pełnią rolę węzłów sterujących, bramek danych i kamer inspekcyjnych. W zależności od dziedziny ta warstwa zmienia nazwę: w [25](PROJEKTY/25_pilot_automatyzacji_zywnosci.md) to „warstwa sensoryczna i sterowanie", w [26](PROJEKTY/26_pilot_ai_w_medycynie.md) i [28](PROJEKTY/28_pilot_logistyki_sasiadzkiej.md) „sensoryczno-komunikacyjna", w [29](PROJEKTY/29_pilot_planowania_przestrzennego.md) „danych wejściowych" — dobierz więc sensorystkę do swojej dziedziny, zachowując wspólny szkielet.
+* **Warstwa decyzyjna AI na krawędzi:** analiza wykonywana lokalnie, blisko czujników i danych, bez uzależnienia od zewnętrznych chmur, a wynik w ujednoliconej postaci rekomendacji (poziom ryzyka, rekomendacja, poziom pewności, kody przyczyn). Pamiętaj o zasadzie, którą pilotaże 26–29 zapisują wprost: **rekomendacja jest zawsze wejściem do decyzji człowieka, nigdy jej zamiennikiem** — decyzja końcowa zawsze pozostaje po stronie człowieka, a według [29](PROJEKTY/29_pilot_planowania_przestrzennego.md) obowiązuje wzorzec **„Rekomendacje, nie Nakazy"**.
+* **Pętla nauki z telemetrią:** najpierw węzeł zbiera obserwacje i zdarzenia, następnie warstwa decyzyjna porównuje je z dotychczasową wiedzą, w kolejnym etapie koryguje sterowanie lub rekomendacje, a na końcu zapisuje wniosek do wspólnej bazy wiedzy. Trzymaj się konwencji „edge-first" z pilotaży: surowe odczyty pozostają poza repozytorium, a do repo wraca wyłącznie wiedza opracowana — snapshoty, raporty zbiorcze, udokumentowane przypadki i otwarte, wspólne profile w formatach JSON/YAML.
+
+Dwie rady prosto z pilotaży 25–29. Po pierwsze: **nie zaczynaj od zera** — każdy z tych dokumentów najpierw wylicza zalążki już istniejące w repozytorium, na których buduje; zrób to samo i powołuj się wyłącznie na realne pliki (sekcja 6 przypomina: każdy link ma prowadzić do pliku, który REALNIE istnieje). Po drugie: **pełnoprawny wkład jest możliwy także bez własnego sprzętu** — projektowanie schematów, analiza organizacji pracy i dokumentacja to praca intelektualna tej samej rangi.
+
+### Krok 3: Wyślij Pull Request
+
+Dojrzałą koncepcję — dokładnie tak, jak opisują to pilotaże: *„dojrzałe zmiany — rozszerzenia koncepcji, dokumentacja, profile wiedzy, adaptery — trafiają do plików poprzez Pull Requesty"* — wnieś modelem **Fork & Pull Request** z sekcji 2. Nadaj gałęzi nazwę według sekcji 5 (dla dokumentu koncepcji naturalna będzie forma `dokument-...`), a opis Pull Requesta ułóż według **Wzoru dobrego Pull Requesta** z sekcji 5: najpierw **Opis** (czytelnik ma zrozumieć bez zaglądania w pliki), potem mały i spójny **Zakres** — jedna zmiana, jeden cel, a duże pomysły podzielone na kolejne etapy — na końcu odwołanie do **Złotych zasad**.
+
+### Krok 4: Przegląd zmian (review)
+
+Twój Pull Request przejdzie przez proces opisany w **sekcji 6 „Przegląd zmian (review)"**: recenzenci sprawdzą czytelność opisu, mały i spójny zakres, poprawność linków oraz zgodność nazwy gałęzi z nazewnictwem z sekcji 5. Recenzje u nas oceniają pomysły i kod, nie ludzi — więc i Ty przyjmuj uwagi w tym samym duchu: **Zademonstruj rozwiązanie**, popraw, podziękuj. Jeśli zmiana czeka na decyzję **Opiekuna**, zachowaj cierpliwość — dyskusja służy merytoryce, a nie presji (sekcja 6).
+
+### Krok 5: Integracja z głównym projektem przez Opiekuna
+
+Po pozytywnym przeglądzie dopracowana zmiana zostaje — jak opisują sekcje 2 i 6 — połączona z głównym projektem. Decyzje o kierunku zmian należą do **Opiekunów**, wyłanianych wyłącznie spośród najbardziej zaangażowanych twórców (sekcja 5); to Opiekun w późniejszym etapie integruje przyjęty dokument pilotażu z całością repozytorium, w tym z [README](README.md), z którego pilotaże 25–29 czerpią definicje swoich osi rozwoju. Od tej chwili Twoja koncepcja staje się wzorcem do powielenia w fazie skalowania — a dzięki pętli nauki z telemetrią każdy kolejny węzeł rozpoczyna pracę z dorobkiem poprzedników. To jest ta sama droga, którą pilotaże 25–29 prowadzą do fazy finansowania **Dochodu Gwarantowanego**: nadwyżki wypracowane przez system wracają do **WSPÓLNEGO DOBRA NARODOWEGO**. Twój pomysł, doprowadzony od zgłoszenia w Issues do zintegrowanego pilotażu, jest cząstką tego **NARODOWEGO WYSIŁKU INTELEKTUALNEGO**.
