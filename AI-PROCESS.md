@@ -19,6 +19,10 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   użytkownika) — jednorazowe skrypty zapisywać write_file i odpalać `python3 <plik>`.
   write_file odmawia zapisu surowej tablicy JSON jako content — generować plan przez
   skrypt z `json.dump` (wzorzec: `nsip-farm/gen_plan.py`).
+- **Schemat plan.json dla `nsip_farm_run.py`**: PŁASKA tablica
+  `[{"name","prompt","workdir","model"?}, ...]` — NIE obiekt z kluczami `run_name`/`instances`
+  (nadzorca czyta `task["name"]`/`task["workdir"]` bezpośrednio; obiekt kończy się KeyError).
+  Wzorzec generatora: `nsip-farm/gen_plan_noc3.py`.
 - **SYNC Z REMOTE (obowiązkowy przed startem instancji!)**: lokalny klon potrafi być mocno
   w tyle za origin/main (noc 2026-10-20: klon miał wyłącznie manifest z marca, remote miał
   pełny projekt NSIP — 987 plików: worker, boty, testy, docs/, PROJEKTY/, straz-edge-installer).
@@ -137,6 +141,111 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   (wzorzec: nsip-farm/check_run_noc1.py). Przed chwilą status wygląda „pusto" nie dlatego, że nic nie
   zrobiono.
 
+### Noc 2026-10-21 (NOC-3, start 03:18 — kontynuacja po NOC-1; NOC-2 nie zostawił śladu)
+
+- Kontekst: biegi NOC-2 nie zostawiły śladu w state.json ani w git logu — 3 zadania z propozycji
+  NOC-1 tej nocy pozostały niewykonane; NOC-3 wykonał je w całości.
+- Readiness: probe Muse nadal „Model unavailable" (trwały stan) → własny probe `nvidia/z-ai/glm-5.3-flash`
+  (wzorzec probe_glm_noc5.py) → PROBE_OK. Binarka w scratch wypadła po czyszczeniu 24h — odtworzona
+  kopią z `~/.opencode/bin/opencode` (procedura z „Stan infrastruktury" działa). Sync z remote:
+  `git log HEAD..origin/main` puste (klon aktualny).
+- **3 instancje równolegle** (run `20261021-031801`), wszystkie `done`: A-os-logistyka (14,7 min, nowy plik
+  PROJEKTY/28_pilot_logistyki_sasiadzkiej.md, 124 linie + mermaid — przeniesienie wzorca warstw 25/26/27 na
+  oś 5), B-os-planowanie (11,7 min, nowy plik PROJEKTY/29_pilot_planowania_przestrzennego.md, 137 linii +
+  mermaid — oś 7, przedmiot lokowania: węzły pilotaży 25/27), C-ai-process-wzorzec (5,7 min, nowa sekcja
+  „## Wzorzec promptu instancji (szablon dla nadzorcy)" w AI-PROCESS — destylat promptów NOC-1/5/22,
+  wstawiony wyłącznie dodająco przed „Zasady jakości").
+- Weryfikacja nadzorcy: każdy cytat potwierdzony u źródła. Plik 28: kierunki Logistyki = ROADMAPA l.91–95,
+  „spina pozostałe obszary… łączy produkcję z odbiorcą" = l.97, „logistyka spina produkcję z dystrybucją" =
+  l.122, granice faz jakościowe = l.11, „Oceniamy pomysły i kod, nie ludzi — a liczy się wyłącznie dokonanie"
+  = 25 l.89, Algorytm Odstępstwa/Ekonomia Współdzielenia/Suwerenność Danych Logistycznych = plik 20 l.12/13/21–23,
+  BlablaCar/grywalizacja/„puste przebiegi" = plik 18 l.17/20/24, scenariusz „Logistyka Gospodarcza (Suwerenny
+  Komunikator)" i bramka smartfonowa = plik 10 l.52/43. Plik 29: tytuł „Agentyczna Analiza Geoprzestrzenna i
+  Logistyczna" = własny H1 pliku 16, „Rekomendacje, nie Nakazy"/konflikty potencjału/dobrostan = plik 16
+  l.19/20/21, filary i klasy danych = l.6–12, Vision/MAS/Predictive = l.24–26, sekcja „Narzędzia GIS i
+  Planowanie" (GDAL, Leaflet) = plik 00 l.21–23, Polska Baza Danych = README l.103, zanonimizowane odczyty i
+  „mapa potencjału kraju" = plik 21 l.10, GPS/kamery = plik 06 l.4/12/13, „Ta oś zasila wszystkie pozostałe…"
+  = ROADMAPA l.77 exact, Faza 1 „kandydat na kolejny pilotaż" = l.47. Zero halucynacji do usunięcia; zero
+  danych liczbowych i nazw lokalizacji.
+- Automatyczny check linków wewnętrznych (check_links_noc3.py: 28 + 29 + AI-PROCESS): 0 martwych linków.
+- Integracja przez nadzorcę: README — oś 5 zyskała link do 28 w istniejącej liście *Inspiracje* (UWAGA:
+  propozycja z NOC-1 „oś 5 nie ma jeszcze Inspiracji" okazała się nieaktualna — ktoś dodał je 18/06/15 po
+  NOC-1; nadzorca dokleił link do istniejącej listy zamiast tworzyć nową), oś 7 += 29, lista „Projekty
+  Pilotażowe i Inspiracje" += pozycje 28 i 29. Korekta techniczna: fuzzy patch skrócił label
+  „Smartfony jako Sterowniki Edge Computing" — przywrócony oryginał (minimalny diff).
+- Commit i push na main przez nadzorcę (instancje mają zakaz git).
+- Lekcja techniczna: plan.json wymaga PŁASKIEJ tablicy zadań (wpis w „Stan infrastruktury"); pierwsza
+  wersja planu NOC-3 jako obiekt byłaby odrzucona przez nsip_farm_run.py przy starcie.
+
+## Wzorzec promptu instancji (szablon dla nadzorcy)
+
+Destylat skutecznych promptów instancji z nocnych biegów 2026-10-20/21 (NOC-1, NOC-5, NOC-22).
+Biegi prowadzone pełnym wzorcem (NOC-5, NOC-22, NOC-1 z 2026-10-21) zakończyły się każdym razem
+3/3 instancji `done` i zerem halucynacji do usunięcia. Nadzorca kopiuje szablon przed startem
+instancji i uzupełnia pola [DO UZUPELNIENIA]. Sekcję aktualizuje wyłącznie nadzorca po biegu.
+
+### Szablon promptu (kopiuj-wklej i uzupełnij)
+
+```
+Pracujesz w katalogu repozytorium: [DO UZUPELNIENIA — absolutna ścieżka repo; nigdy ścieżka
+względna]. Jesteś [DO UZUPELNIENIA — rola, wzorcowo: współtwórca manifestu inicjatywy
+NARODOWE SIŁY INTELEKTUALNE POLSKI (NSIP)]. Język: polski. Styl: manifest spójny z README
+(akcentowane hasła: WSPÓLNE DOBRO, Dochód Gwarantowany, NARODOWY WYSIŁEK INTELEKTUALNY).
+
+TWARDE ZAKAZY:
+(1) zakaz wymyślania faktów, statystyk, procentów, kwot, dat, linków URL i nazw organizacji
+    spoza repo — jeśli czegoś nie ma w plikach repo, NIE pisz tego; kolejność zdarzeń
+    wyłącznie względna („w późniejszym etapie”, „przed skalowaniem”);
+(2) zakaz poleceń git i jakichkolwiek modyfikacji plików innych niż własny plik docelowy —
+    integrację i commit robi wyłącznie nadzorca po przeglądzie diffów;
+(3) zanim podlinkujesz jakikolwiek plik PROJEKTY/, zweryfikuj jego istnienie poleceniem ls
+    na katalogu PROJEKTY/ — linkuj wyłącznie istniejące pliki;
+(4) [DO UZUPELNIENIA — zakazy specyficzne dla zadania, np. „zero danych liczbowych”,
+    „edycja wyłącznie dodająca”].
+
+ZADANIE: [DO UZUPELNIENIA — jedno zdanie: co dokładnie tworzyć lub który plik rozszerzać
+i o co].
+
+PLIK DOCLOWY: wyłącznie [DO UZUPELNIENIA — jeden plik docelowy na instancję].
+
+ŹRÓDŁA — przeczytaj najpierw, czerp wyłącznie z plików repo:
+- [DO UZUPELNIENIA — co czytać, wzorcowo: README (treść osi), ROADMAPA (miejsce w fazach),
+  CONTRIBUTING (Złote zasady), własny plik docelowy w obecnym stanie].
+
+INSPIRACJE — konkretne istniejące pliki do przejrzenia:
+- [DO UZUPELNIENIA — listę zweryfikuj ls-em PRZED wysłaniem prompta i podawaj wyłącznie
+  pliki, które istnieją; wzorcowo: PROJEKTY/25_pilot_automatyzacji_zywnosci.md,
+  PROJEKTY/26_pilot_ai_w_medycynie.md, PROJEKTY/27_pilot_sieci_energetycznej.md
+  (wzorzec pilotażu: warstwy, mermaid, miejsce w fazach) + pliki tematyczne danej osi].
+
+WYMAGANIA JAKOŚCI:
+- jeden plik docelowy, praca wyłącznie w katalogu repo;
+- każdy cytat i każde odwołanie potwierdzone u źródła (plik + sekcja);
+- przy dopisywaniu sekcji edycja wyłącznie dodająca — bez zmieniania i usuwania istniejących
+  nagłówków i wpisów; szukaj też „wiszących” odwołań, które nowa sekcja naprawia;
+- [DO UZUPELNIENIA — wymagania specyficzne zadania].
+```
+
+### Zasady skuteczności (lekcje z tych biegów)
+
+1. **Absolutna ścieżka repo zamiast względnej** — przy ścieżkach relatywnych instancje dostawały
+   na starcie „File not found” (sesja nie od razu widzi cwd repo); po przejściu na ścieżki
+   absolutne pracowały poprawnie.
+2. **Weryfikacja istnienia pliku listą katalogu przed linkowaniem** — nadzorca sprawdza ls-em
+   katalog PROJEKTY/, zanim wskaże plik w prompcie; wtedy weryfikacja linków w instancjach
+   przechodzi w całości (0 martwych linków).
+3. **Zakaz git dla instancji** — jedna instancja = jeden plik docelowy, praca w katalogu repo;
+   integrację z README i commit na main robi wyłącznie nadzorca po przeglądzie diffów.
+4. **Kolejność zdarzeń wyłącznie względna zamiast dat** — zero dat, kwot, procentów, URL-i
+   i nazw organizacji spoza repo („w późniejszym etapie”, „przed skalowaniem”); czerpanie
+   wyłącznie z plików repo.
+5. **ZAKAZY wypisane jawnie na początku prompta** — sprawdzony wzorzec „ZAKAZY + absolutna
+   ścieżka + weryfikacja listą katalogu” dał zero halucynacji w 3/3 instancjach.
+6. **Cross-check odwołań** — przy dopisywaniu sekcji szukać też „wiszących” odwołań do
+   naprawienia (odwołanie z CONTRIBUTING naprawione nową sekcją w ankiecie).
+7. **Styl i hasła podane wprost w prompcie** — polski, manifest spójny z README, akcentowane
+   hasła; instancje piszą wtedy jednym głosem.
+
 ## Zasady jakości (obowiązują każdą instancję)
 
 - Jeden plik docelowy na instancję, praca w katalogu repo, ZAKAZ poleceń git i modyfikacji
@@ -148,25 +257,27 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-1. **OS-LOGISTYKA (oś 5)**: nowy plik PROJEKTY/28_pilot_logistyki_sasiadzkiej.md — koncepcyjny pilotaż
-   według brzmienia osi 5 w README (inteligentne zarządzanie łańcuchami dostaw, system rekomendacji
-   do nawigacji, ekonomia współdzielenia transportu „przy okazji"), po wzorcu plików 25/26/27 (warstwy,
-   mermaid, miejsce w fazach). Inspiracje wyłącznie z realnych plików: 18 (automatyzacja transportu
-   i logistyki), 20 (logistyka sąsiedzka — nawigacja odbioru przedmiotów na trasie), 19 (społeczna
-   baza przedmiotów), 10 (łączność Mesh). Przy integracji nadzorca DODAJE *Inspiracje* do osi 5
-   w README — oś 5 nie ma ich jeszcze (stan na NOC-1 2026-10-21). Bez żadnych danych liczbowych
-   (żadnych km, ton, kosztów paliwa).
-2. **OS-PLANOWANIE (oś 7)**: nowy plik PROJEKTY/29_pilot_planowania_przestrzennego.md — koncepcyjny
-   pilotaż według brzmienia osi 7 w README („Wykorzystanie danych geoprzestrzennych do optymalnego
-   lokowania automatyzacji"), po wzorcu 25/26/27. Inspiracje wyłącznie z realnych plików:
-   16 (geoportal potencjału rozwoju — istniejący zalążek tej osi), 19, 06, 21; zależność od pilotaży
-   25/27 (produkcja i energia jako przedmiot lokowania — ROADMAPA l.77). Koncepcja procesu decyzji
-   o lokalizacji węzłów — bez twierdzeń o konkretnych lokalizacjach, gminach czy regionach, których
-   nie ma w repo.
-3. **AI-PROCESS.md — nowa sekcja „Wzorzec promptu instancji"**: destylat skutecznych promptów z
-   NOC-5..NOC-1 (jedna instancja = jeden plik docelowy; absolutna ścieżka repo w prompcie; ZAKAZY:
-   żadnych faktów/liczb/dat/URL-i spoza repo, kolejność względna; weryfikacja istnienia pliku listą
-   katalogu przed linkowaniem; styl manifestu; zakaz git). Sekcja ma służyć nadzorcom jako gotowy
-   szablon promptu — aktualizowana wyłącznie przez nadzorcę po biegu.
+Stan po NOC-3: osie 1/2/3/5/7 mają pliki-pilotaże (25–29); wzorzec promptu w AI-PROCESS gotowy.
+
+1. **OS-ZASOBY (oś 4)**: nowy plik PROJEKTY/30_pilot_gospodarki_zasobami.md — koncepcyjny pilotaż
+   według brzmienia osi 4 w README („Racjonalne, poparte zaawansowaną analizą danych, zarządzanie
+   wodą, surowcami i ziemią, eliminujące gospodarkę rabunkową"), po wzorcu 25–29 (warstwy, mermaid,
+   miejsce w fazach). Inspiracje wyłącznie z realnych plików (zweryfikować ls-em): 17 (autonomiczne
+   przetwarzanie elektrośmieci na hardware — materialny pilot resource scoutingu), 19 (społeczna baza
+   przedmiotów), 05 (recykling PV laserem), 15 (analiza social media dla recyklingu). Bez danych
+   liczbowych. Przy integracji nadzorca dokleja *Inspiracje* do osi 4 w README (oś 4 ma już listę
+   05/04/06/12) + pozycja 30 na liście „Projekty Pilotażowe i Inspiracje".
+2. **OS-FINANSE (oś 6)**: nowy plik PROJEKTY/31_pilot_finansowania_inicjatywy.md — koncepcyjny
+   pilotaż według brzmienia osi 6 w README („Pozyskiwanie środków strategicznych, inteligentny wybór
+   programów grantowych i inwestycji"), po wzorcu 25–29; inspiracje: ROADMAPA Faza 3 („Finansowanie
+   Dochodu Gwarantowanego (UBI)", ok. l.132–142), MARKETING §5 („Współpraca B2B / Sponsoring
+   (w późniejszym etapie)"), README oś 6. TWARDE ZAKAZY: żadnych nazw konkretnych programów,
+   instytucji, kwot, procentów ani dat — koncepcja procesu (kryteria wyboru, kolejność względna,
+   weryfikacja przez ludzi), nie katalog grantów.
+3. **CONTRIBUTING.md — nowa sekcja „## 7. Od pomysłu do pilotażu (wzorzec 25–29)"**: ścieżka
+   twórcy od Issue, przez koncepcję pisaną wspólnym wzorcem warstw (sensoryczno-sterująca /
+   decyzyjna AI na krawędzi / pętla nauki z telemetrii — jak 25–29), po PR i integrację;
+   edycja wyłącznie dodająca na końcu pliku (po „## 6. Przegląd zmian (review)"); grounded
+   w CONTRIBUTING §1–6 i plikach 25–29; bez wymyślania etapów, których nie ma w repo.
    (Fallback po kolei na `nvidia/z-ai/glm-5.3-flash`; przy błędach 429/limit → 1 instancja.
-   W prompcie podać absolutną ścieżkę repo — lekka lekcja z NOC-5.)
+   W prompcie podać absolutną ścieżkę repo; plan.json = płaska tablica zadań.)
