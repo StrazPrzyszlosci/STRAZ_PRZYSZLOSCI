@@ -390,6 +390,35 @@ Nadzorcę obowiązuje tu ta sama dyscyplina, co instancje („Zasady jakości”
 weryfikacja u źródeł jest częścią NARODOWEGO WYSIŁKU INTELEKTUALNEGO — praca instancji staje się
 WSPÓLNYM DOBREM dopiero wtedy, gdy nadzorca potwierdzi ją krok po kroku.
 
+## Wzorzec integracji README
+
+Destylat procedury integracyjnej nadzorców — jak doklejać nowe pilotaże i sekcje do README
+bez kolizji z cudzymi treściami i bez ich nadpisywania. Uzupełnia „Wzorzec weryfikacji
+nadzorcy”: tamten mówi, jak sprawdzić pracę instancji, ten — jak wpiąć jej efekty w README,
+zanim trafią do commita i push na main.
+
+1. **Najpierw sprawdź, czy oś w README ma już listę *Inspiracje*.** W aktualnym README odszukaj
+   opis danej osi i sprawdź, czy istnieje pod nią podpunkt *Inspiracje*. Doklejaj link do
+   ISTNIEJĄCEJ listy (lekcja z NOC-3: propozycja „oś 5 nie ma jeszcze Inspiracji” okazała się
+   nieaktualna — nadzorca dokleił link do istniejącej listy zamiast tworzyć nową).
+2. **Oś bez listy *Inspiracje* dostaje nowy podpunkt.** Pod opisem takiej osi dopisz podpunkt
+   *Inspiracje* z linkiem do nowego pliku, w konwencji istniejących osi (wzorzec z NOC-22 —
+   tak oś 2 zyskała podpunkt *Inspiracje* z linkiem do pilotażu 26).
+3. **Każdy nowy pilotaż dopisz też na liście „## Projekty Pilotażowe i Inspiracje”.** Nowa
+   pozycja na tej liście w konwencji sąsiednich wpisów: numer, tytuł, link do pliku
+   w PROJEKTY/ i jednozdaniowy opis.
+4. **Korekty i dopiski wykonuj minimalnym diffem — edytujesz wiersz, nie plik.** Nie przepisuj
+   całych sekcji i nie porządkuj „przy okazji”; po każdej korekcie powtórz checki fraz i linków
+   na dotkniętym pliku (spójnie z „Wzorcem weryfikacji nadzorcy”).
+5. **Pułapka fuzzy patcha (lekcja z NOC-3).** Narzędzie łatania tekstu potrafi skrócić etykietę
+   sąsiedniego linku (w README skrócono „Smartfony jako Sterowniki Edge Computing”) — po
+   integracji przejrzyj diff README wiersz po wierszu i przywróć oryginalne etykiety.
+6. **Pułapka nazwy pliku 16.** Realna nazwa pliku to `PROJEKTY/16_geoportal_potencjal_rozwoju.md`
+   (bez „u” w „potencjal”), a tytuły linków w repo zawierają „Potencjału” — linkuj realną nazwę
+   pliku, nie tytuł.
+7. **Po integracji: przegląd diffu README wzrokiem oraz automatyczny check linków wewnętrznych.**
+   Zero martwych linków to warunek dopuszczenia do commita.
+
 ## Zasady jakości (obowiązują każdą instancję)
 
 - Jeden plik docelowy na instancję, praca w katalogu repo, ZAKAZ poleceń git i modyfikacji
