@@ -306,6 +306,56 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   elektronika z odzysku = naturalna oś warsztatu), lista „Projekty Pilotażowe i Inspiracje" +=
   pozycja 33. Commit i push na main przez nadzorcę (instancje mają zakaz git).
 
+### Noc 2026-10-22 (NOC-5, start 05:45 — kontynuacja po NOC-0 i NOC-3)
+
+- Kontekst: NOC-0 i NOC-3 zakończone w całości (commit + push OK); NOC-5 wykonał w całości
+  3 propozycje z NOC-3 (ROADMAPA o 32/33, PROJEKTY/34, CONTRIBUTING §7 o poprzecznych 32/33).
+- Readiness: probe Muse nadal „Model unavailable" (trwały stan) → bieg od razu na roboczym
+  `nvidia/z-ai/glm-5.3-flash` (stan infrastruktury bez zmian). Binarka w scratch wypadła po
+  czyszczeniu 24h — readiness rc=0 dzięki fallbackowi `~/.opencode/bin/opencode`. Sync z remote:
+  `git log HEAD..origin/main` puste (klon aktualny).
+- UWAGA godzinowa: sekwencja biegu startowała 05:45 (w oknie), ale sama komenda startu farmy
+  weszła o 06:07 — ok. 7 min po zamknięciu okna (narzut narzędzi nadzorcy między readiness a
+  startem). Bieg dokończono (ubijanie zostawiłoby półzapisane pliki); kolejne biegi: przygotować
+  plan i pliki pomocnicze PRZED ostatnim checkiem godziny, by start farmy wypadał przed 06:00.
+- **3 instancje równolegle** (run `20261022-060732`), wszystkie `done`: A-roadmapa-spiecia-32-33
+  (16,5 min; ROADMAPA — 2 akapity o pilotażach poprzecznych 32 i 33 na końcu „### Kolejne spięcia
+  osi…", konwencja podsekcji zachowana), B-pilotaz-34-telemetria (24,2 min; nowy plik
+  PROJEKTY/34_pilot_lacznosci_wspolnej_telemetrii.md, 156 linii + dokładnie 1 mermaid, struktura
+  wzorca 32/33), C-contributing-wzorzec-32-33 (20,2 min; nowa podsekcja „### Wzorzec w praktyce:
+  pilotaże poprzeczne 32 i 33" na końcu CONTRIBUTING, edycja wyłącznie dodająca).
+- Weryfikacja nadzorcy: check fraz (check_verify_noc5c.py, folding diakrytyków; pierwsza wersja
+  checku foldowała źródło, ale nie igłę — 22/61; po poprawce 51/61 od razu) + 10 „BRAK"
+  rozstrzygniętych kontekstowymi grepami — wszystkie grounded, m.in.: „człowiek-serwisanta" = 33
+  l.10, „wiedza opracowana" = 32 l.44, `schema_version` i `provider_id` w kontrakcie = 01 l.108–116
+  i l.299, „zanonimizowane dane… do wspólnego API" = 21 l.10, „węzłów sterujących, bramek danych i
+  sterowników systemów off-grid" = 32 l.79, „recyklingu e-odpadów… suwerennej elektroniki" = README
+  l.66, „nadzór dużych modeli AI" i „Infrastruktura należy do użytkowników, nie do korporacji" =
+  10 l.41/57, cytat „Ta oś zasila wszystkie pozostałe…" exact = ROADMAPA l.77, sekwencja pracy
+  węzła energetycznego = 27 l.73. Check linków wewnętrznych: 268 linków / 0 martwych przed
+  integracją, 270 / 0 martwych po integracji README. „[!IMPORTANT]" w 34 = konwencja repo
+  (README l.17+); „Naszą zasadą" wielką literą = konwencja z 32 l.23; kontrakt danych 01 przyjęty
+  wprost przez 25 (l.31), 27 (l.35) i 30 (l.41).
+- Korekty nadzorcy (2, minimalne diffy): (1) plik 34, Moduł 4 — sekwencja „najpierw mierzy…
+  ogranicza je na drodze optymalizacji sterowania, a docelowo korzysta z planowania,
+  magazynowania i dystrybucji" przypisana pilotażowi 27, podczas gdy u źródła (27 l.65 i ROADMAPA
+  Synergie) opisuje relację pilotażu 25; dla samego węzła energetycznego źródło (27 l.73) mówi
+  „najpierw mierzy własne zużycie energii, a w kolejnym etapie współpracuje ze wspólnymi
+  narzędziami analitycznymi tej osi" — przywrócono brzmienie źródła; (2) ROADMAPA ¶ o 33 —
+  „katalog, w którym… i do której można wrócić" → „i do którego" (zgodność z „katalogiem").
+- Integracja README (2 minimalne diffy): oś 4 (Zasoby) *Inspiracje* += 34 (README sam opisuje
+  projekt 10 jako sieć „do monitorowania zasobów gospodarczych", l.64 — wspólna telemetria to
+  naturalne przedłużenie osi), lista „Projekty Pilotażowe i Inspiracje" += pozycja 34. Po
+  integracji diff README: dokładnie 2 zmiany; label „Smartfony jako Sterowniki Edge Computing"
+  (oś 5) nietknięty (pułapka fuzzy patcha z NOC-3 — czysto). Commit i push na main przez
+  nadzorcę (instancje mają zakaz git).
+- Lekcje: (a) check fraz musi foldować i igłę, i źródło — inaczej połowa fraz z diakrytykami da
+  fałszywe „BRAK"; (b) instancja znowu „pożyczyła" sekwencję cytowaną u sąsiada (27→25) — cytaty
+  „przejęte wprost z X" porównywać z fragmentem X, który mówi o X, nie o projekcie pokrewnym;
+  (c) artefakty FARM DIR nazywać z datą (gen_plan_noc5.py okazał się plikiem z 2026-10-20 —
+  nie nadpisywać, nowy bieg: gen_plan_noc5_20261022.py).
+
+
 ## Wzorzec promptu instancji (szablon dla nadzorcy)
 
 Destylat skutecznych promptów instancji z nocnych biegów 2026-10-20/21 (NOC-1, NOC-5, NOC-22).
@@ -464,30 +514,33 @@ zanim trafią do commita i push na main.
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-Stan po NOC-3 (2026-10-22): pilotaże 25–33 (33 = warsztat serwisowy węzłów — drugi pilotaż poprzeczny,
-spina 06/12/17/13 i domyka cykl życia węzłów 25–32); MARKETING §9 „(25–32)" z punktem 6 o pilotażach
-poprzecznych; README: oś 4 *Inspiracje* += 33, lista pilotaży += 33; AI-PROCESS ma wzorzec promptu,
-wzorzec weryfikacji nadzorcy i wzorzec integracji README; ankieta ma ŚCIEŻKI A–D; CONTRIBUTING 1–7;
-ROADMAPA „Synergie osi" dokumentuje spięcia 30/31 (bez 32/33).
+Stan po NOC-5 (2026-10-22): pilotaże 25–34 (34 = łączność i wspólna telemetria węzłów — trzeci
+pilotaż poprzeczny, spięcie 10+25+27+30); ROADMAPA „Kolejne spięcia osi" dokumentuje 30/31 oraz —
+po NOC-5 — pilotaże poprzeczne 32/33; CONTRIBUTING §7 ma „Wzorzec w praktyce" dla 30/31 i (po
+NOC-5) dla poprzecznych 32/33; MARKETING §9 „(25–32)" z punktem 6 o pilotażach poprzecznych —
+UWAGA: 33 i 34 nie są tam jeszcze wymienione (patrz propozycja 1); README: oś 4 *Inspiracje* +=
+33 i 34, lista pilotaży += 33 i 34; AI-PROCESS ma wzorzec promptu, wzorzec weryfikacji nadzorcy
+i wzorzec integracji README; ankieta ma ŚCIEŻKI A–D; CONTRIBUTING 1–7.
 
-1. **ROADMAPA — rozszerzenie „### Kolejne spięcia osi" o pilotaże poprzeczne 32 i 33**: podsekcja
-   dziś opisuje wyłącznie 30/31; dopisek (edycja wyłącznie dodająca, konwencja podsekcji) o tym, że
-   zaproszenie „miejsce na kolejne koncepcje" ma już kolejne odpowiedzi: węzeł zintegrowany (32,
-   spięcie 25+27+30) i warsztat serwisowy (33, domknięcie cyklu życia węzłów z odzysku 06/12/17/13);
-   inspiracje (verify ls-em): ROADMAPA l.174+, PROJEKTY/32, PROJEKTY/33. BEZ liczb i dat.
-2. **PROJEKTY/34 — pilotaż poprzeczny łączności i wspólnej telemetrii węzłów (spięcie 10+25+27+30)**:
-   plik 32 w podsekcji „Łączność i wspólne dane" wskazuje 10 (Mesh i LoRa) jako odporną łączność dla
-   węzłów pracujących daleko od infrastruktury (przywoływany wprost przez pilotaże 25 i 27), a wzorzec
-   „edge-first" z projektu 01 ma spinać warstwy ze wspólną bazą wiedzy; pilotaż 34 projektuje wspólną
-   warstwę telemetrii wielu węzłów (żywnościowy 25, energetyczny 27, zasobowy 30) na łączności Mesh;
-   wzorzec struktury: pilotaż 32/33 (H1, Intelekt wyprzedza Kapitał!, Opis, moduły ###, JEDEN mermaid,
-   Zależności, Mapa drogowa, Społeczność, Zasoby, zaproszenie 26–32); inspiracje (verify ls-em): 10,
-   01, 25, 27, 30, 32, 33. BEZ danych liczbowych, BEZ lokalizacji, kolejność wyłącznie względna.
-3. **CONTRIBUTING §7 — podsekcja „Wzorzec w praktyce: pilotaże poprzeczne 32 i 33"**: §7 ma dziś
-   „Wzorzec w praktyce: pilotaże 30 i 31"; dopisek (edycja wyłącznie dodająca, po istniejącej
-   podsekcji) pokazujący, że te same zasady wzorca — zalążki zamiast zera, kolejność względna,
-   decyzja człowieka, wiedza wraca do wspólnej bazy — działają także przy ŁĄCZENIU osi (32) i przy
-   utrzymaniu w ruchu (33); inspiracje (verify ls-em): CONTRIBUTING §7, PROJEKTY/32, PROJEKTY/33.
+1. **MARKETING §9 — aktualizacja zakresu do (25–34)**: sekcja obejmuje dziś listą i nagłówkiem
+   zakres 25–32; dopisać pozycje 33 i 34 do listy pilotaży sekcji oraz (jako jedyną zmianę
+   istniejącej treści, wzorzec korekty zakresu z NOC-3) zaktualizować zakres w nagłówku na
+   (25–34); inspiracje (verify ls-em): MARKETING.md §9, PROJEKTY/33, PROJEKTY/34. BEZ liczb i dat.
+2. **PROJEKTY/35 — czwarty pilotaż poprzeczny: wspólna baza wiedzy i snapshoty (spięcie
+   01+24+13+30)**: pilotaże 25–34 wielokrotnie przywołują „wspólną bazę wiedzy", „snapshoty" i
+   „raporty zbiorcze" (m.in. 01 l.297 — runbooki i schematy jako dorobek, 24 — profile JSON/YAML,
+   13 — katalog z kolejką kuracji, 30 — pętla nauki z telemetrii), ale warstwa przechowywania i
+   kuracji wiedzy wielu węzłów nie ma jeszcze własnej koncepcji; pilotaż 35 projektuje ten
+   wspólny magazyn dorobku (wzorzec struktury: 32/33/34 — H1, Intelekt wyprzedza Kapitał!, Opis,
+   moduły ###, JEDEN mermaid, Zależności, Mapa drogowa, Społeczność, Zasoby, stopka); inspiracje
+   (verify ls-em): 01, 24, 13, 30, 34. BEZ danych liczbowych, BEZ lokalizacji, kolejność
+   wyłącznie względna.
+3. **CONTRIBUTING §7 — rozszerzenie podsekcji „Wzorzec w praktyce: pilotaże poprzeczne 32 i 33"
+   o 34**: dopisek (edycja wyłącznie dodająca, po istniejących akapitach) o trzecim przypadku
+   poprzecznym — wspólna warstwa MIĘDZY węzłami (34: łączność i kontrakt danych wielu węzłów)
+   obok łączenia osi w jednym węźle (32) i utrzymania w ruchu (33); inspiracje (verify ls-em):
+   CONTRIBUTING §7, PROJEKTY/32, PROJEKTY/33, PROJEKTY/34.
    (Model: `nvidia/z-ai/glm-5.3-flash`; przy 429/limit → 1 instancja. Plan.json = płaska tablica;
    absolutna ścieżka repo; instancje mają zakaz git; weryfikacja wg „## Wzorzec weryfikacji
-   nadzorcy", integracja wg „## Wzorzec integracji README".)
+   nadzorcy", integracja wg „## Wzorzec integracji README". Start farmy przed 06:00 — patrz
+   UWAGA godzinowa w logu NOC-5.)
