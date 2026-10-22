@@ -79,9 +79,15 @@ class SecurityGate:
             "quarantine_required": bool(violations or licenses_review),
         }
 
-    def inspect_tree(self, root: Path) -> dict[str, Any]:
+    def inspect_tree(self, root: Path, skip: set[str] | None = None) -> dict[str, Any]:
+        """Bramka nad WYPRODUKOWANYMI artefaktami; surowe logi strumienia (output.json)
+        zostają zapieczętowane w kwarantannie, ale nie są oceniane jako kod — zawierają
+        echo zapytania i ruch narzędzi, nie produkcję modelu."""
+        skip = skip or set()
         report: dict[str, Any] = {"ok": True, "blocked": False, "violations": [], "licenses_review": [], "scanned_files": 0}
         for path in sorted(root.rglob("*")):
+            if path.name in skip:
+                continue
             if path.is_file() and path.suffix in {".py", ".js", ".mjs", ".ts", ".c", ".cpp", ".h", ".sh", ".md", ".json", ".yaml", ".yml", ".toml"}:
                 try:
                     content = path.read_text(encoding="utf-8", errors="ignore")
@@ -205,7 +211,7 @@ class HermesWorker:
                 target = quarantine / produced.relative_to(run_dir)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(produced, target)
-        gate = SecurityGate().inspect_tree(quarantine)
+        gate = SecurityGate().inspect_tree(quarantine, skip={"output.json", "task.md"})
         receipt["security_gate"] = gate
         receipt["released_from_quarantine"] = False
         return receipt
