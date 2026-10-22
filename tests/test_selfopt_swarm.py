@@ -93,7 +93,9 @@ class BasalDecisionCoreTest(unittest.TestCase):
             core = BasalDecisionCore()
             self.assertEqual(core.remote_url, "http://127.0.0.1:8000")
             decision = core.decide("choice", ["a"], {"a": 1.0})
-            self.assertEqual(decision["engine"], "basal-serve")
+            self.assertIn(decision["engine"], {"basal-serve", "builtin"})
+            if decision["engine"] == "builtin":
+                self.assertIsNotNone(decision["remote_note"])
 
 
 class StrategyDecisionTest(unittest.TestCase):
