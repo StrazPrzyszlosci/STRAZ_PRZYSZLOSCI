@@ -49,6 +49,25 @@ python3 selfopt_chain/run_loop.py --chain selfopt_chain/examples/chain_edge_advi
 SELFOPT_NETWORK=1 python3 selfopt_chain/run_loop.py --chain ... --engine free-api
 ```
 
+## Rój i rdzeń decyzyjny basal (T50)
+
+Wszystkie procesy repo działają jak **rój** realizujący usługi dla ludności.
+Na obwodach roju decyduje **mały model decyzyjny w stylu basal** (tani, szybki;
+semantyka zaadaptowana 1:1 z HYC/basal: choice → probabilities, ranking,
+confidence, floor → defer → default, decisions.jsonl → kalibracja → GEPA):
+**przydział dostępnego sprzętu do otwartych zapotrzebowań** (telefon →
+obserwacja akwaponiki; selfhost → offline katalog części), **tryb wykonania**
+(algorytm napisany pod sprzęt vs model on-device vs łańcuch LLM w chmurze),
+**dobór zadań cyklu** i **strategia zarządzania** (inspiracja cezar:
+speed_first / quality_first / load_balance / quota_preserve / energy_oze /
+redundancy / queue_when_busy). LLM pozostaje warstwą strategii (procdev).
+
+Każdy cykl orkiestratora zaczyna się planem roju (`swarm_plans/cycle_<n>.json`
++ `cycle_<n>_allocations.md`, suggest-only) i logiem decyzji
+(`decisions.jsonl` — gotowy pod przyszłą kalibrację i pętlę GEPA).
+Rdzeń wbudowany jest deterministyczny i offline; prawdziwy basal-serve
+(Ollama) podpina się przez `SELFOPT_BASAL_URL`.
+
 ## Agent orkiestrator (rezydent, T49)
 
 Uruchomiony orkiestrator **na żywo realizuje wizję repo**: automatycznie używa

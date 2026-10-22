@@ -39,6 +39,14 @@ sys.path.insert(0, str(ROOT))
 
 from selfopt_chain.registry import DEFAULT_REGISTRY, load_registry
 from selfopt_chain.run_loop import run_chain
+from selfopt_chain.swarm import (
+    BasalDecisionCore,
+    Demand,
+    SwarmPlanner,
+    demand_from_need,
+    resources_from_models,
+    resources_from_records,
+)
 
 DEFAULT_STATE_DIR = ROOT / "scratch" / "selfopt"
 DEFAULT_KILL_SWITCH = DEFAULT_STATE_DIR / "KILL_SWITCH"
@@ -257,6 +265,65 @@ class Orchestrator:
     def kill_switch_active(self) -> bool:
         return Path(self.config["kill_switch"]).exists()
 
+    def _plan_swarm(self, cycle_no: int, jobs: list[Job], pending: list[Job], budgeted: list[dict], receipt: dict[str, Any]) -> dict[str, Any]:
+        """Plan roju (basal, wiele decyzji) — przydział sprzętu do misji + kolejność procdev."""
+        needs_records: list[dict[str, Any]] = []
+        for path in self.config.get("needs_paths", []):
+            p = Path(path)
+            if p.exists():
+                needs_records.extend(json.loads(p.read_text(encoding="utf-8")).get("records", []))
+        mission_demands = [demand_from_need(r) for r in needs_records]
+        procdev_demands = [
+            Demand(j.job_id, f"procdev {j.job_id}", ["text", "json"], j.source, priority=1)
+            for j in pending
+        ]
+        hardware_resources = resources_from_records([j.record for j in jobs])
+        model_resources = resources_from_models(budgeted, self.state.data.get("daily_calls", {}))
+        scarce = sum(1 for m in model_resources if m.headroom <= 0.2)
+        cycle_signals = {
+            "backlog": len(pending),
+            "mission_backlog": len(mission_demands),
+            "quota_pressure": round(scarce / max(1, len(model_resources)), 3),
+            "critical_jobs": sum(1 for d in mission_demands if d.priority >= 2),
+            "oze_window": bool(self.config.get("oze_window", False)),
+        }
+        core = BasalDecisionCore(
+            decision_log=self.state_dir / "decisions.jsonl",
+            confidence_floor=float(self.config.get("confidence_floor", 0.55)),
+        )
+        planner = SwarmPlanner(core, default_strategy="speed_first")
+        plan = planner.plan_cycle(mission_demands, procdev_demands, hardware_resources + model_resources, cycle_signals, max_jobs=self.config["max_jobs"])
+        plans_dir = self.state_dir / "swarm_plans"
+        plans_dir.mkdir(parents=True, exist_ok=True)
+        (plans_dir / f"cycle_{cycle_no}.json").write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+        if plan["mission_allocations"]:
+            lines = [
+                f"# Przydziały roju — cykl {cycle_no} (suggest-only, decyzje basal)",
+                f"- strategia cyklu: **{plan['strategy']}** (confidence={plan['strategy_decision']['confidence']}, deferred={plan['strategy_decision']['deferred']})",
+                "- przydział sprzętu jest PROPOZYCJĄ; fizyczna instalacja/aktuation wyłącznie przez operatora.",
+                "",
+            ]
+            for alloc in plan["mission_allocations"]:
+                res = alloc.get("resource") or {}
+                lines.append(f"## {alloc['demand_id']} — {alloc['label']}")
+                lines.append(f"- przydzielony zasób: `{res.get('resource_id', 'BRAK')}` ({res.get('label', '')}), headroom={res.get('headroom')}")
+                lines.append(f"- tryb wykonania: **{alloc.get('exec_mode') or 'nie ustalono'}** (confidence={alloc.get('exec_mode_decision', {}).get('confidence', 'n/a')})")
+                lines.append(f"- confidence przydziału: {alloc.get('allocation_confidence', 'n/a')}, deferred: {alloc.get('allocation_deferred')}")
+                if alloc.get("reason") != "ok":
+                    lines.append(f"- powód: {alloc.get('reason')}")
+                lines.append("")
+            (plans_dir / f"cycle_{cycle_no}_allocations.md").write_text("\n".join(lines), encoding="utf-8")
+        receipt["swarm"] = {
+            "strategy": plan["strategy"],
+            "strategy_confidence": plan["strategy_decision"]["confidence"],
+            "strategy_deferred": plan["strategy_decision"]["deferred"],
+            "mission_allocations": len(plan["mission_allocations"]),
+            "execution_order": plan["execution_order"],
+            "decisions_count": plan["decisions_count"],
+            "engine": "basal-serve" if core.remote_url else "builtin",
+        }
+        return plan
+
     def run_cycle(self) -> dict[str, Any]:
         cycle_no = self.state.data["cycle"] + 1
         receipt: dict[str, Any] = {
@@ -297,8 +364,13 @@ class Orchestrator:
         budget_registry_path.parent.mkdir(parents=True, exist_ok=True)
         budget_registry_path.write_text(json.dumps({"models": budgeted}, ensure_ascii=False, indent=2), encoding="utf-8")
 
+        swarm_plan = self._plan_swarm(cycle_no, jobs, pending, budgeted, receipt)
+        procdev_order = {d: i for i, d in enumerate(swarm_plan["execution_order"])}
+
         procdev_dir = self.state_dir / "procdev_queue"
-        for job in pending[: self.config["max_jobs"]]:
+        selected_jobs = [j for j in pending if j.job_id in procdev_order]
+        selected_jobs.sort(key=lambda j: procdev_order[j.job_id])
+        for job in selected_jobs[: self.config["max_jobs"]]:
             run_dir = self.state_dir / "runs" / f"cycle_{cycle_no}_{job.job_id}"
             chain_path = run_dir / "chain.json"
             chain_path.parent.mkdir(parents=True, exist_ok=True)
@@ -381,6 +453,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--kill-switch", type=Path, default=DEFAULT_KILL_SWITCH)
     parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
     parser.add_argument("--records", type=Path, nargs="*", default=[ROOT / "resource_scout" / "examples" / "ewaste_phone_batch.json", ROOT / "resource_scout" / "examples" / "selfhost_compute_node.json"])
+    parser.add_argument("--needs", type=Path, nargs="*", default=[ROOT / "human_needs" / "seed_needs.json"], help="rekordy human_needs (zapotrzebowania misyjne roju)")
+    parser.add_argument("--confidence-floor", type=float, default=0.55, help="prog confidence decyzji basal (defer -> default)")
+    parser.add_argument("--oze-window", action="store_true", help="sygnal okna OZE/noc dla strategii energy_oze")
     parser.add_argument("--inbox-dir", type=Path, default=None, help="katalog wiadomości EDGE->HUB (JSON) do domknięcia pętli terenowej")
     parser.add_argument("--quota-snapshot", type=Path, default=ROOT / "agent_runtime_plans" / "hermes_pilot" / "quota_snapshot.json")
     args = parser.parse_args(argv if argv is not None else None)
@@ -394,7 +469,10 @@ def main(argv: list[str] | None = None) -> int:
         "kill_switch": args.kill_switch,
         "registry_path": args.registry,
         "records_paths": [Path(p) for p in args.records],
+        "needs_paths": [Path(p) for p in args.needs],
         "inbox_dir": args.inbox_dir,
+        "confidence_floor": args.confidence_floor,
+        "oze_window": args.oze_window,
         "quota_snapshot_path": args.quota_snapshot if args.engine == "free-api" else None,
     }
     return Orchestrator(config).run()
