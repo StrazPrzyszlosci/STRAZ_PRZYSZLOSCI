@@ -93,9 +93,18 @@ Opisz poniżej swój najbardziej szalony, "garażowy" projekt (nawet jeśli wybu
 3. 🌿 Zrób Fork i stwórz gałąź z jasną nazwą dla kodu, np. `dodanie-skryptu-analizy-rynku` (wzorce nazewnictwa: **CONTRIBUTING.md, sekcje 3 i 5**).
 4. 🚀 Wykonaj zmianę i wyślij Pull Request zgodnie z **CONTRIBUTING.md (sekcja 2)** — mały zakres, jeden cel, czytelny opis.
 
+### 📊 ŚCIEŻKA D: DANE I ANALIZA
+*Dla tych, którzy myślą danymi: analiza, inwentaryzacja zasobów, geoprzestrzenne planowanie — pełnoprawny wkład w Zasób Wiedzy NSI.*
+
+1. 🎯 Wybierz projekt z katalogu **PROJEKTY/** w obszarze zasobów lub planowania przestrzennego, np. [19. Społeczna Baza Przedmiotów "Zero Waste"](PROJEKTY/19_spoleczna_baza_przedmiotow.md) albo [16. Agentyczna Analiza Geoprzestrzenna i Logistyczna](PROJEKTY/16_geoportal_potencjal_rozwoju.md) — a kontekst osi 4 (zasoby) i 7 (planowanie przestrzenne) znajdziesz w pilotażach [29. Koncepcyjny Pilotaż Planowania Przestrzennego i Rozwoju](PROJEKTY/29_pilot_planowania_przestrzennego.md) i [30. Koncepcyjny Pilotaż Gospodarki Zasobami Strategicznymi](PROJEKTY/30_pilot_gospodarki_zasobami.md).
+2. 🌿 Stwórz gałąź według **CONTRIBUTING.md (sekcja 5)** — nazewnictwo dla treści niesoftware'owych, np. `analiza-inwentaryzacja-bazy-przedmiotow` lub `dokument-geoportal-potencjalu-rozwoju`.
+3. ✍️ Przygotuj widoczne dokonanie z danych: inwentaryzację, analizę, profil wiedzy lub dokument w markdown według konwencji repozytorium — w duchu pilotaży 29 i 30, gdzie do repozytorium wraca wyłącznie wiedza opracowana: snapshoty oraz otwarte, wspólne profile w formatach JSON/YAML.
+4. 🚀 Wyślij Pull Request według instrukcji **CONTRIBUTING.md (sekcja 2: Fork & Pull Request)** — to Twoje widoczne dokonanie: kolejna cegła w fundamencie WSPÓLNEGO DOBRA. Dbaj potem o ciągłość obszaru: prowadź bieżącą dyskusję o danych w Issues i wspieraj kolejne osoby, które dołączą do Twojego pola działania.
+
 **Nie wiesz, którą wybrać?** Dopasuj ścieżkę do tagów pasji z sekcji 1 tej ankiety:
 * `#KOD` → śmiało w ŚCIEŻKĘ C,
 * `#HARDWARE`, `#CAD`, `#MESH`, `#RECYKLING`, `#AGRO_AI`, `#OZE` → zacznij od ŚCIEŻKI A (dokumentujesz swój warsztat i pomysł),
 * masz żyłkę komunikatora i budowniczego społeczności → ŚCIEŻKA B czeka właśnie na Ciebie.
+* lubisz pracę na danych, analizach i mapach → ŚCIEŻKA D czeka właśnie na Ciebie.
 
 **Nie wybieraj długo — każda ze ścieżek prowadzi do tego samego: realnego dokonania na rzecz NARODOWEGO WYSIŁKU INTELEKTUALNEGO. Zacznij DZISIAJ, pokaż ślad w Issues i Pull Requestach. Intelekt wyprzedza Kapitał!**
