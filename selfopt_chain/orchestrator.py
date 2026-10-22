@@ -37,6 +37,14 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from selfopt_chain.calibrate import (
+    append_label,
+    fit_temperatures,
+    load_calibration,
+    load_decisions,
+    load_labels,
+    write_calibration,
+)
 from selfopt_chain.registry import DEFAULT_REGISTRY, load_registry
 from selfopt_chain.run_loop import run_chain
 from selfopt_chain.swarm import (
@@ -146,6 +154,29 @@ class OrchestratorState:
                 m2["rpd_seed"] = remaining
                 view.append(m2)
         return view
+
+
+def collect_feedback(inbox_dir: Path | None) -> list[dict[str, Any]]:
+    """Feedback z pola (EDGE→HUB) jako etykiety decyzji roju.
+
+    Wiadomość z kluczem "feedback" etykietuje decyzję basala (domknięcie pętli
+    samodoskonalenia); zwykłe wiadomości pozostają zadaniami (collect_jobs).
+    """
+    feedbacks: list[dict[str, Any]] = []
+    if inbox_dir is None or not inbox_dir.exists():
+        return feedbacks
+    for msg_path in sorted(inbox_dir.glob("*.json")):
+        msg = json.loads(msg_path.read_text(encoding="utf-8"))
+        feedback = msg.get("feedback")
+        if isinstance(feedback, dict) and feedback.get("decision_id"):
+            feedbacks.append({
+                "decision_id": feedback["decision_id"],
+                "accepted": bool(feedback.get("accepted")),
+                "note": str(feedback.get("note", "")),
+                "source": "field",
+                "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            })
+    return feedbacks
 
 
 class Job:
@@ -265,8 +296,45 @@ class Orchestrator:
     def kill_switch_active(self) -> bool:
         return Path(self.config["kill_switch"]).exists()
 
+    def _ingest_feedback_labels(self, feedbacks: list[dict[str, Any]]) -> int:
+        """Feedback z pola → labels.jsonl (dedup po decision_id+accepted+note)."""
+        if not feedbacks:
+            return 0
+        labels_path = self.state_dir / "labels.jsonl"
+        existing: set[tuple] = set()
+        for label in load_labels(self.state_dir):
+            existing.add((label.get("decision_id"), label.get("accepted"), label.get("note")))
+        appended = 0
+        labels_path.parent.mkdir(parents=True, exist_ok=True)
+        with labels_path.open("a", encoding="utf-8") as handle:
+            for feedback in feedbacks:
+                key = (feedback["decision_id"], feedback["accepted"], feedback["note"])
+                if key in existing:
+                    continue
+                handle.write(json.dumps(feedback, ensure_ascii=False) + "\n")
+                existing.add(key)
+                appended += 1
+        return appended
+
+    def _auto_calibrate(self) -> dict[str, Any] | None:
+        """Samokalibracja roju: decisions.jsonl + labels.jsonl → CALIBRATION.selfopt.json."""
+        decisions = load_decisions(self.state_dir)
+        labels = load_labels(self.state_dir)
+        calibration = fit_temperatures(decisions, labels)
+        if calibration is not None:
+            write_calibration(self.state_dir, calibration)
+        return calibration
+
     def _plan_swarm(self, cycle_no: int, jobs: list[Job], pending: list[Job], budgeted: list[dict], receipt: dict[str, Any]) -> dict[str, Any]:
         """Plan roju (basal, wiele decyzji) — przydział sprzętu do misji + kolejność procdev."""
+        feedbacks = collect_feedback(self.config.get("inbox_dir"))
+        new_labels = self._ingest_feedback_labels(feedbacks)
+        calibration = self._auto_calibrate()
+        receipt["field_feedback"] = {"received": len(feedbacks), "new_labels": new_labels}
+        receipt["calibration"] = (
+            {"n_labels": calibration["n_labels"], "temperatures": calibration["temperature_per_prim"], "applied": True}
+            if calibration else {"applied": False, "reason": "brak etykiet"}
+        )
         needs_records: list[dict[str, Any]] = []
         for path in self.config.get("needs_paths", []):
             p = Path(path)
@@ -290,6 +358,7 @@ class Orchestrator:
         core = BasalDecisionCore(
             decision_log=self.state_dir / "decisions.jsonl",
             confidence_floor=float(self.config.get("confidence_floor", 0.55)),
+            temperatures=calibration["temperature_per_prim"] if calibration else None,
         )
         planner = SwarmPlanner(core, default_strategy="speed_first")
         plan = planner.plan_cycle(mission_demands, procdev_demands, hardware_resources + model_resources, cycle_signals, max_jobs=self.config["max_jobs"])
