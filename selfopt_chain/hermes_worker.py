@@ -107,9 +107,12 @@ class HermesWorker:
     SELFOPT_HERMES=1; wynik zawsze przez kwarantannę + SecurityGate.
     """
 
-    def __init__(self, omniroute_base_url: str | None = None, model_alias: str = "auto") -> None:
+    def __init__(self, omniroute_base_url: str | None = None, model_alias: str = "auto", api_key: str | None = None) -> None:
+        import os
+
         self.omniroute_base_url = (omniroute_base_url or "http://127.0.0.1:20128/v1").rstrip("/")
         self.model_alias = model_alias
+        self.api_key = api_key or os.environ.get("SELFOPT_OMNIROUTE_KEY") or ""
 
     def sandbox_dir(self, run_id: str) -> Path:
         path = SANDBOX_ROOT / run_id
@@ -128,7 +131,7 @@ class HermesWorker:
 
     def build_command(self, task_file: Path, run_dir: Path, *, max_turns: int = DEFAULT_MAX_TURNS, run_budget_s: int = DEFAULT_RUN_BUDGET_S, toolsets: str = DEFAULT_TOOLSETS) -> list[str]:
         """Izolowane wywołanie headless (flagi zweryfikowane wobec hermes CLI 2026-10)."""
-        return [
+        command = [
             "hermes", "chat",
             "--oneshot",
             "--query-file", str(task_file),
@@ -143,6 +146,9 @@ class HermesWorker:
             "--safe-mode",
             "-t", toolsets,
         ]
+        if self.api_key:
+            command.extend(["--api-key", self.api_key])
+        return command
 
     @staticmethod
     def scrub_env() -> dict[str, str]:

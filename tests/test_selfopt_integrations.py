@@ -19,7 +19,7 @@ from selfopt_chain.evolver import (
     _parse_targets,
 )
 from selfopt_chain.hermes_worker import HermesWorker, SecurityGate, parse_stream_json_output
-from selfopt_chain.omniroute import FreeOnlyPolicy, OmniRouteAdapter
+from selfopt_chain.omniroute import FreeOnlyPolicy, OmniRouteAdapter, OmniRouteEngine
 from selfopt_chain.registry import load_registry
 from selfopt_chain.swarm import BasalDecisionCore, resources_from_records
 from selfopt_chain.orchestrator import load_capability_map
@@ -85,6 +85,48 @@ class OmniRouteAdapterTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["error_class"], "free_only_violation")
         self.assertIn("FREE-ONLY", result["error"])
+
+    def test_api_key_sent_as_bearer(self):
+        fake = {"model": "llama-3.1-8b-instant", "choices": [{"message": {"content": "odp"}}]}
+        with mock.patch.dict(os.environ, {"SELFOPT_NETWORK": "1", "SELFOPT_OMNIROUTE_KEY": "sk-test-123"}, clear=False), \
+                mock.patch.object(urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(fake).encode("utf-8"))) as urlopen:
+            adapter = OmniRouteAdapter(FreeOnlyPolicy(_models()), base_url="http://127.0.0.1:20128/v1")
+            result = adapter.complete({"privacy": "public"}, "prompt")
+        self.assertTrue(result["ok"])
+        req = urlopen.call_args[0][0]
+        self.assertEqual(req.headers.get("Authorization"), "Bearer sk-test-123")
+
+    def test_free_catalog_extends_policy(self):
+        catalog = {"data": [{"id": "mistral/dev-test", "owned_by": "mistral_free"}, {"id": "paid/x", "owned_by": "anthropic"}]}
+        fake = {"model": "mistral/dev-test", "choices": [{"message": {"content": "odp"}}]}
+
+        class FakeResp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+        responses = [FakeResp(json.dumps(catalog).encode("utf-8")), FakeResp(json.dumps(fake).encode("utf-8"))]
+        with mock.patch.dict(os.environ, {"SELFOPT_NETWORK": "1"}, clear=False), \
+                mock.patch.object(urllib.request, "urlopen", side_effect=responses):
+            engine = OmniRouteEngine(_models(), base_url="http://127.0.0.1:20128/v1")
+            result = engine.complete({"privacy": "public"}, "mistral/dev-test", "prompt")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["model_id"], "mistral/dev-test")
+
+    def test_engine_falls_back_to_auto_for_unknown_model(self):
+        catalog = {"data": []}
+        fake = {"model": "llama-3.1-8b-instant", "choices": [{"message": {"content": "odp"}}]}
+
+        class FakeResp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+        responses = [FakeResp(json.dumps(catalog).encode("utf-8")), FakeResp(json.dumps(fake).encode("utf-8"))]
+        with mock.patch.dict(os.environ, {"SELFOPT_NETWORK": "1"}, clear=False), \
+                mock.patch.object(urllib.request, "urlopen", side_effect=responses):
+            engine = OmniRouteEngine(_models(), base_url="http://127.0.0.1:20128/v1")
+            result = engine.complete({"privacy": "public"}, "model-spoza-rejestru", "prompt")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["requested_alias"], "auto")
 
 
 class BasalRemoteEngineTest(unittest.TestCase):
