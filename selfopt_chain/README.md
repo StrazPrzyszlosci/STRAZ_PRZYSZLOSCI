@@ -68,6 +68,29 @@ Każdy cykl orkiestratora zaczyna się planem roju (`swarm_plans/cycle_<n>.json`
 Rdzeń wbudowany jest deterministyczny i offline; prawdziwy basal-serve
 (Ollama) podpina się przez `SELFOPT_BASAL_URL`.
 
+## Pętla samodoskonalenia i konstytucja roju (T51)
+
+**Samokalibracja (wzór basal-calibrate)**: każda decyzja basala ląduje w
+`decisions.jsonl`; operator i pole etykietują decyzje (`calibrate.py annotate`
+lub feedback LoRa EDGE→HUB w `--inbox-dir`: `{"feedback": {"decision_id",
+"accepted", "note"}}`); `fit_temperatures` dopasowuje temperatury confidence
+(dobre-a-zdeferowane → wyostrzenie; złe-a-niezdeferowane → spłaszczenie) i
+zapisuje `CALIBRATION.selfopt.json`, który rdzeń bierze automatycznie w
+kolejnych cyklach. `calibrate.py propose` generuje propozycję ewolucji
+strategii (GEPA-style, suggest-only).
+
+**Konstytucja roju (`charter.json`)**: rój działa w polu bez nadzoru, ale w
+twardych granicach praw człowieka — `charter_check` sprawdza każdy plan
+cyklu (dopuszczalne klasy misji; zakazane słowa-tematy: broń, inwigilacja,
+monitoring osób, rozpoznawanie twarzy…) i **blokuje przydział** naruszających
+zapotrzebowań. Konstytucji nie zmienia rój — tylko człowiek przez PR.
+
+**Drabina produkcji**: klasy zasobów produkcyjnych udostępnianych przez ludzi
+(`3d_printer`, `robot_arm`, `mechanics_scrap`) + wzorzec referencyjny produktu:
+`docs/LITEWEED_WZORZEC_REFERENCYJNY.md` (robot odchwaszczający: vision na
+starym smartfonie w apce Android budowanej przez LLM, platforma z odzysku —
+inteligentny software zamiast eskalacji sprzętu).
+
 ## Agent orkiestrator (rezydent, T49)
 
 Uruchomiony orkiestrator **na żywo realizuje wizję repo**: automatycznie używa

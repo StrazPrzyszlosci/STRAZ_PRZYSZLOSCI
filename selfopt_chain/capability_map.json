@@ -15,9 +15,42 @@
         "PROJEKTY/21_home_assistant_na_telefonie.md",
         "PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md"
       ],
-      "products": ["phone-aquaponics-observer", "recycled-sensor-gateway", "agri-edge-agent-host"],
+      "products": ["phone-aquaponics-observer", "recycled-sensor-gateway", "agri-edge-agent-host", "vision-app-node (wzorzec LiteWeed: apka Android zbudowana przez LLM + model obrazowy on-device)"],
       "cells": ["edge_flasher", "agri_edge_agent", "aquaponics_observer_pack"],
       "next_process": "edge_flasher (suggest-only) -> bench na recovered hardware -> pack draft -> PR (no_auto_merge)"
+    },
+    "3d_printer": {
+      "capability": "additive_manufacturing",
+      "serves": ["production", "hardware_reuse"],
+      "repo_refs": [
+        "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
+        "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md"
+      ],
+      "products": ["printed-enclosures", "printed-parts", "mounts-for-recovered-electronics"],
+      "cells": [],
+      "next_process": "design pack (CAD/BOM z bazy części) -> slicer -> druk na udostępnionej drukarce (ścieżka e-stop) -> montaż -> raport produkcji"
+    },
+    "robot_arm": {
+      "capability": "assembly_automation",
+      "serves": ["production", "hardware_reuse"],
+      "repo_refs": [
+        "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md"
+      ],
+      "products": ["assembly-cell", "recovery-bench-assist", "kitting-station"],
+      "cells": [],
+      "next_process": "plan montażu z bazy części -> strefa robocza z e-stop i wyłączną obecnością operatora-uczestnika -> raport"
+    },
+    "mechanics_scrap": {
+      "capability": "robot_platform_rebuild",
+      "serves": ["production", "environment"],
+      "repo_refs": [
+        "PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md",
+        "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md",
+        "docs/LITEWEED_WZORZEC_REFERENCYJNY.md"
+      ],
+      "products": ["robot-odchwaszczajacy (wzorzec LiteWeed: platforma z odzysku + vision na starym smartfonie)", "drive-modules", "chassis"],
+      "cells": ["resource_scout"],
+      "next_process": "katalog mechaniki w bazie części -> BOM -> design pack -> montaż na bench -> test bezpieczeństwa -> pilot w polu (charter)"
     },
     "selfhost_compute": {
       "capability": "sovereign_local_inference",
