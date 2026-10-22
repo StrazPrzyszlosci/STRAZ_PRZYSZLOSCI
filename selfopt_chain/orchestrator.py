@@ -423,6 +423,8 @@ class Orchestrator:
                 receipt["jobs_status"] = "bootstrap_demo"
             else:
                 receipt["jobs_status"] = "no_new_jobs"
+                if self.config.get("evolve"):
+                    receipt["evolution"] = self._run_evolution(0)
                 receipt["finished"] = _now_iso()
                 return receipt
 
