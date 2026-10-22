@@ -115,12 +115,14 @@ class HermesWorker:
         self.api_key = api_key or os.environ.get("SELFOPT_OMNIROUTE_KEY") or ""
 
     def sandbox_dir(self, run_id: str) -> Path:
-        path = SANDBOX_ROOT / run_id
+        base = SANDBOX_ROOT if SANDBOX_ROOT.is_absolute() else Path.cwd() / SANDBOX_ROOT
+        path = base / run_id
         path.mkdir(parents=True, exist_ok=True)
         return path
 
     def quarantine_dir(self, run_id: str) -> Path:
-        path = QUARANTINE_ROOT / run_id
+        base = QUARANTINE_ROOT if QUARANTINE_ROOT.is_absolute() else Path.cwd() / QUARANTINE_ROOT
+        path = base / run_id
         path.mkdir(parents=True, exist_ok=True)
         return path
 

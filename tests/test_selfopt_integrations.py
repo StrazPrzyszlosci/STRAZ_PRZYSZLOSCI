@@ -162,6 +162,14 @@ class BasalRemoteEngineTest(unittest.TestCase):
 
 
 class HermesIsolationTest(unittest.TestCase):
+    def test_sandbox_paths_are_absolute(self):
+        worker = HermesWorker()
+        sandbox = worker.sandbox_dir("abs_check")
+        quarantine = worker.quarantine_dir("abs_check")
+        self.assertTrue(sandbox.is_absolute())
+        self.assertTrue(quarantine.is_absolute())
+        self.assertTrue(sandbox.exists() and quarantine.exists())
+
     def test_command_uses_isolation_flags(self):
         worker = HermesWorker(omniroute_base_url="http://127.0.0.1:20128/v1")
         with tempfile.TemporaryDirectory() as tmp:
