@@ -1,0 +1,71 @@
+{
+  "charter_version": "v1",
+  "adopted_on": "2026-10-21",
+  "purpose": "Konstytucja roju: rój wykonuje usługi dla ludności BEZ nadzoru człowieka w polu, ale w twardych granicach praw człowieka i bezpieczeństwa. Granice są maszynowo sprawdzane w każdym planie cyklu; zmiana konstytucji wyłącznie przez review człowieka (PR).",
+  "allowed_mission_classes": [
+    "food",
+    "energy",
+    "waste",
+    "hardware_reuse",
+    "sensing",
+    "communications",
+    "knowledge",
+    "environment",
+    "safety",
+    "health",
+    "education",
+    "production"
+  ],
+  "forbidden_keywords": [
+    "broń",
+    "bron",
+    "weapon",
+    "amunicj",
+    "surveillance",
+    "inwigil",
+    "monitoring osob",
+    "monitoring osób",
+    "twarz",
+    "facial recognition",
+    "dane osobowe bez zgody"
+  ],
+  "matching_note": "Dopasowanie substring na rdzeniach słów (tolerancja polskich odmian); lista jest celowo nadmiernie blokująca — przydział zablokowany słowem kluczowym może odzyskać człowiek przez review.",
+  "rules": [
+    {
+      "rule": "human_rights_first",
+      "scope": "all",
+      "enforcement": "każdy plan cyklu przechodzi charter_check; naruszenie blokuje przydział"
+    },
+    {
+      "rule": "no_weapons",
+      "scope": "products",
+      "enforcement": "zakaz produktów o klasie uzbrojenia; słowa kluczowe blokują przydział"
+    },
+    {
+      "rule": "no_person_surveillance",
+      "scope": "vision_products",
+      "enforcement": "kamera/vision wyłącznie do obserwacji roślin/urządzeń/środowiska; nigdy do śledzenia osób"
+    },
+    {
+      "rule": "privacy_local_by_default",
+      "scope": "data",
+      "enforcement": "dane prywatne lokalnie (privacy=private → local_private); publiczne dopiero po zgodzie"
+    },
+    {
+      "rule": "no_paid_resources_without_operator",
+      "scope": "resources",
+      "enforcement": "rejestr akceptuje wyłącznie free_quota / owned_hardware_low_cost"
+    },
+    {
+      "rule": "safe_physical_boundaries",
+      "scope": "hardware",
+      "enforcement": "montaż/produkcja przy udostępnionych zdolnościach (ramię robota, drukarka 3D) tylko ze ścieżkami awaryjnego stop; brak kontaktu z osobami poza strefą roboczą"
+    },
+    {
+      "rule": "e_waste_ethics",
+      "scope": "recovery",
+      "enforcement": "odzysk elektrośmieci z poszanowaniem praw pracowniczych i środowiska; battery_swelling_check obowiązkowy"
+    }
+  ],
+  "note": "Autonomia polowa (bez nadzoru) jest warunkowana przejściem charter_check + jakością kalibracji decyzji; konstytucji nie zmienia rój — zmienia ją człowiek przez PR."
+}
