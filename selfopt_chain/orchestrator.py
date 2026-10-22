@@ -45,6 +45,8 @@ from selfopt_chain.calibrate import (
     load_labels,
     write_calibration,
 )
+from selfopt_chain.evolver import EvolutionLoop, decide_parallel_mode
+from selfopt_chain.hermes_worker import HermesWorker
 from selfopt_chain.registry import DEFAULT_REGISTRY, load_registry
 from selfopt_chain.run_loop import run_chain
 from selfopt_chain.swarm import (
@@ -478,8 +480,35 @@ class Orchestrator:
                 "procdev_draft": str(draft_path),
                 "capability": capability["capability"],
             })
+
+        if self.config.get("evolve"):
+            evolution = self._run_evolution(len(pending))
+            receipt["evolution"] = evolution
         receipt["finished"] = _now_iso()
         return receipt
+
+    def _run_evolution(self, backlog: int) -> dict[str, Any]:
+        """Samoewolucja repo: zadania z artifacts → (mock|Hermes headless) → bramka → kolejka PR-draftów."""
+        core = BasalDecisionCore(
+            decision_log=self.state_dir / "decisions.jsonl",
+            confidence_floor=float(self.config.get("confidence_floor", 0.55)),
+        )
+        mode = self.config.get("subagent_mode", "auto")
+        if mode == "auto":
+            mode = decide_parallel_mode(core, backlog=backlog, critical=1 if backlog > 3 else 0)
+        worker = None
+        if self.config.get("engine") == "omniroute" and HermesWorker.enabled():
+            import os
+
+            worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"))
+        loop = EvolutionLoop(self.state_dir, ROOT / "docs", ROOT, worker=worker)
+        receipts = loop.run(max_tasks=int(self.config.get("evolve_max_tasks", 4)), parallel_mode=mode)
+        return {
+            "mode": mode,
+            "tasks": receipts,
+            "executor": "hermes" if worker else "mock",
+            "auto_applied": False,
+        }
 
     def run(self) -> int:
         signal.signal(signal.SIGTERM, self.request_stop)
@@ -513,7 +542,10 @@ class Orchestrator:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Rezydentny agent-orkiestrator: darmowe modele AI rozwijają procesy repo (suggest-only)")
-    parser.add_argument("--engine", choices=["mock", "free-api"], default="mock")
+    parser.add_argument("--engine", choices=["mock", "free-api", "omniroute"], default="mock")
+    parser.add_argument("--evolve", action="store_true", help="samoewolucja repo: artifacts → propozycje/patche → bramka → evolution_queue (PR-drafts)")
+    parser.add_argument("--evolve-max-tasks", type=int, default=4)
+    parser.add_argument("--subagent-mode", choices=["auto", "single", "wide", "deep"], default="auto", help="równoległość subagentów (basal decyduje w trybie auto)")
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_S, help="sekundy między cyklami")
     parser.add_argument("--max-cycles", type=int, default=None, help="limit cykli (brak = daemon)")
     parser.add_argument("--once", action="store_true", help="jeden cykl i wyjście")
@@ -542,7 +574,10 @@ def main(argv: list[str] | None = None) -> int:
         "inbox_dir": args.inbox_dir,
         "confidence_floor": args.confidence_floor,
         "oze_window": args.oze_window,
-        "quota_snapshot_path": args.quota_snapshot if args.engine == "free-api" else None,
+        "evolve": args.evolve,
+        "evolve_max_tasks": args.evolve_max_tasks,
+        "subagent_mode": args.subagent_mode,
+        "quota_snapshot_path": args.quota_snapshot if args.engine in ("free-api",) else None,
     }
     return Orchestrator(config).run()
 

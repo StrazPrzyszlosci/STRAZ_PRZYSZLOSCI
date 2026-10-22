@@ -9,132 +9,279 @@
   "classes": {
     "old_smartphones": {
       "capability": "edge_sensing_and_control",
-      "serves": ["food", "sensing", "communications"],
+      "serves": [
+        "food",
+        "sensing",
+        "communications"
+      ],
       "repo_refs": [
         "PROJEKTY/06_smartfony_jako_sterowniki.md",
         "PROJEKTY/21_home_assistant_na_telefonie.md",
         "PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md"
       ],
-      "products": ["phone-aquaponics-observer", "recycled-sensor-gateway", "agri-edge-agent-host", "vision-app-node (wzorzec LiteWeed: apka Android zbudowana przez LLM + model obrazowy on-device)"],
-      "cells": ["edge_flasher", "agri_edge_agent", "aquaponics_observer_pack"],
+      "products": [
+        "phone-aquaponics-observer",
+        "recycled-sensor-gateway",
+        "agri-edge-agent-host",
+        "vision-app-node (wzorzec LiteWeed: apka Android zbudowana przez LLM + model obrazowy on-device)"
+      ],
+      "cells": [
+        "edge_flasher",
+        "agri_edge_agent",
+        "aquaponics_observer_pack"
+      ],
       "next_process": "edge_flasher (suggest-only) -> bench na recovered hardware -> pack draft -> PR (no_auto_merge)"
     },
     "3d_printer": {
       "capability": "additive_manufacturing",
-      "serves": ["production", "hardware_reuse"],
+      "serves": [
+        "production",
+        "hardware_reuse"
+      ],
       "repo_refs": [
         "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md",
         "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md"
       ],
-      "products": ["printed-enclosures", "printed-parts", "mounts-for-recovered-electronics"],
+      "products": [
+        "printed-enclosures",
+        "printed-parts",
+        "mounts-for-recovered-electronics"
+      ],
       "cells": [],
       "next_process": "design pack (CAD/BOM z bazy części) -> slicer -> druk na udostępnionej drukarce (ścieżka e-stop) -> montaż -> raport produkcji"
     },
     "robot_arm": {
       "capability": "assembly_automation",
-      "serves": ["production", "hardware_reuse"],
+      "serves": [
+        "production",
+        "hardware_reuse"
+      ],
       "repo_refs": [
         "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md"
       ],
-      "products": ["assembly-cell", "recovery-bench-assist", "kitting-station"],
+      "products": [
+        "assembly-cell",
+        "recovery-bench-assist",
+        "kitting-station"
+      ],
       "cells": [],
       "next_process": "plan montażu z bazy części -> strefa robocza z e-stop i wyłączną obecnością operatora-uczestnika -> raport"
     },
     "mechanics_scrap": {
       "capability": "robot_platform_rebuild",
-      "serves": ["production", "environment"],
+      "serves": [
+        "production",
+        "environment"
+      ],
       "repo_refs": [
         "PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md",
         "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md",
         "docs/LITEWEED_WZORZEC_REFERENCYJNY.md"
       ],
-      "products": ["robot-odchwaszczajacy (wzorzec LiteWeed: platforma z odzysku + vision na starym smartfonie)", "drive-modules", "chassis"],
-      "cells": ["resource_scout"],
+      "products": [
+        "robot-odchwaszczajacy (wzorzec LiteWeed: platforma z odzysku + vision na starym smartfonie)",
+        "drive-modules",
+        "chassis"
+      ],
+      "cells": [
+        "resource_scout"
+      ],
       "next_process": "katalog mechaniki w bazie części -> BOM -> design pack -> montaż na bench -> test bezpieczeństwa -> pilot w polu (charter)"
     },
     "selfhost_compute": {
       "capability": "sovereign_local_inference",
-      "serves": ["privacy", "offline_fallback", "cost_zero"],
+      "serves": [
+        "privacy",
+        "offline_fallback",
+        "cost_zero"
+      ],
       "repo_refs": [
         "PROJEKTY/11_autonomiczne_systemy_rd.md",
         "README.md"
       ],
-      "products": ["selfhost_recovered_low_power_node", "offline_rag_worker"],
-      "cells": ["model_resource_selector", "provider_quota_monitor"],
+      "products": [
+        "selfhost_recovered_low_power_node",
+        "offline_rag_worker"
+      ],
+      "cells": [
+        "model_resource_selector",
+        "provider_quota_monitor"
+      ],
       "next_process": "bench mocy/OZE -> wpis profiles.json (selfhost) -> użycie jako fallback routera selfopt_chain"
     },
     "tv_led_panels": {
       "capability": "energy_and_lighting_recovery",
-      "serves": ["energy", "waste", "cost_zero"],
+      "serves": [
+        "energy",
+        "waste",
+        "cost_zero"
+      ],
       "repo_refs": [
         "PROJEKTY/04_lampa_z_recyklingu_tv.md"
       ],
-      "products": ["solar-window-lamp", "led_bench_light"],
+      "products": [
+        "solar-window-lamp",
+        "led_bench_light"
+      ],
       "cells": [],
       "next_process": "fotosyntezator/bench z poziomem zasilania -> dossier -> human approval (elektryka = bramka)"
     },
     "router_boards": {
       "capability": "mesh_communications",
-      "serves": ["communications", "resilience"],
+      "serves": [
+        "communications",
+        "resilience"
+      ],
       "repo_refs": [
         "PROJEKTY/10_lacznosc_mesh_lora.md",
         "README.md"
       ],
-      "products": ["meshtastic-node", "deadmesh-bridge-endpoint", "lora-inbox-endpoint"],
-      "cells": ["agri_edge_agent"],
+      "products": [
+        "meshtastic-node",
+        "deadmesh-bridge-endpoint",
+        "lora-inbox-endpoint"
+      ],
+      "cells": [
+        "agri_edge_agent"
+      ],
       "next_process": "flash OpenWRT/Meshtastic wg runbooka -> wpis do spoola transportu -> operator nadaje"
     },
     "usb_cameras": {
       "capability": "vision_observation",
-      "serves": ["sensing", "food", "safety"],
+      "serves": [
+        "sensing",
+        "food",
+        "safety"
+      ],
       "repo_refs": [
         "PROJEKTY/01_inteligentna_akwakultura.md",
         "PROJEKTY/03_ai_monitoring_porodow.md"
       ],
-      "products": ["phone-observer-cam", "bench-vision-station"],
-      "cells": ["aquaponics_observer_pack"],
+      "products": [
+        "phone-observer-cam",
+        "bench-vision-station"
+      ],
+      "cells": [
+        "aquaponics_observer_pack"
+      ],
       "next_process": "kalibracja na bench -> pack observer (obserwacja only, zero aktuation)"
     },
     "pcb_scrap": {
       "capability": "component_harvest_and_design",
-      "serves": ["hardware_reuse", "design"],
+      "serves": [
+        "hardware_reuse",
+        "design"
+      ],
       "repo_refs": [
         "PROJEKTY/12_autonomiczne_pcb_ze_smieci.md",
         "PROJEKTY/13_baza_czesci_recykling/README.md",
         "PROJEKTY/14_autonomiczne_projektowanie_3d_cad.md"
       ],
-      "products": ["katalog-czesci-JSONL", "bom-do-projektu", "KiCad-subobwod"],
-      "cells": ["resource_scout"],
+      "products": [
+        "katalog-czesci-JSONL",
+        "bom-do-projektu",
+        "KiCad-subobwod"
+      ],
+      "cells": [
+        "resource_scout"
+      ],
       "next_process": "fotografowanie na bench (13) -> baza czesci -> MCP/CAD draft -> human review"
     },
     "power_supplies": {
       "capability": "bench_power_infrastructure",
-      "serves": ["hardware_reuse", "safety"],
+      "serves": [
+        "hardware_reuse",
+        "safety"
+      ],
       "repo_refs": [
         "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md"
       ],
-      "products": ["bench-psu-station"],
-      "cells": ["edge_flasher"],
+      "products": [
+        "bench-psu-station"
+      ],
+      "cells": [
+        "edge_flasher"
+      ],
       "next_process": "test bezpieczeństwa pod obciążeniem (human) -> stanowisko bench"
+    },
+    "appliance_sensors": {
+      "capability": "recovered_sensing_suite",
+      "serves": [
+        "food",
+        "sensing",
+        "environment"
+      ],
+      "repo_refs": [
+        "PROJEKTY/01_inteligentna_akwakultura.md",
+        "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md",
+        "PROJEKTY/34_pilot_lacznosci_wspolnej_telemetrii.md"
+      ],
+      "products": [
+        "water-level-probe",
+        "temperature-probe",
+        "flow-pressure-sensor",
+        "czujniki szklarni"
+      ],
+      "cells": [
+        "resource_scout",
+        "agri_edge_agent"
+      ],
+      "next_process": "test na bench (woda/temp) -> profil czujnika w bazie części -> węzeł ESP -> pilot w polu (bez aktuation)"
+    },
+    "esp_boards": {
+      "capability": "edge_control",
+      "serves": [
+        "food",
+        "communications",
+        "sensing"
+      ],
+      "repo_refs": [
+        "PROJEKTY/10_lacznosc_mesh_lora.md",
+        "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md",
+        "PROJEKTY/34_pilot_lacznosci_wspolnej_telemetrii.md"
+      ],
+      "products": [
+        "sensor-gateway-esp",
+        "lora-node",
+        "sterownik szklarni (minimalny firmware)"
+      ],
+      "cells": [
+        "agri_edge_agent"
+      ],
+      "next_process": "firmware: szybki słaby model pisze -> duży model sprawdza (dyrektywa) -> SecurityGate -> bench -> pack draft -> PR"
     },
     "field_feedback": {
       "capability": "self_optimization_from_field_data",
-      "serves": ["learning", "quality"],
+      "serves": [
+        "learning",
+        "quality"
+      ],
       "repo_refs": [
         "docs/GRAF_LANCUCHA_AUTOMATYZACJI.md"
       ],
-      "products": ["skill-patch-proposal", "prompt-opt-proposal"],
-      "cells": ["selfopt_chain"],
+      "products": [
+        "skill-patch-proposal",
+        "prompt-opt-proposal"
+      ],
+      "cells": [
+        "selfopt_chain"
+      ],
       "next_process": "insighty z traces -> GEPA/MAP-Elites propozycje -> review człowieka -> PR"
     },
     "default": {
       "capability": "unknown_resource_triage",
-      "serves": ["hardware_reuse"],
+      "serves": [
+        "hardware_reuse"
+      ],
       "repo_refs": [
         "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md"
       ],
-      "products": ["validated_resource_record"],
-      "cells": ["resource_scout"],
+      "products": [
+        "validated_resource_record"
+      ],
+      "cells": [
+        "resource_scout"
+      ],
       "next_process": "kompletowanie required_evidence przez człowieka -> ponowna kwalifikacja orkiestratora"
     }
   }

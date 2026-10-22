@@ -1,0 +1,36 @@
+{
+  "targets_version": "v1",
+  "note": "Operatorywna lista celow samoewolucji repo przez rój; rój dopisuje swoje propozycje z artifacts, operator edytuje/moze wylaczyc pozycje.",
+  "targets": [
+    {
+      "target_id": "router_weights_from_decisions",
+      "title": "Dopasuj wagi strategii routera/swarm wg statystyk decisions.jsonl",
+      "source_hint": "scratch/selfopt/decisions.jsonl + calibrate.py propose",
+      "constraints": "suggest-only; zmiana wag tylko przez PR; wymagane liczby przed/po w proposals"
+    },
+    {
+      "target_id": "capability_map_extension",
+      "title": "Rozbuduj capability_map o nowe klasy zasobow z realnych rekordow scoutingowych",
+      "source_hint": "resource_scout/examples + nowe rekordy operatora",
+      "constraints": "suggest-only; repo_refs musza istniec na dysku (test pilnuje)"
+    },
+    {
+      "target_id": "free_models_registry_refresh",
+      "title": "Odswiez rejestr darmowych modeli o nowe oferty free-tier (catalog OmniRoute)",
+      "source_hint": "dashboard OmniRoute /dashboard/free-tiers + re-audit co 2 tyg",
+      "constraints": "walidator registry musi przejsc; limits_verified=false do weryfikacji operatora"
+    },
+    {
+      "target_id": "tests_gap_hardening",
+      "title": "Domknij luki pokrycia testami modulow selfopt_chain wskazane w proposals",
+      "source_hint": "optimization_proposals.md z cykli roju",
+      "constraints": "nowe testy offline, deterministyczne; suite python musi byc zielona"
+    },
+    {
+      "target_id": "lora_bridge_consumer",
+      "title": "Consumer spoola LoRa po stronie mostu (remix-lora-bridge) — koordynacja miedzyprojektowa",
+      "source_hint": "scratch/selfopt/**/lora_spool/outbox/*.json",
+      "constraints": "radio po stronie mostu; praca we wlasnym worktree; bez zmian protokolu mesh"
+    }
+  ]
+}

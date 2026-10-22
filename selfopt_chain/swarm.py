@@ -89,13 +89,29 @@ class BasalDecisionCore:
         self.remote_url = os.environ.get("SELFOPT_BASAL_URL") or None
 
     def decide(self, question_type: str, options: list[str], scores: dict[str, float], default_option: str | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Jedna decyzja basal: choice + confidence + defer + ranking + log."""
+        """Jedna decyzja basal: choice + confidence + defer + ranking + log.
+
+        Przy SELFOPT_BASAL_URL decyzję liczy prawdziwy basal-serve (POST
+        /v1/systemone); błąd połączenia/parsowania = spadek do rdzenia
+        wbudowanego (engine zapisuje prawdę o tym, co się stało).
+        """
         if not options:
             raise ValueError("decide: brak opcji")
         missing = [o for o in options if o not in scores]
         if missing:
             raise ValueError(f"decide: brak score dla opcji {missing}")
-        probabilities, confidence = softmax_confidence(scores, question_type, self.temperatures)
+        engine = "builtin"
+        probabilities, confidence = None, None
+        remote_note = None
+        if self.remote_url:
+            remote = self._remote_decide(question_type, options, scores, context)
+            if remote is not None:
+                probabilities, confidence = remote
+                engine = "basal-serve"
+            else:
+                remote_note = "basal-serve nieosiagalny/nieparsowalny; decyzja wbudowana"
+        if probabilities is None:
+            probabilities, confidence = softmax_confidence(scores, question_type, self.temperatures)
         ranking = sorted(probabilities.items(), key=lambda kv: -kv[1])
         chosen = ranking[0][0]
         default_option = default_option or options[0]
@@ -117,7 +133,8 @@ class BasalDecisionCore:
             "deferred": deferred,
             "final": final,
             "default_option": default_option,
-            "engine": "basal-serve" if self.remote_url else "builtin",
+            "engine": engine,
+            "remote_note": remote_note,
             "context": context or {},
         }
         self.decisions.append(decision)
@@ -126,6 +143,42 @@ class BasalDecisionCore:
             with self.decision_log.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(decision, ensure_ascii=False) + "\n")
         return decision
+
+    def _remote_decide(self, question_type: str, options: list[str], scores: dict[str, float], context: dict[str, Any] | None) -> tuple[dict[str, float], float] | None:
+        """Decyzja z prawdziwego basal-serve (/v1/systemone); None = fallback."""
+        import urllib.request
+
+        payload = {
+            "question": {
+                "type": "choice",
+                "target": "decision",
+                "options": list(options),
+                "scores": {k: float(v) for k, v in scores.items()},
+            },
+            "context": {"question_type": question_type, **(context or {})},
+        }
+        url = f"{self.remote_url.rstrip('/')}/v1/systemone"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            return None
+        answers = body.get("answers") if isinstance(body, dict) else None
+        if not isinstance(answers, dict):
+            return None
+        answer = answers.get("decision") or next(iter(answers.values()), None)
+        if not isinstance(answer, dict):
+            return None
+        probabilities = answer.get("probabilities")
+        confidence = answer.get("confidence")
+        if not isinstance(probabilities, dict) or not all(k in scores for k in probabilities) or not isinstance(confidence, (int, float)):
+            return None
+        return {k: float(v) for k, v in probabilities.items()}, round(float(confidence), 4)
 
 
 class SwarmResource:
@@ -196,6 +249,8 @@ HARDWARE_KINDS = {
     "3d_printer": ("hardware:3d_printer", "drukarka 3D (udostępniona przez człowieka)", ["additive_manufacturing", "production"]),
     "robot_arm": ("hardware:robot_arm", "ramię robota (udostępnione przez człowieka)", ["assembly", "production", "manufacturing"]),
     "mechanics_scrap": ("hardware:mechanics", "mechanika z odzysku (podwozia/motory)", ["mechanics", "parts_harvest", "assembly"]),
+    "appliance_sensors": ("hardware:appliance_sensor", "czujniki z pralek/zmywarek (temp/przepływ/ciśnienie/poziom)", ["sensing", "water_level", "temperature", "pressure_flow"]),
+    "esp_boards": ("hardware:esp", "płytka ESP (edge control)", ["edge_compute", "control", "mesh", "lora", "sensing"]),
     "field_feedback": ("hardware:field_msg", "wiadomość z pola (feedback)", ["field_data"]),
 }
 

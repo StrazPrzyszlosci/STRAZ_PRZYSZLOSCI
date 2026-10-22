@@ -166,20 +166,6 @@ Dla projektowania suwerennej i odpornej na brak łączności automatyzacji, jako
 Minimalny plan przełożenia tych dwóch inspiracji na kolejne execution packi znajduje się w `PROJEKTY/13_baza_czesci_recykling/docs/PLAN_PACKOW_BLUEPRINT_ESP_CLAW.md`.
 
 
-# Wesprzyj Projekt: Trash-to-Cash! 💰
-
-Uruchomiliśmy zrzutkę na dokończenie i skalowanie naszego systemu **Trash-to-Cash**. Naszym celem jest stworzenie narzędzia, które pomoże każdemu z Was zarabiać na elektrośmieciach zamiast je wyrzucać.
-
-> [!IMPORTANT]
-> **Zamiast wyrzucać pieniądze, zainwestuj w ich odzyskiwanie!**
-> Środki zostaną przeznaczone na:
-> - Opłaty API dla modeli AI (masowe przetwarzanie dokumentacji technicznej),
-> - Budowę ogólnopolskiej bazy wyceny e-odpadów.
-> - Formalizację inicjatywy Straż Przyszłości,
-
-
-**[👉 KLIKNIJ TUTAJ, ABY WESPRZEĆ ZRZUTKĘ](https://www.zrzutka.pl/pkkmk5)**
-
 # Strategia Marketingowa i Budowa Społeczności
 
 

@@ -129,6 +129,29 @@ Artefakty runu (domyślnie `scratch/selfopt/<chain>_<ts>/`):
 - `optimization_proposals.md` — propozycje (Abstral/GEPA/MAP-Elites) do review,
 - `lora_spool/` — kolejka kopert do mostu (queue.jsonl + outbox/).
 
+## OmniRoute, basal-serve, Hermes i samoewolucja repo (T52)
+
+- **OmniRoute** = gateway darmowych LLM (aliasy `auto*`); `omniroute.py`
+  egzekwuje **FREE-ONLY**: walidacja aliasu przed wywołaniem i realnego
+  modelu PO odpowiedzi (naruszenie = porażka, nigdy płatny fallback).
+- **basal-serve**: przy `SELFOPT_BASAL_URL` decyzje liczy prawdziwy, najnowszy
+  silnik basal (`/v1/systemone`); błąd = spadek do rdzenia wbudowanego
+  (log mówi prawdę: `engine` + `remote_note`).
+- **Hermes headless** (`hermes_worker.py`): `--oneshot --query-file
+  --format stream-json --safe-mode --worktree --in <sandbox> --run-budget`;
+  środowisko scrubowane (zero sekretów); produkcja → **kwarantanna**;
+  **SecurityGate** pilnuje: sekrety, destrukcja, exfiltracja env,
+  physical_actuation, network w testach, licencje copyleft → review.
+  „Zły kod nie wchodzi do roju."
+- **Samoewolucja repo** (`--evolve`, `evolver.py`): rój cyklicznie zamienia
+  własny backlog (sekcje „Następne zadania" handoffów, insighty z
+  optimization_proposals, celowniki `evolution_targets.json`) w propozycje
+  PR w `scratch/selfopt/evolution_queue/` — offline w trybie mock,
+  realnie przez Hermes+OmniRoute po uzbrojeniu. basal decyduje tryb
+  równoległości: `single | wide | deep` (szybki słaby model pisze,
+  duży sprawdza).
+- Runbook: `docs/INTEGRACJA_OMNIROUTE_BASAL_HERMES_OPENCLAW.md`.
+
 ## Silniki zewnętrzne (opcjonalne)
 
 Rdzeń działa bez zależności. Pakiety dostrajają metody, gdy są zainstalowane:
