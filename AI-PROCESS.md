@@ -3,7 +3,7 @@
 Ten plik czytają przyszłe nocne biegi cron-a (nadzorca farmy opencode) w KROK 0 —
 zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną noc.
 
-## Stan infrastruktury (aktualne na noc 2026-10-21)
+## Stan infrastruktury (aktualne na noc 2026-10-22)
 
 - **Model domyślny `opencode/muse-spark-1.3-contributor-free` NIE ISTNIEJE** w rejestrze
   opencode v2.0.28 (upgrade z 1.18.34 usunął wariant `opencode/...-free`; Muse jest teraz
@@ -272,6 +272,40 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   check_run_noc*.py są przypięte do konkretnego run_id — do nowego biegu pisać świeży skrypt
   (wzorzec: check_run_noc0.py) albo parametryzować po RUN.
 
+### Noc 2026-10-22 (NOC-3, start 04:00 — kontynuacja nocy 21/22 po NOC-0)
+
+- Readiness: probe Muse nadal „Model unavailable" (stan trwały) → bieg od razu na roboczym
+  `nvidia/z-ai/glm-5.3-flash` (stan infrastruktury bez zmian). Sync z remote: `git log
+  HEAD..origin/main` puste (klon aktualny).
+- **3 instancje równolegle** (run `20261022-040013`): A-os-warsztat-serwisowy (nowy plik
+  PROJEKTY/33_pilot_warsztat_serwisowy.md, 139 linii + mermaid — drugi pilotaż poprzeczny,
+  domyka cykl życia węzłów 25–32 po stronie utrzymania w ruchu, spięcie 06+12+17+13),
+  B-marketing-pilpoprzeczny (§9: nagłówek (25–31)→(25–32) jako jedyna zmiana istniejącej
+  treści, lista += 32, nowy punkt 6 o opowiadaniu o pilotażach poprzecznych), C-ai-process-
+  integracja (nowa sekcja „## Wzorzec integracji README" przed „## Zasady jakości").
+- Statusy: 3/3 `done` (A 22,7; B 11,3; C 7,7 min) — `--status` pokazał `active_run: null` i pustą
+  listę, końcowe statusy czytane ze state.json (wzorzec weryfikacji pkt 8).
+- Weryfikacja nadzorcy: check fraz (check_verify_noc3b.py, folding diakrytyków) 35/47 OK od razu;
+  12 „BRAK" rozstrzygnięte kontekstowymi grepami — wszystkie grounded (m.in. „lekki firmware"
+  = 06 l.20 „lekkiego firmware/UI"; „testy elektryczne/funkcjonalne/klasyfikacja jakości odzysku"
+  = 17 l.224–226; „link czasowy" i „kolejka kuracji" = 13 l.33/35; „Łowca Części" i integracja z
+  botem Telegram = README l.67; „decyzja człowieka" = 30 l.6/9; „receptury klimatyczne JSON/YAML"
+  = 24 l.86). Zero halucynacji do usunięcia. Cytat z sekcji 6 („Komunikacja nigdy nie powinna
+  wyprzedzać…") instancja B podała z linią 36 — nadzorca potwierdził exact (podciąg linii 36).
+- Korekty nadzorcy (3, minimalne diffy): (1) MARKETING zdanie wstępne §9 „numerowane 25–31" →
+  „25–32" (spójność z nagłówkiem zmienionym przez instancję B — dopuszczone poleceniem); (2) plik
+  33 „Fundamenty Technologicznych NSIP" → „Fundamenty Technologiczne NSIP" (H1 źródła 00);
+  (3) plik 33 „zintegrowanego z siecią Straży Przyszłości" → „z inicjatywą Straży Przyszłości"
+  (wierność źródłu: 21 l.6 „fabrycznie zintegrowane z inicjatywą Straży Przyszłości"). Po
+  korektach check linki powtórzony. Odmiana „KiCada" w pliku 33 zostawiona — źródło 12 samo
+  używa form odmienionych („KiCada" l.12, „KiCadem" l.48).
+- Check linków wewnętrznych: 183 linki / 0 martwych (33 + MARKETING + AI-PROCESS + README).
+  Label „Smartfony jako Sterowniki Edge Computing" (oś 5) nietknięty — check fuzzy patcha po
+  integracji czysty (diff README: dokładnie 2 zmiany).
+- Integracja README (2 minimalne diffy): oś 4 (Zasoby) *Inspiracje* += link do 33 (odzysk i
+  elektronika z odzysku = naturalna oś warsztatu), lista „Projekty Pilotażowe i Inspiracje" +=
+  pozycja 33. Commit i push na main przez nadzorcę (instancje mają zakaz git).
+
 ## Wzorzec promptu instancji (szablon dla nadzorcy)
 
 Destylat skutecznych promptów instancji z nocnych biegów 2026-10-20/21 (NOC-1, NOC-5, NOC-22).
@@ -430,25 +464,30 @@ zanim trafią do commita i push na main.
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-Stan po NOC-0 (2026-10-22): wszystkie 7 osi z README ma pliki-pilotaże (25–31), a pilotaż poprzeczny 32
-spina osie 1/3/4; ROADMAPA „Synergie osi" dokumentuje spięcia 30/31; MARKETING ma sekcje 1–9 (§9 mówi o
-pilotażach 25–31); CONTRIBUTING 1–7 z podsekcją „Wzorzec w praktyce: pilotaże 30 i 31"; ankieta ma
-ŚCIEŻKI A–D; AI-PROCESS ma wzorzec promptu i wzorzec weryfikacji nadzorcy.
+Stan po NOC-3 (2026-10-22): pilotaże 25–33 (33 = warsztat serwisowy węzłów — drugi pilotaż poprzeczny,
+spina 06/12/17/13 i domyka cykl życia węzłów 25–32); MARKETING §9 „(25–32)" z punktem 6 o pilotażach
+poprzecznych; README: oś 4 *Inspiracje* += 33, lista pilotaży += 33; AI-PROCESS ma wzorzec promptu,
+wzorzec weryfikacji nadzorcy i wzorzec integracji README; ankieta ma ŚCIEŻKI A–D; CONTRIBUTING 1–7;
+ROADMAPA „Synergie osi" dokumentuje spięcia 30/31 (bez 32/33).
 
-1. **PROJEKTY/33 — koncepcyjny pilotaż warsztatu serwisowego węzłów (spięcie 06+12+17)**: domknięcie
-   cyklu życia węzłów z pilotaży 25–32 — zaplecze serwisowe z odzysku: sterowniki i węzły wg 06,
-   suwerenna elektronika wg 12, przetwarzanie elektrośmieci na części wg 17, baza części-dawców wg 13;
-   uzasadnienie: pilotaż 32 w sekcji „Zależności od pozostałych osi i pilotaży" wskazuje 06/12 jako
-   źródła elektroniki węzłów, a zasada „odzysk zamiast gospodarki rabunkowej" powtarza się w pilotażach.
-   Wzorzec struktury: warstwy 25–31, mermaid, miejsce w fazach z ROADMAPA; inspiracje (verify ls-em):
-   06, 12, 13, 17, 32. BEZ danych liczbowych, BEZ lokalizacji.
-2. **MARKETING — rozszerzenie §9 „Jak opowiadać o pilotażach" o pilotaż poprzeczny 32**: §9 opisuje
-   dziś pilotaże 25–31; dopisek (edycja wyłącznie dodająca, w konwencji §9) jak opowiadać o spięciu
-   trzech osi w jednym węźle — przez dokonania widoczne w repo, bez obietnic; inspiracje (verify
-   ls-em): MARKETING §9, PROJEKTY/32, ROADMAPA „Kolejne spięcia osi".
-3. **AI-PROCESS — „Wzorzec integracji README"**: nowa sekcja (przed „## Zasady jakości") destylująca
-   procedurę integracyjną nadzorcy: najpierw sprawdzić, czy oś ma już listę *Inspiracje*, doklejać link
-   do istniejącej listy, nowy pilotaż dopisywać na liście „Projekty Pilotażowe i Inspiracje",
-   minimalne diffy (lekcja z NOC-3 o fuzzy patchu), pułapka nazwy pliku 16.
-   (Model: `nvidia/z-ai/glm-5.3-flash`; przy 429/limit → 1 instancja. Plan.json = płaska tablica; absolutna
-   ścieżka repo; instancje mają zakaz git; weryfikacja wg „## Wzorzec weryfikacji nadzorcy".)
+1. **ROADMAPA — rozszerzenie „### Kolejne spięcia osi" o pilotaże poprzeczne 32 i 33**: podsekcja
+   dziś opisuje wyłącznie 30/31; dopisek (edycja wyłącznie dodająca, konwencja podsekcji) o tym, że
+   zaproszenie „miejsce na kolejne koncepcje" ma już kolejne odpowiedzi: węzeł zintegrowany (32,
+   spięcie 25+27+30) i warsztat serwisowy (33, domknięcie cyklu życia węzłów z odzysku 06/12/17/13);
+   inspiracje (verify ls-em): ROADMAPA l.174+, PROJEKTY/32, PROJEKTY/33. BEZ liczb i dat.
+2. **PROJEKTY/34 — pilotaż poprzeczny łączności i wspólnej telemetrii węzłów (spięcie 10+25+27+30)**:
+   plik 32 w podsekcji „Łączność i wspólne dane" wskazuje 10 (Mesh i LoRa) jako odporną łączność dla
+   węzłów pracujących daleko od infrastruktury (przywoływany wprost przez pilotaże 25 i 27), a wzorzec
+   „edge-first" z projektu 01 ma spinać warstwy ze wspólną bazą wiedzy; pilotaż 34 projektuje wspólną
+   warstwę telemetrii wielu węzłów (żywnościowy 25, energetyczny 27, zasobowy 30) na łączności Mesh;
+   wzorzec struktury: pilotaż 32/33 (H1, Intelekt wyprzedza Kapitał!, Opis, moduły ###, JEDEN mermaid,
+   Zależności, Mapa drogowa, Społeczność, Zasoby, zaproszenie 26–32); inspiracje (verify ls-em): 10,
+   01, 25, 27, 30, 32, 33. BEZ danych liczbowych, BEZ lokalizacji, kolejność wyłącznie względna.
+3. **CONTRIBUTING §7 — podsekcja „Wzorzec w praktyce: pilotaże poprzeczne 32 i 33"**: §7 ma dziś
+   „Wzorzec w praktyce: pilotaże 30 i 31"; dopisek (edycja wyłącznie dodająca, po istniejącej
+   podsekcji) pokazujący, że te same zasady wzorca — zalążki zamiast zera, kolejność względna,
+   decyzja człowieka, wiedza wraca do wspólnej bazy — działają także przy ŁĄCZENIU osi (32) i przy
+   utrzymaniu w ruchu (33); inspiracje (verify ls-em): CONTRIBUTING §7, PROJEKTY/32, PROJEKTY/33.
+   (Model: `nvidia/z-ai/glm-5.3-flash`; przy 429/limit → 1 instancja. Plan.json = płaska tablica;
+   absolutna ścieżka repo; instancje mają zakaz git; weryfikacja wg „## Wzorzec weryfikacji
+   nadzorcy", integracja wg „## Wzorzec integracji README".)
