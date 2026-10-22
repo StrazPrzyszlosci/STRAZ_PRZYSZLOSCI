@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from selfopt_chain.adapters import engines_summary, get_graph_engine
 from selfopt_chain.engine import FreeApiEngine, MockEngine
+from selfopt_chain.omniroute import OmniRouteEngine
 from selfopt_chain.graph import GraphError
 from selfopt_chain.optimizers import GepaPromptOptimizer, MapElitesOptimizer
 from selfopt_chain.registry import DEFAULT_REGISTRY, load_registry
@@ -142,6 +143,8 @@ class ChainRunner:
         self.blocked: list[dict[str, Any]] = []
         if engine_name == "free-api":
             self.engine = FreeApiEngine(models)
+        elif engine_name == "omniroute":
+            self.engine = OmniRouteEngine(models)
         else:
             self.engine = MockEngine(models)
 

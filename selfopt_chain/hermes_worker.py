@@ -79,9 +79,15 @@ class SecurityGate:
             "quarantine_required": bool(violations or licenses_review),
         }
 
-    def inspect_tree(self, root: Path) -> dict[str, Any]:
+    def inspect_tree(self, root: Path, skip: set[str] | None = None) -> dict[str, Any]:
+        """Bramka nad WYPRODUKOWANYMI artefaktami; surowe logi strumienia (output.json)
+        zostają zapieczętowane w kwarantannie, ale nie są oceniane jako kod — zawierają
+        echo zapytania i ruch narzędzi, nie produkcję modelu."""
+        skip = skip or set()
         report: dict[str, Any] = {"ok": True, "blocked": False, "violations": [], "licenses_review": [], "scanned_files": 0}
         for path in sorted(root.rglob("*")):
+            if path.name in skip:
+                continue
             if path.is_file() and path.suffix in {".py", ".js", ".mjs", ".ts", ".c", ".cpp", ".h", ".sh", ".md", ".json", ".yaml", ".yml", ".toml"}:
                 try:
                     content = path.read_text(encoding="utf-8", errors="ignore")
@@ -107,17 +113,22 @@ class HermesWorker:
     SELFOPT_HERMES=1; wynik zawsze przez kwarantannę + SecurityGate.
     """
 
-    def __init__(self, omniroute_base_url: str | None = None, model_alias: str = "auto") -> None:
+    def __init__(self, omniroute_base_url: str | None = None, model_alias: str = "auto", api_key: str | None = None) -> None:
+        import os
+
         self.omniroute_base_url = (omniroute_base_url or "http://127.0.0.1:20128/v1").rstrip("/")
         self.model_alias = model_alias
+        self.api_key = api_key or os.environ.get("SELFOPT_OMNIROUTE_KEY") or ""
 
     def sandbox_dir(self, run_id: str) -> Path:
-        path = SANDBOX_ROOT / run_id
+        base = SANDBOX_ROOT if SANDBOX_ROOT.is_absolute() else Path.cwd() / SANDBOX_ROOT
+        path = base / run_id
         path.mkdir(parents=True, exist_ok=True)
         return path
 
     def quarantine_dir(self, run_id: str) -> Path:
-        path = QUARANTINE_ROOT / run_id
+        base = QUARANTINE_ROOT if QUARANTINE_ROOT.is_absolute() else Path.cwd() / QUARANTINE_ROOT
+        path = base / run_id
         path.mkdir(parents=True, exist_ok=True)
         return path
 
@@ -127,8 +138,13 @@ class HermesWorker:
         return task_file
 
     def build_command(self, task_file: Path, run_dir: Path, *, max_turns: int = DEFAULT_MAX_TURNS, run_budget_s: int = DEFAULT_RUN_BUDGET_S, toolsets: str = DEFAULT_TOOLSETS) -> list[str]:
-        """Izolowane wywołanie headless (flagi zweryfikowane wobec hermes CLI 2026-10)."""
-        return [
+        """Izolowane wywołanie headless (zweryfikowane wobec hermes CLI 2026-10).
+
+        Tryb gateway/oneshot NIE przyjmuje --worktree ani --run-budget (opcje TUI);
+        budżet czasu egzekwujemy w run_isolated przez timeout subprocess, a izolację
+        zapewniają --in <sandbox> + --safe-mode + scrub_env.
+        """
+        command = [
             "hermes", "chat",
             "--oneshot",
             "--query-file", str(task_file),
@@ -137,12 +153,13 @@ class HermesWorker:
             "--model", self.model_alias,
             "--format", "stream-json",
             "--max-turns", str(max_turns),
-            "--run-budget", str(run_budget_s),
             "--in", str(run_dir),
-            "--worktree",
             "--safe-mode",
             "-t", toolsets,
         ]
+        if self.api_key:
+            command.extend(["--api-key", self.api_key])
+        return command
 
     @staticmethod
     def scrub_env() -> dict[str, str]:
@@ -194,7 +211,7 @@ class HermesWorker:
                 target = quarantine / produced.relative_to(run_dir)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(produced, target)
-        gate = SecurityGate().inspect_tree(quarantine)
+        gate = SecurityGate().inspect_tree(quarantine, skip={"output.json", "task.md"})
         receipt["security_gate"] = gate
         receipt["released_from_quarantine"] = False
         return receipt

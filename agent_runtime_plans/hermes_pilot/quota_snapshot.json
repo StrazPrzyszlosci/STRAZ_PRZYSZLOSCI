@@ -1,43 +1,31 @@
 {
-  "generated_at": "2026-07-07T00:35:43+00:00",
-  "source": "manual",
-  "platform": "hermes_pilot",
+  "checked_at": "2026-10-22T22:00:00+00:00",
+  "checked_by": "operator_armament_2026-10-22 (na polecenie operatora: 'zainstaluj wszystko co rój potrzebuje')",
+  "note": "Stan na moment uzbrojenia stosu roju. Tylko provider z kluczem w środowisku ma status ok; limity do weryfikacji w konsoli (limits_verified=false w rejestrze).",
   "entries": [
     {
       "provider": "google_ai_studio_free",
-      "model": "gemini-3.1-flash-lite",
+      "model": "gemini-family",
       "source": "manual",
-      "checked_at": "2026-07-07T00:35:43+00:00",
-      "status": "stale",
-      "rpm": null,
+      "checked_at": "2026-10-22T22:00:00+00:00",
+      "status": "ok",
+      "rpm": 15,
       "tpm": null,
-      "rpd": null,
+      "rpd": 1000,
       "guaranteed": false,
-      "note": "inspect active project-level RPM/TPM/RPD limits in AI Studio"
+      "note": "klucz GEMINI_API_KEY obecny w środowisku operatora; inspect project-level limits w AI Studio"
     },
     {
-      "provider": "nvidia_nim_free",
-      "model": "google/gemma-4-31b-it",
+      "provider": "openrouter_free",
+      "model": ":free",
       "source": "manual",
-      "checked_at": "2026-07-07T00:35:43+00:00",
-      "status": "stale",
-      "rpm": null,
+      "checked_at": "2026-10-22T22:00:00+00:00",
+      "status": "ok",
+      "rpm": 20,
       "tpm": null,
-      "rpd": null,
+      "rpd": 200,
       "guaranteed": false,
-      "note": "observed baseline 40 RPM not guaranteed; measure live"
-    },
-    {
-      "provider": "selfhost_recovered_node",
-      "model": "small-coder",
-      "source": "manual",
-      "checked_at": "2026-07-07T00:35:43+00:00",
-      "status": "stale",
-      "rpm": null,
-      "tpm": null,
-      "rpd": null,
-      "guaranteed": false,
-      "note": "bounded by recovered hardware and energy/OZE ledger"
+      "note": "klucz OPENROUTER_API_KEY obecny w środowisku; modele :free, limity seed do weryfikacji"
     }
   ]
 }

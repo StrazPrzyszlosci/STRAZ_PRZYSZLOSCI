@@ -23,11 +23,13 @@ from typing import Any
 
 NETWORK_ENV_FLAG = "SELFOPT_NETWORK"
 OMNIROUTE_URL_ENV = "SELFOPT_OMNIROUTE_URL"
+OMNIROUTE_KEY_ENV = "SELFOPT_OMNIROUTE_KEY"
 DEFAULT_OMNIROUTE_URL = "http://127.0.0.1:20128/v1"
 DEFAULT_MODEL_ALIAS = "auto"
 DEFAULT_TIMEOUT_S = 180
 
 FREE_ALIAS_PREFIX = "auto"
+FREE_PROVIDER_IDS = {"mistral_free", "nvidia_nim_free", "google_ai_studio_free", "openrouter_free", "cerebras_free", "groq_free", "github_models_free"}
 
 
 class FreeOnlyPolicy:
@@ -59,10 +61,51 @@ def omniroute_url() -> str | None:
 class OmniRouteAdapter:
     """Klient OpenAI-compatible do bramki OmniRoute z egzekwowaniem FREE-ONLY."""
 
-    def __init__(self, policy: FreeOnlyPolicy, base_url: str | None = None, timeout_s: int = DEFAULT_TIMEOUT_S) -> None:
+    def __init__(self, policy: FreeOnlyPolicy, base_url: str | None = None, timeout_s: int = DEFAULT_TIMEOUT_S, api_key: str | None = None) -> None:
+        import os
+
         self.policy = policy
         self.base_url = (base_url or omniroute_url() or DEFAULT_OMNIROUTE_URL).rstrip("/")
         self.timeout_s = timeout_s
+        self.api_key = api_key or os.environ.get(OMNIROUTE_KEY_ENV) or ""
+        self._catalog_loaded = False
+
+    def _headers(self) -> dict[str, str]:
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    def load_free_catalog(self) -> int:
+        """Katalog /v1/models: modele free providerów dokładane do allowlisty.
+
+        Allowlista pozostaje ścisła: owned_by musi być znanym darmowym
+        providerem albo model musi być w naszym rejestrze/kończyć się ':free'.
+        """
+        try:
+            req = urllib.request.Request(f"{self.base_url}/models", headers=self._headers())
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            return 0
+        entries = payload.get("data", []) if isinstance(payload, dict) else payload
+        added = 0
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            model_id = str(entry.get("id", ""))
+            owned_by = str(entry.get("owned_by", ""))
+            if not model_id:
+                continue
+            if owned_by in FREE_PROVIDER_IDS or model_id.endswith(":free") or model_id in self.policy.free_model_ids:
+                before = len(self.policy.free_model_ids)
+                self.policy.free_model_ids.add(model_id)
+                if owned_by and owned_by not in self.policy.free_providers and owned_by in FREE_PROVIDER_IDS:
+                    self.policy.free_providers.add(owned_by)
+                if len(self.policy.free_model_ids) > before:
+                    added += 1
+        self._catalog_loaded = True
+        return added
 
     @staticmethod
     def network_enabled() -> bool:
@@ -89,7 +132,7 @@ class OmniRouteAdapter:
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
         }).encode("utf-8")
-        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(url, data=body, headers=self._headers())
         started = time.monotonic()
         try:
             with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
@@ -116,4 +159,24 @@ class OmniRouteAdapter:
             return result
         tokens = len(prompt.encode("utf-8")) // 4 + len(output.encode("utf-8")) // 4 + 32
         result.update(ok=True, output=output, model_id=actual_model, latency_ms=latency_ms, tokens_est=tokens)
+        return result
+
+
+class OmniRouteEngine:
+    """Silnik łańcuchów roju na bramce OmniRoute (interfejs jak MockEngine).
+
+    Router nadal wybiera z rejestru (budżety RPM/RPD), ale wywołanie idzie
+    przez gateway z aliasem modelu; model spoza katalogu → fallback 'auto'.
+    Katalog free dokładany raz na instancję (load_free_catalog).
+    """
+
+    def __init__(self, models: list[dict], base_url: str | None = None, api_key: str | None = None, timeout_s: int = DEFAULT_TIMEOUT_S) -> None:
+        self.adapter = OmniRouteAdapter(FreeOnlyPolicy(models), base_url=base_url, timeout_s=timeout_s, api_key=api_key)
+        self.adapter.load_free_catalog()
+
+    def complete(self, task: dict[str, Any], model_id: str, prompt: str) -> dict[str, Any]:
+        alias = model_id if self.adapter.policy.alias_allowed(model_id) else DEFAULT_MODEL_ALIAS
+        result = self.adapter.complete(task, prompt, model_alias=alias)
+        if result.get("requested_alias") == alias:
+            result["model_id"] = result.get("model_id") or model_id
         return result
