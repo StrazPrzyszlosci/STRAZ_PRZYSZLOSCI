@@ -130,7 +130,12 @@ class HermesWorker:
         return task_file
 
     def build_command(self, task_file: Path, run_dir: Path, *, max_turns: int = DEFAULT_MAX_TURNS, run_budget_s: int = DEFAULT_RUN_BUDGET_S, toolsets: str = DEFAULT_TOOLSETS) -> list[str]:
-        """Izolowane wywołanie headless (flagi zweryfikowane wobec hermes CLI 2026-10)."""
+        """Izolowane wywołanie headless (zweryfikowane wobec hermes CLI 2026-10).
+
+        Tryb gateway/oneshot NIE przyjmuje --worktree ani --run-budget (opcje TUI);
+        budżet czasu egzekwujemy w run_isolated przez timeout subprocess, a izolację
+        zapewniają --in <sandbox> + --safe-mode + scrub_env.
+        """
         command = [
             "hermes", "chat",
             "--oneshot",
@@ -140,9 +145,7 @@ class HermesWorker:
             "--model", self.model_alias,
             "--format", "stream-json",
             "--max-turns", str(max_turns),
-            "--run-budget", str(run_budget_s),
             "--in", str(run_dir),
-            "--worktree",
             "--safe-mode",
             "-t", toolsets,
         ]

@@ -163,15 +163,17 @@ class BasalRemoteEngineTest(unittest.TestCase):
 
 class HermesIsolationTest(unittest.TestCase):
     def test_command_uses_isolation_flags(self):
-        worker = HermesWorker(omniroute_base_url="http://127.0.0.1:8787/v1")
+        worker = HermesWorker(omniroute_base_url="http://127.0.0.1:20128/v1")
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "run"
             run_dir.mkdir()
             task = worker.write_task_file("r1", "task.md", "# zadanie")
             command = worker.build_command(task, run_dir)
         flags = " ".join(command)
-        for flag in ("--safe-mode", "--worktree", "--in", "--oneshot", "--query-file", "--run-budget", "--max-turns", "--format stream-json", "--base-url"):
+        for flag in ("--safe-mode", "--in", "--oneshot", "--query-file", "--max-turns", "--format stream-json", "--base-url"):
             self.assertIn(flag, flags)
+        self.assertNotIn("--worktree", flags)
+        self.assertNotIn("--run-budget", flags)
         self.assertIn("hermes", command[0])
 
     def test_scrub_env_strips_secrets(self):
