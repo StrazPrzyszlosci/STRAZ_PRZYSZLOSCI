@@ -145,17 +145,31 @@ class BasalDecisionCore:
         return decision
 
     def _remote_decide(self, question_type: str, options: list[str], scores: dict[str, float], context: dict[str, Any] | None) -> tuple[dict[str, float], float] | None:
-        """Decyzja z prawdziwego basal-serve (/v1/systemone); None = fallback."""
+        """Decyzja z prawdziwego basal-serve (/v1/systemone); None = fallback.
+
+        Kontrakt wg repozytorium basal (router.py build_request): state (obowiązkowe),
+        lang, questions{name: {type: choice, instructions, criteria: {key: OPIS}}}.
+        Wynik: answers{name: {choice, probabilities, confidence}}. Nasze heurystyczne
+        score'e przekazujemy jako element opisu kryterium — basal czyta dowody, nie liczby.
+        """
         import urllib.request
 
+        instructions = REMOTE_INSTRUCTIONS.get(question_type, REMOTE_INSTRUCTIONS["default"])
+        criteria = {}
+        for option in options:
+            score = scores.get(option, 0.0)
+            criteria[option] = f"Opcja '{option}'. Heurystyczny score roju: {score:.3f} (im wyzej, tym lepsze dopasowanie wg strategii cyklu)."
+        state = json.dumps({"pytanie": question_type, "kontekst_roju": context or {}, "opcje": options}, ensure_ascii=False)
         payload = {
-            "question": {
-                "type": "choice",
-                "target": "decision",
-                "options": list(options),
-                "scores": {k: float(v) for k, v in scores.items()},
+            "state": state,
+            "lang": "pl",
+            "questions": {
+                "decision": {
+                    "type": "choice",
+                    "instructions": instructions,
+                    "criteria": criteria,
+                }
             },
-            "context": {"question_type": question_type, **(context or {})},
         }
         url = f"{self.remote_url.rstrip('/')}/v1/systemone"
         req = urllib.request.Request(
@@ -255,6 +269,28 @@ HARDWARE_KINDS = {
 }
 
 CHARTER_PATH = Path(__file__).with_name("charter.json")
+
+REMOTE_INSTRUCTIONS: dict[str, str] = {
+    "default": (
+        "Wybierz najlepsza opcje dla roju Strazy Przyszlosci na podstawie stanu i kryteriow. "
+        "Uwzglednij heurystyczny score roju jako dowod, ale ocen tez dopasowanie opisu opcji do sytuacji."
+    ),
+    "strategy": (
+        "Decyzja: strategia zarzadzania rujem na ten cykl (inspiracja CEZAR). Sygnaly: backlog, "
+        "presja limitow darmowych API, zadania krytyczne, okno OZE. Wybierz strategie, ktora "
+        "maksymalizuje liczbe zweryfikowanych ulepszen przy dostepnych zasobach."
+    ),
+    "allocation": (
+        "Decyzja: przydzial zasobu (sprzet/model) do zapotrzebowania misyjnego. Zasoby: telefony, "
+        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wczely selfhost, darmowe modele API. "
+        "Wybierz zasob najlepiej pokrywajacy wymagania zapotrzebowania."
+    ),
+    "exec_mode": (
+        "Decyzja: tryb wykonania zadania. device_profile = gotowy algorytm pisany pod sprzet; "
+        "on_device_model = maly model decyzyjny na wezle; cloud_chain = lancuch LLM w hubie na "
+        "darmowych API. Priorytet: lokalnie i tanszej, jesli wystarcza."
+    ),
+}
 
 
 def load_charter(path: Path = CHARTER_PATH) -> dict[str, Any]:
