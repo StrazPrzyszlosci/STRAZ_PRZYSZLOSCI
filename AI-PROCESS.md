@@ -241,6 +241,37 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   (25 vs 26–31); (b) nazwa własna pośrednia („obieg wsparcia") nieuzasadniona, gdy źródło daje opis, a nie nazwę —
   wymieniać na exact ze źródła.
 
+### Noc 2026-10-22 (NOC-0, start 01:13 — kontynuacja nocy 21/22 po NOC-22)
+
+- Readiness: probe Muse nadal „Model unavailable" (trwały stan) → własny probe `nvidia/z-ai/glm-5.3-flash`
+  (probe_glm_noc5.py) → PROBE_OK. Sync z remote: `git log HEAD..origin/main` puste (klon aktualny;
+  na origin doszła gałąź codex/T50-swarm-basal-kilo, main bez zmian).
+- **3 instancje równolegle** (run `20261022-011300`): A-os-wezel-zintegrowany (nowy plik
+  PROJEKTY/32_pilot_wezla_zintegrowanego.md, 135 linii + mermaid — pierwszy pilotaż poprzeczny,
+  spięcie 25+27+30), B-ankieta-sciezka-d (nowa „### 📊 ŚCIEŻKA D: DANE I ANALIZA" między ŚCIEŻKĄ C
+  a blokiem „Nie wiesz, którą wybrać?" + 1 nowy punkt mapujący, bez wymyślonych tagów), C-contributing-
+  wzorzec-30-31 (podsekcja „### Wzorzec w praktyce: pilotaże 30 i 31" na końcu §7, za Krokiem 5).
+- Statusy: B `done` (18,8 min), C `done` (16,7 min), A **`timeout_killed`** po 25,0 min — ale plik
+  docelowy kompletny (stopka w wariancie 26–31 na miejscu; instancja zdążyła zapisać dokument i zginęła
+  na etapie sprawozdania). Nadzorca zweryfikował plik w całości i przyjął go; zadania NIE powtarzano.
+- Weryfikacja nadzorcy: check fraz (check_verify_noc0.py, folding diakrytyków) 24/26 OK od razu;
+  2 „BRAK" po kontekstowym grepie potwierdzone u źródeł — needle checku miał inną formę niż źródło
+  („systemy monitoringu i prognozowania zużycia zasobów" exact = ROADMAPA l.83; „kod już istnieje…
+  czeka na adaptację" = README l.19). Check linków wewnętrznych: 104 linki, 0 martwych. Labelki
+  „16. Geoportal i Potencjał Rozwoju" i „21. Home Assistant na Smartfonie" zgodne z konwencją README;
+  nazwy faz 0–3 i cytaty („Ta oś zasila wszystkie pozostałe…", „Do tej fazy nie przechodzimy
+  obietnicami, lecz zasobami", „pomiar, rekomendacja, decyzja człowieka…") exact u źródeł.
+- Pułapka nazwy pliku 16: realna nazwa to `16_geoportal_potencjal_rozwoju.md` (BEZ „u" w „potencjal");
+  instancja B wykryła to sama (`od -c` po nieudanym `head`) i w obu nowych plikach hrefy poprawne.
+- Korekty nadzorcy: 0 w treści instancji. Integracja README (2 minimalne diffy): oś 1 (Żywność)
+  *Inspiracje* += link do 32 (rdzeń węzła to oś 1; spięcia poprzeczne opisuje ROADMAPA), lista
+  „Projekty Pilotażowe i Inspiracje" += pozycja 32. Commit i push na main przez nadzorcę (instancje
+  mają zakaz git).
+- Lekcje techniczne: (1) `timeout_killed` ≠ utracona praca — decyzję o przyjęciu pliku podejmować po
+  przeglądzie treści (kompletność sekcji i stopki), nie po statusie instancji; (2) skrypty
+  check_run_noc*.py są przypięte do konkretnego run_id — do nowego biegu pisać świeży skrypt
+  (wzorzec: check_run_noc0.py) albo parametryzować po RUN.
+
 ## Wzorzec promptu instancji (szablon dla nadzorcy)
 
 Destylat skutecznych promptów instancji z nocnych biegów 2026-10-20/21 (NOC-1, NOC-5, NOC-22).
@@ -370,22 +401,25 @@ WSPÓLNYM DOBREM dopiero wtedy, gdy nadzorca potwierdzi ją krok po kroku.
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-Stan po NOC-22 (2026-10-21): wszystkie 7 osi z README ma pliki-pilotaże (25–31); ROADMAPA „Synergie osi"
-dokumentuje spięcia pilotaży 30/31; MARKETING ma sekcje 1–9; CONTRIBUTING 1–7; AI-PROCESS ma wzorzec
-promptu i wzorzec weryfikacji nadzorcy.
+Stan po NOC-0 (2026-10-22): wszystkie 7 osi z README ma pliki-pilotaże (25–31), a pilotaż poprzeczny 32
+spina osie 1/3/4; ROADMAPA „Synergie osi" dokumentuje spięcia 30/31; MARKETING ma sekcje 1–9 (§9 mówi o
+pilotażach 25–31); CONTRIBUTING 1–7 z podsekcją „Wzorzec w praktyce: pilotaże 30 i 31"; ankieta ma
+ŚCIEŻKI A–D; AI-PROCESS ma wzorzec promptu i wzorzec weryfikacji nadzorcy.
 
-1. **PROJEKTY/32 — koncepcyjny pilotaż węzła zintegrowanego (spięcie 25+27+30)**: pierwszy pilotaż
-   poprzeczny — węzeł produkcji żywności (25) zasilany energią wg 27 i zarządzany zasobami wg 30
-   (woda/substraty, wspólna telemetria); uzasadnienie: nowa podsekcja „Kolejne spięcia osi" w ROADMAPA
-   oraz „miejsce na kolejne koncepcje". Wzorzec struktury: warstwy 25–31, mermaid, miejsce w fazach z
-   ROADMAPA; inspiracje (verify ls-em): 25, 27, 30, 06, 10, 12. BEZ danych liczbowych, BEZ lokalizacji.
-2. **REKRUTACJA_ANKIETA — ŚCIEŻKA D: dane i analiza**: §5 ma dziś ŚCIEŻKI A (treści), B (marketing),
-   C (kod) — brak ścieżki dla osi 4 (zasoby) i 7 (planowanie przestrzenne). Nowa ŚCIEŻKA D wg konwencji
-   A–C (zakończenie widocznym dokonaniem; por. ŚCIEŻKA B o ciągłości obszaru); inspiracje (verify ls-em):
-   16, 19, 21, 29, 30; edycja dodająca na końcu §5, nie ruszać istniejących ŚCIEŻEK.
-3. **CONTRIBUTING — podsekcja w §7 „Od pomysłu do pilotażu (wzorzec 25–29)"**: dopisek (edycja wyłącznie
-   dodająca, bez zmiany nagłówka §7) pokazujący wzorzec w praktyce na 30/31 — 31 jako pilotaż czysto
-   procesowy (dane wejściowe → analiza AI → decyzja człowieka), 30 jako pilotaż zasobowy z pętlą nauki;
-   inspiracje: 30, 31, 25 (konwencja „pełnoprawny wkład… bez własnego sprzętu").
+1. **PROJEKTY/33 — koncepcyjny pilotaż warsztatu serwisowego węzłów (spięcie 06+12+17)**: domknięcie
+   cyklu życia węzłów z pilotaży 25–32 — zaplecze serwisowe z odzysku: sterowniki i węzły wg 06,
+   suwerenna elektronika wg 12, przetwarzanie elektrośmieci na części wg 17, baza części-dawców wg 13;
+   uzasadnienie: pilotaż 32 w sekcji „Zależności od pozostałych osi i pilotaży" wskazuje 06/12 jako
+   źródła elektroniki węzłów, a zasada „odzysk zamiast gospodarki rabunkowej" powtarza się w pilotażach.
+   Wzorzec struktury: warstwy 25–31, mermaid, miejsce w fazach z ROADMAPA; inspiracje (verify ls-em):
+   06, 12, 13, 17, 32. BEZ danych liczbowych, BEZ lokalizacji.
+2. **MARKETING — rozszerzenie §9 „Jak opowiadać o pilotażach" o pilotaż poprzeczny 32**: §9 opisuje
+   dziś pilotaże 25–31; dopisek (edycja wyłącznie dodająca, w konwencji §9) jak opowiadać o spięciu
+   trzech osi w jednym węźle — przez dokonania widoczne w repo, bez obietnic; inspiracje (verify
+   ls-em): MARKETING §9, PROJEKTY/32, ROADMAPA „Kolejne spięcia osi".
+3. **AI-PROCESS — „Wzorzec integracji README"**: nowa sekcja (przed „## Zasady jakości") destylująca
+   procedurę integracyjną nadzorcy: najpierw sprawdzić, czy oś ma już listę *Inspiracje*, doklejać link
+   do istniejącej listy, nowy pilotaż dopisywać na liście „Projekty Pilotażowe i Inspiracje",
+   minimalne diffy (lekcja z NOC-3 o fuzzy patchu), pułapka nazwy pliku 16.
    (Model: `nvidia/z-ai/glm-5.3-flash`; przy 429/limit → 1 instancja. Plan.json = płaska tablica; absolutna
    ścieżka repo; instancje mają zakaz git; weryfikacja wg „## Wzorzec weryfikacji nadzorcy".)
