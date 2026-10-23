@@ -126,6 +126,7 @@ class OmniRouteAdapter:
             "model": model_alias,
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
+            "max_tokens": int(task.get("max_tokens", 4096)),
         }).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=self._headers())
         started = time.monotonic()

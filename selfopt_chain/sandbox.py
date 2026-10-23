@@ -19,6 +19,9 @@ class Sandbox:
         for path in ['/usr', '/bin', '/sbin', '/lib', '/lib64']:
             if Path(path).exists():
                 args += ['--ro-bind', path, path]
+        node = shutil.which('node')
+        if node:
+            args += ['--dir', '/tools', '--ro-bind', str(Path(node).resolve()), '/tools/node', '--setenv', 'PATH', '/tools:/usr/bin:/bin']
         for source, target in (mounts or []):
             args += ['--ro-bind', str(source), target]
         for key, value in (environment or {}).items():
