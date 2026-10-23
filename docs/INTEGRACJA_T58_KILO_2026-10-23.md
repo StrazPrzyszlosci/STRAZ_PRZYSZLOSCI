@@ -2,7 +2,7 @@
 
 Decyzja operatora z 2026-10-23: **Kilo poprawia runtime; Codex weryfikuje i przygotowuje integrację**. Codex zawęził własny claim T58 do dokumentacji tej pracy. Nie zmienia kodu runtime ani claimu Kilo.
 
-**Najnowszy zakończony odbiór:** commit Kilo `2a72b37` ma **492 Python OK**. Pierwszy podgląd integracji miał 523 Python OK, a kandydat rozszerzony o naprawę `simulated → real` ma **527 Python OK**. Aktualny patch ma SHA256 `3dd8a71741cf531f080bda977a576df5162fe28c8924933482b21fbb796d745c`; nie jest zastosowany do aktywnego runtime. Rzeczywisty lokalny engine przekroczył 30-sekundowy timeout. Kolejne sekcje zachowują historię i dokładne granice każdego odbioru.
+**Najnowszy zakończony odbiór:** commit Kilo `2a72b37` ma **492 Python OK**. Pierwszy podgląd integracji miał 523 Python OK, a kandydat rozszerzony o naprawę `simulated → real` ma **527 Python OK**. Aktualny patch ma SHA256 `3f311b8e756ebde2ed81f3b0fa3749eac84ad36e839893106907d3d156ae4570`; nie jest zastosowany do aktywnego runtime. Rzeczywisty lokalny engine przekroczył 30-sekundowy timeout. Kolejne sekcje zachowują historię i dokładne granice każdego odbioru.
 
 **Wynik badanej migawki: niegotowa do integracji ani uruchomienia autonomicznej ewolucji.** To ocena konkretnego WIP, nie późniejszych poprawek Kilo ani stanu `main`. T58 również nie ma jeszcze dowodu stabilnej ewolucji.
 
@@ -167,6 +167,6 @@ Naprawa pozwala na wznowienie stanu `simulated` wyłącznie po rzeczywistym uzbr
 
 Odbiór: test restartu na poprzednim kodzie odtwarzał brak realnego wykonania. Na kandydacie przechodzą cztery testy obejmujące pełny restart i retencję wyniku, ośmiu współbieżnych pretendentów, niezmienność realnych stanów terminalnych oraz migrację istniejącego wpisu symulacji bez obchodzenia limitu błędów realnych. Pełny Python: **527 OK**. Kontrolowany worker i review w tych testach są fixture, nie dowodem realnej produkcji modelu.
 
-SHA256: `3dd8a71741cf531f080bda977a576df5162fe28c8924933482b21fbb796d745c`. Kandydat: `/tmp/straz-integration-preview-7ic0rqjm`; niezależne odtworzenie: `/tmp/straz-promotion-replay-4nw59lz7`. `git apply --check` przechodzi, a siedem plików po odtworzeniu ma identyczne bajty. Dowody: `scratch/selfopt/integration-review/20261023-simulation-promotion/{manifest.json,replay.json,baseline-regression.log,candidate-regression.log,python.log,build_preview.py}`.
+SHA256: `3f311b8e756ebde2ed81f3b0fa3749eac84ad36e839893106907d3d156ae4570`. Kandydat: `/tmp/straz-integration-preview-7ic0rqjm`; niezależne odtworzenie: `/tmp/straz-promotion-replay-4nw59lz7`. `git apply --check` przechodzi, a siedem plików po odtworzeniu ma identyczne bajty. Dowody: `scratch/selfopt/integration-review/20261023-simulation-promotion/{manifest.json,replay.json,baseline-regression.log,candidate-regression.log,python.log,build_preview.py}`.
 
 Następny test ma objąć ograniczony rzeczywisty pilot na osobnej kopii: najpierw symulacja, restart z uzbrojonym workerem i tym samym manifeście, trwały wspólny ledger bez resetu oraz niezależny odbiór produkcji. Ten test weryfikuje kandydata; nie jest wdrożeniem do main ani zmianą uzgodnionego właściciela aktywnego runtime.
