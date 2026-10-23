@@ -144,12 +144,18 @@ class OmniRouteAdapter:
             return result
         result["requested_alias"] = model_alias
         url = f"{self.base_url}/chat/completions"
-        body = json.dumps({
+        messages = [{"role": "user", "content": prompt}]
+        if task.get('system_prompt'):
+            messages.insert(0, {'role': 'system', 'content': task['system_prompt']})
+        request_body = {
             "model": model_alias,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages,
             "stream": False,
             "max_tokens": int(task.get("max_tokens", 4096)),
-        }).encode("utf-8")
+        }
+        if task.get('response_format'):
+            request_body['response_format'] = task['response_format']
+        body = json.dumps(request_body).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=self._headers())
         started = time.monotonic()
         try:

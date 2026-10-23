@@ -80,7 +80,9 @@ class ProviderDiagnosticTests(unittest.TestCase):
 
     def test_model_selection_sees_measured_transport_history(self):
         models = [{'model_id': name, 'provider': 'p', 'rpm_seed': 10, 'rpd_seed': 100,
-                   'quality_tier': 4, 'speed_class': 'fast'} for name in ['first-failing', 'working']]
+                   'quality_tier': 4, 'speed_class': 'fast', 'cost_class': 'free_quota',
+                   'privacy_class': 'public_only', 'capabilities': ['text'], 'context_tokens':32768}
+                  for name in ['first-failing', 'working']]
         now = [100.0]
         ledger = QuotaLedger(models, clock=lambda: now[0])
         for _ in range(2):

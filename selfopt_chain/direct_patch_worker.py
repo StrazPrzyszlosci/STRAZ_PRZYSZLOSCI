@@ -11,6 +11,14 @@ from selfopt_chain.hermes_worker import SecurityGate
 from selfopt_chain.omniroute import OmniRouteEngine
 from selfopt_chain.quota import BudgetedEngine
 
+PATCH_SCHEMA = {'type': 'object', 'additionalProperties': False,
+    'required': ['proposal', 'edits', 'new_files'], 'properties': {
+        'proposal': {'type': 'string'},
+        'edits': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
+            'required': ['path', 'old', 'new'], 'properties': {key: {'type': 'string'} for key in ['path', 'old', 'new']}}},
+        'new_files': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
+            'required': ['path', 'content'], 'properties': {key: {'type': 'string'} for key in ['path', 'content']}}}}}
+
 
 class DirectPatchWorker:
     executor_name = 'direct_patch'
@@ -61,7 +69,10 @@ class DirectPatchWorker:
         used, attempts = set(), {}
         receipt['attempt_results'] = []
         for _ in range(2):
-            result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id'], 'max_tokens': max_tokens}, requested, instruction)
+            result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id'],
+                'max_tokens': max_tokens,
+                'system_prompt': 'You produce a complete JSON patch plan. No tools are available. All source code is included in the user message. Never request file reads or emit tool calls. Return proposal, edits and new_files conforming to the supplied schema.',
+                'response_format': {'type': 'json_schema', 'json_schema': {'name': 'patch_plan', 'strict': True, 'schema': PATCH_SCHEMA}}}, requested, instruction)
             receipt['attempt_results'].append({key: result.get(key) for key in
                 ['requested_model_id', 'ok', 'error_class', 'latency_ms', 'response_diagnostic']})
             if result.get('attempt_recorded'):
@@ -87,6 +98,8 @@ class DirectPatchWorker:
         try:
             start, end = raw.find('{'), raw.rfind('}')
             response = json.loads(raw[start:end + 1])
+            if not isinstance(response, dict) or set(response) != {'proposal', 'edits', 'new_files'}:
+                raise ValueError('invalid_producer_schema: expected proposal, edits, new_files; no tool calls')
             changed, originals = {}, {}
             edits, new_files = response.get('edits', []), response.get('new_files', [])
             if not isinstance(edits, list) or not isinstance(new_files, list) or len(edits) + len(new_files) > 12:

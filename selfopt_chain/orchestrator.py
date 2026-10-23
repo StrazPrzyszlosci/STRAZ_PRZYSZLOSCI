@@ -573,7 +573,8 @@ class Orchestrator:
         tasks = loop.pending()
         backlog = len(tasks)
         if not tasks:
-            return {"mode": "waiting_inputs" if loop.blocked else "idle", "backlog": 0, "blocked": loop.blocked,
+            mode = 'waiting_models' if any(row.get('kind') == 'models' for row in loop.blocked) else 'waiting_inputs' if loop.blocked else 'idle'
+            return {"mode": mode, "backlog": 0, "blocked": loop.blocked,
                     "tasks": [], "auto_applied": False}
         mode = self.config.get("subagent_mode", "auto")
         if mode == "auto":

@@ -104,7 +104,9 @@ class BasalDecisionCore:
         engine = "builtin"
         probabilities, confidence = None, None
         remote_note = None
-        if self.remote_url:
+        if self.remote_url and len(options) == 1:
+            remote_note = "single candidate; no remote request needed"
+        if self.remote_url and len(options) > 1:
             remote = self._remote_decide(question_type, options, scores, context)
             if remote is not None:
                 probabilities, confidence = remote
