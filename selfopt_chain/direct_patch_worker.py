@@ -50,8 +50,11 @@ class DirectPatchWorker:
         ])
         requested = model_alias
         used, attempts = set(), {}
+        receipt['attempt_results'] = []
         for _ in range(2):
             result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id']}, requested, instruction)
+            receipt['attempt_results'].append({key: result.get(key) for key in
+                ['requested_model_id', 'ok', 'error_class', 'latency_ms', 'response_diagnostic']})
             if result.get('attempt_recorded'):
                 mid = result['requested_model_id']
                 attempts[mid] = attempts.get(mid, 0) + 1

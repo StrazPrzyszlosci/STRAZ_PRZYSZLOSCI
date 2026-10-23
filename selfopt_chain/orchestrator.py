@@ -551,9 +551,13 @@ class Orchestrator:
         if not gate["allowed"] or self.should_stop():
             return {"mode": "blocked", "tasks": [], "quota_gate": gate, "auto_applied": False}
         models = load_registry(self.registry_path)
-        lane_models = [m["model_id"] for m in models if m.get("privacy_class") != "local_private" and self.ledger.can_use(m["model_id"])]
+        availability = {m["model_id"]: self.ledger.availability(m["model_id"])
+                        for m in models if m.get("privacy_class") != "local_private"}
+        lane_models = [mid for mid, status in availability.items() if status["allowed"]]
         if self.config["engine"] != "mock" and not lane_models:
-            return {"mode": "waiting_budget", "tasks": [], "auto_applied": False}
+            reasons = {status["reason"] for status in availability.values()}
+            mode = "waiting_provider" if "provider_cooldown" in reasons else "waiting_rate_limit" if "minute_limit" in reasons else "waiting_budget"
+            return {"mode": mode, "resource_status": availability, "tasks": [], "auto_applied": False}
         worker, strategy_engine = None, None
         if self.config["engine"] == "omniroute":
             from selfopt_chain.omniroute import OmniRouteEngine

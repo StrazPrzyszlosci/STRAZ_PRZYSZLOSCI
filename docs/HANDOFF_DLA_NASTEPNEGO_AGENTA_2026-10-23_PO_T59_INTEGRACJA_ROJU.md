@@ -19,3 +19,13 @@ Odbiór bieżącego worktree: **527 Python OK; 378 JavaScript pass / 0 fail; 12 
 ## Otwarte warunki
 
 Bezpieczny defer i kod zakończenia daemona pozostają zadaniami ewolucji do rzeczywistego odbioru. Nie przypisywać ręcznym poprawkom autorstwa modelu. Lokalny Basal jako decydent jest potwierdzony; osobny FreeApiEngine z modelem basal-omni-pico przekroczył limit 30 s i nie został uznany za wdrożony lokalny backend ogólny. Charter, bezpieczeństwo i brak aktuacji nadal obowiązują.
+
+## Pierwszy ograniczony pilot rzeczywisty
+
+Snapshot 94b8f9f: batch 1 mock wybrał target_daemon_failure_exit. Po restarcie realnym batch 2 podjął ten sam hash wejść `125d9a93b9a6e1e9ccf02164500e634392f888cc5629d10381782926803d1c06`, z attempts=1 i simulation_history długości 1. Zatem naprawa promocji została sprawdzona również rzeczywistym uruchomieniem workera, nie tylko fixture.
+
+Strategię podało Cohere; priorytety: daemon_failure_exit (100), następnie deferred_job_selection (90). Lokalny Basal wybrał single, direct_patch (confidence 0.6233) i NVIDIA (0.555). NVIDIA zakończyła się connection_error po 60060 ms; automatyczny fallback Cohere zwrócił bad_response/empty response. Nie powstał patch, walidacja ani pozytywne review. Ledger: **66→69**, zgodnie z 1 wywołaniem strategii i 2 próbami producenta. Kolejny batch nie wywołał modeli, bo oba były w cooldownie, błędnie opisanym jako waiting_budget. Proces zakończył się; nie restartowano go z powodu timeoutu obserwacji.
+
+Na podstawie tych wyników dodano rozróżnienie cooldown/RPM/RPD/globalnego limitu, bezpieczną diagnostykę kształtu odpowiedzi (liczby i znane pola, bez tekstu/sekretów), rzeczywistą latencję błędnej odpowiedzi i per-attempt receipty producenta. Wybór modelu dostaje teraz rzeczywiste sukcesy/porażki transportu; nie jest to ocena jakości merytorycznej ani human label. Launcher przyjmuje --batches 1..8 dla krótszego odbioru. Odbiór po zmianach: **533 Python OK**, 6 nowych testów; składnia launchera i diff OK. Poprzednie 378 testów JS dotyczą niezmienionych plików tests/*.mjs i cloudflare/src; pełne CI ponowi je na PR.
+
+Następna próba: jeden batch na tym samym stanie i ledgerze 69/80, max 300 s. Nie resetować zużycia ani zwiększać automatycznie limitu. Cel stabilnej ewolucji pozostaje aktywny; sam poprawny start workera nie jest produkcją ulepszenia.

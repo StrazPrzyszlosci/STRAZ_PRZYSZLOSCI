@@ -16,11 +16,13 @@ const value = (name, fallback) => args.includes(name) ? args[args.indexOf(name)+
 const allowDb = args.includes('--use-omniroute-db-key');
 const maxCalls = args.includes('--max-calls') ? Number(args[args.indexOf('--max-calls') + 1]) : 8;
 if (!Number.isInteger(maxCalls) || maxCalls < 1 || maxCalls > 256) throw Error('max-calls must be 1..256');
+const maxBatches = Number(value('--batches', '2'));
+if (!Number.isInteger(maxBatches) || maxBatches < 1 || maxBatches > 8) throw Error('batches must be 1..8');
 const state = resolve(value('--state-dir', resolve(root, 'scratch/selfopt', evolution ? 'stable-evolution' : real ? 'pilot-live' : 'pilot-offline')));
 await mkdir(state, { recursive: true });
 const env = { ...process.env, SELFOPT_NETWORK: real ? '1' : '0', SELFOPT_HERMES: real && evolution ? '1' : '0', SELFOPT_REQUEST_TIMEOUT: process.env.SELFOPT_REQUEST_TIMEOUT || '60' };
 const options = ['selfopt_chain/orchestrator.py', '--state-dir', state, '--kill-switch', join(state, 'KILL_SWITCH'),
-                 '--max-cycles', '2', '--interval', '3', '--max-jobs', '1', '--max-calls', String(maxCalls), '--max-seconds', '300'];
+                 '--max-cycles', String(maxBatches), '--interval', '3', '--max-jobs', '1', '--max-calls', String(maxCalls), '--max-seconds', '300'];
 
 if (real) {
   const gateway = new URL(env.SELFOPT_OMNIROUTE_URL || 'http://127.0.0.1:20128/v1');

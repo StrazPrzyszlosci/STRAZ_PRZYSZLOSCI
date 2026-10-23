@@ -56,17 +56,32 @@ class QuotaLedger:
                 if handle:
                     handle.close()
 
-    def _allowed(self, data, model_id):
+    def _availability(self, data, model_id):
+        if self.should_stop():
+            return {'allowed': False, 'reason': 'stopped'}
+        if model_id not in self.limits:
+            return {'allowed': False, 'reason': 'unknown_model'}
         rpm, rpd = self.limits.get(model_id, (0, 0))
         pool = self.pools.get(model_id)
         peers = [mid for mid, group in self.pools.items() if group == pool]
         pool_rpm, pool_rpd = self.pool_limits.get(pool, (0, 0))
-        pool_ok = (sum(len(data['minute'].get(mid, [])) for mid in peers) < pool_rpm
-                   and sum(data['daily'].get(mid, 0) for mid in peers) < pool_rpd)
-        healthy = data.get('health', {}).get(model_id, {}).get('cooldown_until', 0) <= self.clock()
-        return (healthy and pool_ok and not self.should_stop() and len(data['minute'].get(model_id, [])) < rpm
-                and data['daily'].get(model_id, 0) < rpd
-                and (self.max_calls is None or sum(data['daily'].values()) < self.max_calls))
+        if self.max_calls is not None and sum(data['daily'].values()) >= self.max_calls:
+            return {'allowed': False, 'reason': 'global_daily_limit'}
+        if data['daily'].get(model_id, 0) >= rpd or sum(data['daily'].get(mid, 0) for mid in peers) >= pool_rpd:
+            return {'allowed': False, 'reason': 'daily_limit'}
+        retry = data.get('health', {}).get(model_id, {}).get('cooldown_until', 0) - self.clock()
+        if retry > 0:
+            return {'allowed': False, 'reason': 'provider_cooldown', 'retry_after_s': retry}
+        if len(data['minute'].get(model_id, [])) >= rpm or sum(len(data['minute'].get(mid, [])) for mid in peers) >= pool_rpm:
+            return {'allowed': False, 'reason': 'minute_limit'}
+        return {'allowed': True, 'reason': 'ready'}
+
+    def _allowed(self, data, model_id):
+        return self._availability(data, model_id)['allowed']
+
+    def availability(self, model_id):
+        with self.transaction() as data:
+            return self._availability(data, model_id)
 
     def can_use(self, model_id):
         with self.transaction() as data:
@@ -93,6 +108,12 @@ class QuotaLedger:
                     row['cooldown_until'] = self.clock() + min(900, 120 * 2 ** (row['consecutive_failures'] - 1))
             row['last_error_class'] = result.get('error_class')
             row['last_latency_ms'] = result.get('latency_ms')
+
+    def model_observations(self, model_id):
+        with self.transaction() as data:
+            row = data.get('health', {}).get(model_id, {})
+            return {key: row.get(key) for key in
+                    ['successes', 'failures', 'consecutive_failures', 'last_error_class', 'last_latency_ms']}
 
     @property
     def rpd_used(self):

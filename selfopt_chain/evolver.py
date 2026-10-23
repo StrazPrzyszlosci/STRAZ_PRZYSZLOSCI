@@ -380,6 +380,13 @@ class EvolutionLoop:
             quality = model.get("quality_tier", 3) / 5
             scores[mid] = (2 * quality + speed / 4) if hint == "smart" else speed + quality / 2
             details[mid] = {"quality_tier": model.get("quality_tier"), "speed_class": model.get("speed_class"), "capabilities": model.get("capabilities", [])}
+            ledger = getattr(self.worker, "ledger", None)
+            if ledger is not None and hasattr(ledger, "model_observations"):
+                observed = ledger.model_observations(mid)
+                successes, failures = observed.get("successes") or 0, observed.get("failures") or 0
+                reliability = (successes + 1) / (successes + failures + 2)
+                scores[mid] *= 0.5 + reliability
+                details[mid]["observed_transport"] = observed
         default = max(scores, key=scores.get)
         if self.decision_core and task:
             decision = self.decision_core.decide("model_selection", self.lane_models, scores, default_option=default,
