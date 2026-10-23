@@ -43,7 +43,7 @@ class FreeOnlyPolicyTest(unittest.TestCase):
     def test_actual_model_by_id_and_provider(self):
         policy = FreeOnlyPolicy(_models())
         self.assertTrue(policy.actual_allowed("llama-3.1-8b-instant"))
-        self.assertTrue(policy.actual_allowed("unknown-new-model", provider="groq_free"))
+        self.assertFalse(policy.actual_allowed("unknown-new-model", provider="groq_free"))
         self.assertFalse(policy.actual_allowed("claude-opus", provider="anthropic"))
 
 
@@ -96,37 +96,19 @@ class OmniRouteAdapterTest(unittest.TestCase):
         req = urlopen.call_args[0][0]
         self.assertEqual(req.headers.get("Authorization"), "Bearer sk-test-123")
 
-    def test_free_catalog_extends_policy(self):
-        catalog = {"data": [{"id": "mistral/dev-test", "owned_by": "mistral_free"}, {"id": "paid/x", "owned_by": "anthropic"}]}
-        fake = {"model": "mistral/dev-test", "choices": [{"message": {"content": "odp"}}]}
+    def test_catalog_does_not_authorize_unknown_models(self):
+        catalog = {"data": [{"id": "mistral/dev-test", "owned_by": "mistral_free"}]}
+        with mock.patch.object(urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(catalog).encode())):
+            adapter = self._adapter()
+            self.assertEqual(adapter.load_free_catalog(), 0)
+            self.assertFalse(adapter.policy.actual_allowed("mistral/dev-test"))
 
-        class FakeResp(io.BytesIO):
-            def __enter__(self):
-                return self
-
-        responses = [FakeResp(json.dumps(catalog).encode("utf-8")), FakeResp(json.dumps(fake).encode("utf-8"))]
-        with mock.patch.dict(os.environ, {"SELFOPT_NETWORK": "1"}, clear=False), \
-                mock.patch.object(urllib.request, "urlopen", side_effect=responses):
-            engine = OmniRouteEngine(_models(), base_url="http://127.0.0.1:20128/v1")
-            result = engine.complete({"privacy": "public"}, "mistral/dev-test", "prompt")
-        self.assertTrue(result["ok"])
-        self.assertEqual(result["model_id"], "mistral/dev-test")
-
-    def test_engine_falls_back_to_auto_for_unknown_model(self):
-        catalog = {"data": []}
-        fake = {"model": "llama-3.1-8b-instant", "choices": [{"message": {"content": "odp"}}]}
-
-        class FakeResp(io.BytesIO):
-            def __enter__(self):
-                return self
-
-        responses = [FakeResp(json.dumps(catalog).encode("utf-8")), FakeResp(json.dumps(fake).encode("utf-8"))]
-        with mock.patch.dict(os.environ, {"SELFOPT_NETWORK": "1"}, clear=False), \
-                mock.patch.object(urllib.request, "urlopen", side_effect=responses):
-            engine = OmniRouteEngine(_models(), base_url="http://127.0.0.1:20128/v1")
-            result = engine.complete({"privacy": "public"}, "model-spoza-rejestru", "prompt")
-        self.assertTrue(result["ok"])
-        self.assertEqual(result["requested_alias"], "auto")
+    def test_unknown_model_refused_before_network(self):
+        with mock.patch.object(urllib.request, "urlopen") as network:
+            engine = OmniRouteEngine(_models())
+            result = engine.complete({"privacy": "public"}, "unknown", "prompt")
+        self.assertFalse(result["ok"])
+        network.assert_not_called()
 
 
 class BasalRemoteEngineTest(unittest.TestCase):
@@ -322,7 +304,7 @@ class EvolverTest(unittest.TestCase):
             self.assertEqual(len(receipts), 2)
             for receipt in receipts:
                 self.assertEqual(receipt["executor"], "mock")
-                self.assertTrue(receipt["gate_ok"])
+                self.assertFalse(receipt["gate_ok"])
                 self.assertFalse(receipt["auto_applied"])
                 proposal = Path(receipt["proposal_path"])
                 self.assertTrue(proposal.exists())

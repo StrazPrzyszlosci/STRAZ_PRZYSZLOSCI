@@ -29,7 +29,7 @@
     "facial recognition",
     "dane osobowe bez zgody"
   ],
-  "matching_note": "Dopasowanie substring na rdzeniach słów (tolerancja polskich odmian); lista jest celowo nadmiernie blokująca — przydział zablokowany słowem kluczowym może odzyskać człowiek przez review.",
+  "matching_note": "Dopasowanie rdzeni od granicy słowa; bron bez diakrytyków jako pełne słowo, aby dopuścić bronowanie; lista pozostaje konserwatywna — przydział zablokowany słowem kluczowym może odzyskać człowiek przez review.",
   "rules": [
     {
       "rule": "human_rights_first",

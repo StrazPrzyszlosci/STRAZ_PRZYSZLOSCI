@@ -23,6 +23,11 @@ Deterministycznie testowalne offline; realne LLM po uzbrojeniu
 from __future__ import annotations
 
 import json
+import hashlib
+import fcntl
+import time
+from contextlib import contextmanager
+from itertools import zip_longest
 import os
 import re
 import uuid
@@ -69,7 +74,7 @@ def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engin
         parsed = json.loads(raw[start:end + 1])
         verdict = parsed.get("verdict") if parsed.get("verdict") in {"pass", "needs_fixes", "fail"} else "unreviewed"
         return {"reviewer": result.get("model_id", review_alias), "verdict": verdict, "notes": str(parsed.get("notes", ""))[:400]}
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, AttributeError):
         return {"reviewer": result.get("model_id", review_alias), "verdict": "unreviewed", "notes": "review: nieparsowalna odpowiedź"}
 
 
@@ -139,7 +144,8 @@ def _parse_targets(path: Path = TARGETS_PATH) -> list[EvolutionTask]:
 
 def collect_evolution_tasks(state_dir: Path, docs_dir: Path, max_tasks: int = 6) -> list[EvolutionTask]:
     """Zbiór zadań: handoffy + proposals + celowniki; deterministycznie."""
-    tasks = _parse_handoff_tasks(docs_dir) + _parse_proposal_tasks(state_dir) + _parse_targets()
+    sources = [_parse_handoff_tasks(docs_dir), _parse_proposal_tasks(state_dir), _parse_targets()]
+    tasks = [task for row in zip_longest(*sources) for task in row if task is not None]
     seen: set[str] = set()
     unique: list[EvolutionTask] = []
     for task in tasks:
@@ -157,7 +163,7 @@ def decide_parallel_mode(core: BasalDecisionCore, backlog: int, critical: int) -
         "wide": 0.4 + 0.25 * min(backlog, 6),
         "deep": 0.3 + 0.6 * critical,
     }
-    decision = core.decide("choice", list(scores), scores, default_option="single", context={"backlog": backlog, "critical": critical})
+    decision = core.decide("parallel_mode", list(scores), scores, default_option="single", context={"backlog": backlog, "critical": critical})
     return decision["final"]
 
 
@@ -242,7 +248,7 @@ def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | Non
                 context=str(sub.get("context", ""))[:400],
             ))
         return strategy, subtasks
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, AttributeError):
         fallback_strategy["source"] = "llm_bad_json"
         return fallback_strategy, []
 
@@ -284,7 +290,7 @@ class EvolutionLoop:
     (konfigurowalne, domyślnie 6).
     """
 
-    def __init__(self, state_dir: Path, docs_dir: Path, repo_root: Path, worker: HermesWorker | None = None, lane_models: list[str] | None = None, decision_core=None, strategy_engine: Any | None = None, max_lanes: int = 6) -> None:
+    def __init__(self, state_dir: Path, docs_dir: Path, repo_root: Path, worker: HermesWorker | None = None, lane_models: list[str] | None = None, decision_core=None, strategy_engine: Any | None = None, max_lanes: int = 6, should_stop=None) -> None:
         self.state_dir = state_dir
         self.docs_dir = docs_dir
         self.repo_root = repo_root
@@ -293,15 +299,50 @@ class EvolutionLoop:
         self.decision_core = decision_core
         self.strategy_engine = strategy_engine
         self.max_lanes = max_lanes
+        self.should_stop = should_stop or (lambda: False)
         self.gate = SecurityGate()
         self.queue_dir = state_dir / "evolution_queue"
         self.strategy: dict[str, Any] = {}
 
+    @staticmethod
+    def fingerprint(task):
+        content = {"title": " ".join(task.title.split()), "context": task.context, "constraints": task.constraints}
+        return hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+    @contextmanager
+    def index(self):
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        path = self.state_dir / "evolution_index.json"
+        with (self.state_dir / "evolution_index.lock").open("a+") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            data = json.loads(path.read_text()) if path.exists() else {}
+            yield data
+            temp = path.with_suffix(".tmp")
+            temp.write_text(json.dumps(data, indent=2) + "\n")
+            os.replace(temp, path)
+
+
     def run(self, max_tasks: int = 4, parallel_mode: str = "single") -> list[dict[str, Any]]:
-        tasks = collect_evolution_tasks(self.state_dir, self.docs_dir, max_tasks=max_tasks * 2)
+        if self.should_stop():
+            return []
+        tasks = collect_evolution_tasks(self.state_dir, self.docs_dir, max_tasks=100)
+        with self.index() as index:
+            tasks = [t for t in tasks if self.fingerprint(t) not in index]
+        from selfopt_chain.swarm import Demand, charter_check, load_charter
+        tasks = [t for t in tasks if charter_check([Demand(t.task_id, t.title + " " + (t.context or ""), [], t.source)], load_charter())["ok"]]
+        if not tasks:
+            return []
         self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine)
         order = {task_id: i for i, task_id in enumerate(self.strategy.get("priorities", []))}
         tasks.sort(key=lambda t: order.get(t.task_id, len(order)))
+        # Occupied numbered tasks remain with their owner, even if mentioned
+        # in an old handoff. Check all local worktrees when available.
+        try:
+            from tools.agent_claims import collect
+            active_tasks = {c["task"] for c in collect(self.repo_root, True).values()}
+            tasks = [t for t in tasks if not any(re.match(rf"{task}(?![0-9])", t.title) for task in active_tasks)]
+        except (OSError, ValueError, __import__("subprocess").CalledProcessError):
+            pass
         tasks = tasks[:max_tasks]
         if subtasks:
             tasks = (tasks[:1] + [s for s in subtasks if s.task_id not in {t.task_id for t in tasks}])[:max_tasks]
@@ -316,7 +357,7 @@ class EvolutionLoop:
                     for i, task in enumerate(tasks)
                 ]
                 return [future.result() for future in futures]
-        return [self._run_task(task, parallel_mode, None) for task in tasks]
+        return [self._run_task(task, parallel_mode, self._lane_model(i, task)) for i, task in enumerate(tasks) if not self.should_stop()]
 
     def _lane_model(self, lane_index: int, task: EvolutionTask | None = None) -> str:
         """Model pasma: basal wybiera odpowiedni LLM; bez rdzenia/strategy — round-robin."""
@@ -330,7 +371,12 @@ class EvolutionLoop:
         return self.lane_models[lane_index % len(self.lane_models)]
 
     def _run_task(self, task: EvolutionTask, parallel_mode: str, model_alias: str | None) -> dict[str, Any]:
-        run_id = f"{task.task_id}_{uuid.uuid4().hex[:6]}"
+        fp = self.fingerprint(task)
+        with self.index() as index:
+            if fp in index or self.should_stop():
+                return {"task_id": task.task_id, "status": "duplicate_or_stopped", "auto_applied": False}
+            index[fp] = {"status": "running", "task_id": task.task_id, "started": time.time()}
+        run_id = f"task_{fp[:16]}_{uuid.uuid4().hex[:6]}"
         out_dir = self.queue_dir / run_id
         out_dir.mkdir(parents=True, exist_ok=True)
         receipt: dict[str, Any] = {
@@ -348,22 +394,21 @@ class EvolutionLoop:
         if self.worker is not None and HermesWorker.enabled():
             receipt["executor"] = "hermes"
             query = build_task_query(task, self.repo_root)
-            worker = HermesWorker(model_alias=model_alias) if model_alias else HermesWorker()
-            hermes_receipt = worker.run_isolated(query)
+            hermes_receipt = self.worker.run_isolated(query, model_alias=model_alias)
             receipt["hermes_run_id"] = hermes_receipt.get("run_id")
             receipt["hermes_executed"] = hermes_receipt.get("executed")
             receipt["hermes_exit_code"] = hermes_receipt.get("exit_code")
             report = hermes_receipt.get("security_gate") or {"ok": False, "violations": [{"rule": "hermes_not_executed"}], "licenses_review": []}
             (out_dir / "hermes_receipt.json").write_text(json.dumps(hermes_receipt, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-            produced_text = ""
-            raw_out = Path(str(hermes_receipt.get("quarantine_dir", ""))) / "output.json"
-            if raw_out.exists():
-                for line in raw_out.read_text(encoding="utf-8").splitlines():
-                    if '"type": "result"' in line or '"type":"result"' in line:
-                        try:
-                            produced_text = str(json.loads(line).get("text", ""))
-                        except ValueError:
-                            pass
+            quarantine = Path(hermes_receipt.get("quarantine_dir", out_dir))
+            pieces = []
+            total = 0
+            for produced in sorted(quarantine.rglob("*")):
+                if produced.is_file() and not produced.is_symlink() and produced.name not in {"output.json", "task.md", "hermes_receipt.json"}:
+                    content = produced.read_text(encoding="utf-8", errors="replace")
+                    total += len(content)
+                    pieces.append(f"# {produced.relative_to(quarantine)}\n{content}")
+            produced_text = "\n".join(pieces) if total <= 5500 else ""
             review = review_by_strong_model(task, produced_text, self.strategy_engine)
             receipt["review"] = review
             (out_dir / "review.json").write_text(json.dumps(review, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -375,7 +420,17 @@ class EvolutionLoop:
             receipt["proposal_path"] = str(proposal_path)
             receipt["review"] = {"reviewer": "none", "verdict": "unreviewed", "notes": "mock-lane: czeka na review człowieka"}
         (out_dir / "gate_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-        receipt["gate_ok"] = report.get("ok")
+        receipt["security_ok"] = bool(report.get("ok"))
+        receipt["execution_ok"] = receipt.get("executor") == "hermes" and receipt.get("hermes_exit_code") == 0
+        receipt["review_ok"] = (receipt.get("review") or {}).get("verdict") == "pass"
+        receipt["validation_ok"] = bool((hermes_receipt.get("validation") or {}).get("ok")) if receipt["executor"] == "hermes" else False
+        receipt["gate_ok"] = receipt["security_ok"] and receipt["execution_ok"] and receipt["review_ok"] and receipt["validation_ok"]
+        receipt["ready_for_human_review"] = receipt["gate_ok"]
+        receipt["status"] = "ready" if receipt["gate_ok"] else "simulated" if receipt["executor"] == "mock" else "needs_fixes"
         receipt["quarantined"] = bool(report.get("quarantine_required"))
         receipt["auto_applied"] = False
+        receipt["fingerprint"] = fp
+        (out_dir / "evolution_receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
+        with self.index() as index:
+            index[fp] = {"status": receipt["status"], "run_id": run_id, "task_id": task.task_id}
         return receipt

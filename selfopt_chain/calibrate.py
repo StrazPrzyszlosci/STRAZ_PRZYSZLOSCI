@@ -70,6 +70,8 @@ def load_labels(state_dir: Path) -> list[dict[str, Any]]:
 
 def append_label(state_dir: Path, decision_id: str, accepted: bool, note: str = "", source: str = "operator") -> dict[str, Any]:
     """Etykieta decyzji (wzór router.py annotate z basala; źródło: operator/field)."""
+    if not isinstance(accepted, bool) or decision_id not in {d["id"] for d in load_decisions(state_dir)}:
+        raise ValueError("unknown_decision_or_non_boolean_label")
     label = {
         "decision_id": decision_id,
         "accepted": bool(accepted),
@@ -91,6 +93,7 @@ def _seed_temperature(question_type: str) -> float:
 
 def fit_temperatures(decisions: list[dict[str, Any]], labels: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Dopasowanie temperatur per typ pytania wg etykiet; None gdy brak etykiet."""
+    labels = list({label["decision_id"]: label for label in labels if isinstance(label.get("accepted"), bool)}.values())
     by_id = {d["id"]: d for d in decisions}
     labeled = [(label, by_id[label["decision_id"]]) for label in labels if label["decision_id"] in by_id]
     if not labeled:

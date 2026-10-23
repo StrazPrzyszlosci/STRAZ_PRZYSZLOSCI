@@ -170,3 +170,10 @@ natywnie przez `tracer.extract_insights`.
   merge proponowanych zmian wyłącznie przez PR po review człowieka.
 - Transport LoRa to staging (spool); nadawanie w eter należy do mostu
   i pozostaje pod human control point operatora.
+
+## Naprawy i ograniczony pilot T53
+
+Launcher i granice: [runbook pilota](../docs/RUNBOOK_PILOTA_ROJU_T53_2026-10-23.md).
+`node tools/run_swarm_pilot.mjs` uruchamia dwa cykle offline; `--real` używa env `SELFOPT_OMNIROUTE_KEY`, a jawne `--use-omniroute-db-key` dopuszcza autoryzowany fallback do lokalnego klucza.
+Ledger jest trwały: ponowny start nie resetuje limitu. Receipty rozróżniają błędy, a nieudane zadania pozostają w kolejce. Modele rzeczywiste są jawnie zarejestrowane; katalog nie rozszerza allowlisty.
+Hermes jest domyślnie wyłączony w pilocie; wymaga osobnego runtime i sieciowego proxy w sandboxie. Lokalny PROPOSAL.md nie jest GitHub PR; automatyczny publisher pozostaje do wdrożenia. Szczegóły wcześniejszych sekcji opisujące izolację samymi flagami CLI i quota gate wyłącznie free-api są zastąpione tym runbookiem.

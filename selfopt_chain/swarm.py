@@ -25,6 +25,7 @@ Wszystko suggest-only: plan roju to artefakt do review, nie aktuation.
 from __future__ import annotations
 
 import json
+import re
 import math
 import time
 import uuid
@@ -112,6 +113,9 @@ class BasalDecisionCore:
                 remote_note = "basal-serve nieosiagalny/nieparsowalny; decyzja wbudowana"
         if probabilities is None:
             probabilities, confidence = softmax_confidence(scores, question_type, self.temperatures)
+        if not probabilities or set(probabilities) != set(options) or not math.isfinite(confidence) or not 0 <= confidence <= 1 or any(not math.isfinite(v) or not 0 <= v <= 1 for v in probabilities.values()):
+            probabilities, confidence = softmax_confidence(scores, question_type, self.temperatures)
+            engine, remote_note = "builtin", "invalid remote candidates"
         ranking = sorted(probabilities.items(), key=lambda kv: -kv[1])
         chosen = ranking[0][0]
         default_option = default_option or options[0]
@@ -334,8 +338,8 @@ def charter_check(mission_demands: list[Demand], charter: dict[str, Any]) -> dic
     allowed = set(charter["allowed_mission_classes"])
     forbidden = [kw.lower() for kw in charter["forbidden_keywords"]]
     for demand in mission_demands:
-        text = f"{demand.label} {' '.join(sorted(demand.required))}".lower()
-        hit = next((kw for kw in forbidden if kw in text), None)
+        text = (f"{demand.label} {' '.join(sorted(demand.required))} " + json.dumps(demand.payload or {}, ensure_ascii=False)).lower()
+        hit = next((kw for kw in forbidden if re.search(r"(?<!\w)" + re.escape(kw) + (r"(?!\w)" if kw == "bron" else ""), text)), None)
         if hit:
             violations.append({"demand_id": demand.demand_id, "rule": "forbidden_keywords", "detail": hit})
             continue
@@ -520,14 +524,14 @@ class SwarmPlanner:
             "queue_when_busy": 0.1 + 0.4 * max(0, backlog - 5),
         }
         options = list(STRATEGY_DESCRIPTIONS)
-        return self.core.decide("choice", options, scores, default_option=self.default_strategy, context={"cycle_signals": cycle_signals})
+        return self.core.decide("strategy", options, scores, default_option=self.default_strategy, context={"cycle_signals": cycle_signals})
 
     def decide_job_selection(self, demands: list[Demand], max_jobs: int) -> dict[str, Any]:
         """Basal wybiera zapotrzebowania cyklu (ranking + confidence + defer)."""
         if not demands:
             return {"final": [], "deferred": False, "confidence": 1.0, "ranking": [], "decision": None}
         scores = {d.demand_id: float(d.priority) for d in demands}
-        decision = self.core.decide("choice", [d.demand_id for d in demands], scores, default_option=max(demands, key=lambda d: d.priority).demand_id, context={"max_jobs": max_jobs})
+        decision = self.core.decide("job_selection", [d.demand_id for d in demands], scores, default_option=max(demands, key=lambda d: d.priority).demand_id, context={"max_jobs": max_jobs})
         ranking = [k for k, _ in decision["probabilities"].items()]
         return {"final": ranking, "deferred": decision["deferred"], "confidence": decision["confidence"], "ranking": ranking, "decision": decision}
 
@@ -538,13 +542,13 @@ class SwarmPlanner:
             return {"decision": None, "resource": None, "reason": "no_capable_resource"}
         options = list(scores)
         default = sorted(options, key=lambda k: -scores[k])[0]
-        decision = self.core.decide("choice", options, scores, default_option=default, context={"demand": demand.demand_id, "strategy": strategy})
+        decision = self.core.decide("allocation", options, scores, default_option=default, context={"demand": demand.demand_id, "strategy": strategy})
         return {"decision": decision, "resource": decision["final"], "reason": "ok"}
 
     def decide_exec_mode(self, demand: Demand, resource: SwarmResource) -> dict[str, Any]:
         scores = exec_mode_scores(demand, resource)
         default = "cloud_chain"
-        decision = self.core.decide("choice", EXEC_MODES, scores, default_option=default, context={"demand": demand.demand_id, "resource": resource.resource_id})
+        decision = self.core.decide("exec_mode", EXEC_MODES, scores, default_option=default, context={"demand": demand.demand_id, "resource": resource.resource_id})
         return decision
 
     def plan_cycle(self, mission_demands: list[Demand], procdev_demands: list[Demand], resources: list[SwarmResource], cycle_signals: dict[str, Any], max_jobs: int = 3) -> dict[str, Any]:
@@ -564,7 +568,7 @@ class SwarmPlanner:
 
         mission_allocations: list[dict[str, Any]] = []
         charter = load_charter()
-        charter_result = charter_check(mission_demands, charter)
+        charter_result = charter_check(mission_demands + procdev_demands, charter)
         blocked_ids = {v["demand_id"] for v in charter_result["violations"]}
         for demand in mission_demands:
             if demand.demand_id in blocked_ids:
@@ -595,7 +599,7 @@ class SwarmPlanner:
                 "reason": "ok",
             })
 
-        execution = self.decide_job_selection(procdev_demands, max_jobs)
+        execution = self.decide_job_selection([d for d in procdev_demands if d.demand_id not in blocked_ids], max_jobs)
         execution_order = execution["final"][:max_jobs]
 
         return {
