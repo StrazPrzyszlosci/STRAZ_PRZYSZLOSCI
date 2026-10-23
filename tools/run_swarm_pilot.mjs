@@ -38,6 +38,8 @@ if (real) {
     const health = await fetch(env.SELFOPT_BASAL_URL+'/health',{signal:AbortSignal.timeout(5000)});
     if(!health.ok) throw Error('Local basal unavailable');
     options.push('--evolve-only','--evolve-max-tasks','1','--evolve-pause',value('--pause','60'),'--hermes-max-turns',value('--turns','12'),'--quota-ledger',resolve(value('--quota-ledger')));
+    const executor = value('--executor', null);
+    if (executor) options.push('--evolve-executor', executor);
     const timeAt=options.indexOf('--max-seconds'); options[timeAt+1]=value('--max-seconds','1800');
     if(continuous) options.splice(options.indexOf('--max-cycles'),2);
   }
