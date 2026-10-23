@@ -277,7 +277,7 @@ class EvolverTest(unittest.TestCase):
     def test_handoff_tasks_parsed_from_real_docs(self):
         tasks = _parse_handoff_tasks(ROOT / "docs")
         self.assertTrue(tasks, "repo ma handoffy z sekcją 'Następne zadania'")
-        self.assertTrue(all(t.title.startswith("T") or "T" in t.title for t in tasks))
+        self.assertTrue(all(t.context and t.source.startswith("handoff:") for t in tasks))
 
     def test_targets_load(self):
         tasks = _parse_targets()

@@ -3,28 +3,70 @@
   "note": "Operatorywna lista celow samoewolucji repo przez rój; rój dopisuje swoje propozycje z artifacts, operator edytuje/moze wylaczyc pozycje.",
   "targets": [
     {
+      "target_id": "daemon_failure_exit",
+      "title": "Zwracaj niezerowy kod zakończenia ograniczonego daemona ewolucji, gdy worker zakończył się needs_fixes",
+      "source_hint": "Potwierdzona usterka: _run_evolution_daemon w orchestrator.py zwraca 0 mimo hermes_exit_code=1 i status=needs_fixes. Zachowaj 0 dla pustej kolejki i gotowych wyników.",
+      "constraints": "suggest-only; minimalny patch; nie zmieniaj polityki, limitów ani aktuacji; wymagany niezależny test baseline fail / candidate pass",
+      "kind": "patch",
+      "priority": 100,
+      "input_refs": [
+        "selfopt_chain/orchestrator.py",
+        "tests/test_selfopt_orchestrator.py"
+      ],
+      "allowed_paths": [
+        "selfopt_chain/orchestrator.py",
+        "tests/test_selfopt_evolution_exit.py"
+      ],
+      "acceptance_ref": "selfopt_chain/evolution_acceptance/daemon_exit.py",
+      "focus_symbols": {
+        "selfopt_chain/orchestrator.py": [
+          "_run_evolution_daemon"
+        ]
+      }
+    },
+    {
       "target_id": "router_weights_from_decisions",
       "title": "Dopasuj wagi strategii routera/swarm wg statystyk decisions.jsonl",
       "source_hint": "scratch/selfopt/decisions.jsonl + calibrate.py propose",
-      "constraints": "suggest-only; zmiana wag tylko przez PR; wymagane liczby przed/po w proposals"
+      "constraints": "suggest-only; zmiana wag tylko przez PR; wymagane liczby przed/po w proposals",
+      "runtime_refs": [
+        "decisions.jsonl",
+        "labels.jsonl"
+      ],
+      "input_refs": [
+        "selfopt_chain/calibrate.py",
+        "selfopt_chain/swarm.py"
+      ]
     },
     {
       "target_id": "capability_map_extension",
       "title": "Rozbuduj capability_map o nowe klasy zasobow z realnych rekordow scoutingowych",
       "source_hint": "resource_scout/examples + nowe rekordy operatora",
-      "constraints": "suggest-only; repo_refs musza istniec na dysku (test pilnuje)"
+      "constraints": "suggest-only; repo_refs musza istniec na dysku (test pilnuje)",
+      "input_refs": [
+        "selfopt_chain/capability_map.json",
+        "resource_scout/examples/ewaste_phone_batch.json"
+      ]
     },
     {
       "target_id": "free_models_registry_refresh",
       "title": "Odswiez rejestr darmowych modeli o nowe oferty free-tier (catalog OmniRoute)",
       "source_hint": "dashboard OmniRoute /dashboard/free-tiers + re-audit co 2 tyg",
-      "constraints": "walidator registry musi przejsc; limits_verified=false do weryfikacji operatora"
+      "constraints": "walidator registry musi przejsc; limits_verified=false do weryfikacji operatora",
+      "input_refs": [
+        "selfopt_chain/free_models.json",
+        "selfopt_chain/registry.py"
+      ]
     },
     {
       "target_id": "tests_gap_hardening",
       "title": "Domknij luki pokrycia testami modulow selfopt_chain wskazane w proposals",
       "source_hint": "optimization_proposals.md z cykli roju",
-      "constraints": "nowe testy offline, deterministyczne; suite python musi byc zielona"
+      "constraints": "nowe testy offline, deterministyczne; suite python musi byc zielona",
+      "input_refs": [
+        "selfopt_chain/run_loop.py",
+        "tests/test_selfopt_regressions.py"
+      ]
     },
     {
       "target_id": "lora_bridge_consumer",

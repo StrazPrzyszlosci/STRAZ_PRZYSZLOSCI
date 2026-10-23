@@ -57,10 +57,10 @@ def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engin
     prompt = "\n".join([
         "# Review produkcji słabego modelu (rój Straży Przyszłości)",
         f"Zadanie: {task.title}",
-        f"Kontekst: {(task.context or '')[:300]}",
+        f"Kontekst: {(task.context or '')[:2000]}",
         "",
         "Produkcja do sprawdzenia:",
-        produced_text[:6000],
+        produced_text,
         "",
         "Oceń: (1) czy produkcja spełnia zadanie, (2) błędy/braki, (3) co poprawić.",
         'Odpowiedz WYŁĄCZNIE JSON: {"verdict": "pass"|"needs_fixes"|"fail", "notes": "2-4 zdania"}',
@@ -86,28 +86,33 @@ class EvolutionTask:
     context: str = ""
     constraints: str = "suggest-only; testy obowiązkowe; merge tylko przez PR człowieka"
     lane_role: str = "work"
+    input_refs: list[str] = field(default_factory=list)
+    runtime_refs: list[str] = field(default_factory=list)
+    allowed_paths: list[str] = field(default_factory=list)
+    acceptance_ref: str | None = None
+    kind: str = "proposal"
+    priority: int = 0
+    focus_symbols: dict[str, list[str]] = field(default_factory=dict)
 
 
 def _parse_handoff_tasks(docs_dir: Path, limit: int = 5) -> list[EvolutionTask]:
-    """Deterministyczny parser sekcji 'Następne zadania' z handoffów."""
-    tasks: list[EvolutionTask] = []
+    """Read the newest actionable handoff, including continued numbered items."""
     handoffs = sorted(docs_dir.glob("HANDOFF_DLA_NASTEPNEGO_AGENTA_*.md"), reverse=True)
-    for handoff in handoffs[:2]:
+    for handoff in handoffs:
         text = handoff.read_text(encoding="utf-8")
-        section = re.split(r"Następne zadania|Nastepne zadania", text, maxsplit=1)
-        if len(section) < 2:
+        section = re.search(r"^##[^\n]*(?:Następne zadania|Nastepne zadania|Otwarte etapy|Następne kroki)[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+        if not section:
             continue
-        for match in NEXT_TASKS_RE.finditer(section[1]):
-            title = f"{match.group(1).strip()}: {match.group(2).strip()[:120]}"
-            tasks.append(EvolutionTask(
-                task_id=f"handoff_{handoff.stem[-30:]}_{len(tasks)}",
-                title=title,
-                source=f"handoff:{handoff.name}",
-                context=match.group(0),
-            ))
-            if len(tasks) >= limit:
-                return tasks
-    return tasks
+        matches = list(re.finditer(r"^\d+\.\s+(.*?)(?=^\d+\.\s|\Z)", section[1], re.M | re.S))
+        tasks = []
+        for i, match in enumerate(matches[:limit]):
+            full = " ".join(match[1].replace("**", "").split())
+            tasks.append(EvolutionTask(task_id=f"handoff_{handoff.stem}_{i}", title=full[:240],
+                        source=f"handoff:{handoff.name}", context=full,
+                        input_refs=["selfopt_chain/README.md"]))
+        if tasks:
+            return tasks
+    return []
 
 
 def _parse_proposal_tasks(state_dir: Path, limit: int = 5) -> list[EvolutionTask]:
@@ -137,6 +142,9 @@ def _parse_targets(path: Path = TARGETS_PATH) -> list[EvolutionTask]:
             source=f"evolution_targets:{t['target_id']}",
             context=t.get("source_hint", ""),
             constraints=t.get("constraints", "suggest-only"),
+            input_refs=t.get("input_refs", []), runtime_refs=t.get("runtime_refs", []),
+            allowed_paths=t.get("allowed_paths", []), acceptance_ref=t.get("acceptance_ref"),
+            kind=t.get("kind", "proposal"), priority=int(t.get("priority", 0)), focus_symbols=t.get("focus_symbols", {}),
         )
         for t in data.get("targets", [])
     ]
@@ -205,7 +213,7 @@ def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | Non
     }
     if strategy_engine is None or not tasks:
         return fallback_strategy, []
-    listing = "\n".join(f"- [{t.task_id}] {t.title} (źródło: {t.source})" for t in tasks)
+    listing = "\n".join(f"- [{t.task_id}] {t.title} (źródło: {t.source}; priorytet: {t.priority}; typ: {t.kind})" for t in tasks)
     prompt = "\n".join([
         "# Zadanie: strategia ewolucji repo dla roju Straży Przyszłości (suggest-only)",
         "Poniżej surowe zadania z backlogu roju. Utwórz 'strategy brief' WYŁĄCZNIE jako JSON:",
@@ -282,155 +290,170 @@ def render_mock_proposal(task: EvolutionTask, parallel_mode: str, gate_report: d
 
 
 class EvolutionLoop:
-    """Jeden przebieg ewolucji repo: zadania → (mock|Hermes) → bramka → kolejka.
+    """Prepare inputs, lease a task, produce, independently validate and retain a candidate."""
 
-    Tryb wide: zadania wykonują się RÓWNOLEGLE, każde pasmo na INNYM modelu
-    (round-robin po darmowym katalogu OmniRoute — limity RPM rozkładają się
-    per model, np. NIM 40 RPM osobno na model). Limit pasm: max_lanes
-    (konfigurowalne, domyślnie 6).
-    """
-
-    def __init__(self, state_dir: Path, docs_dir: Path, repo_root: Path, worker: HermesWorker | None = None, lane_models: list[str] | None = None, decision_core=None, strategy_engine: Any | None = None, max_lanes: int = 6, should_stop=None) -> None:
-        self.state_dir = state_dir
-        self.docs_dir = docs_dir
-        self.repo_root = repo_root
-        self.worker = worker
-        self.lane_models = lane_models or []
-        self.decision_core = decision_core
-        self.strategy_engine = strategy_engine
-        self.max_lanes = max_lanes
-        self.should_stop = should_stop or (lambda: False)
-        self.gate = SecurityGate()
-        self.queue_dir = state_dir / "evolution_queue"
-        self.strategy: dict[str, Any] = {}
+    def __init__(self, state_dir, docs_dir, repo_root, worker=None, lane_models=None,
+                 decision_core=None, strategy_engine=None, max_lanes=6, should_stop=None,
+                 models=None, retry_seconds=60, max_attempts=3, clock=time.time):
+        from selfopt_chain.evolution_store import EvolutionStore
+        self.state_dir, self.docs_dir, self.repo_root = Path(state_dir), Path(docs_dir), Path(repo_root)
+        self.worker, self.lane_models = worker, lane_models or []
+        self.decision_core, self.strategy_engine = decision_core, strategy_engine
+        self.max_lanes, self.should_stop = max_lanes, should_stop or (lambda: False)
+        self.models = {m["model_id"]: m for m in (models or getattr(worker, "models", None) or [])}
+        self.gate, self.queue_dir = SecurityGate(), self.state_dir / "evolution_queue"
+        self.store = EvolutionStore(self.state_dir, clock=clock, retry_seconds=retry_seconds, max_attempts=max_attempts)
+        self.strategy, self.inputs, self.blocked = {}, {}, []
 
     @staticmethod
     def fingerprint(task):
         content = {"title": " ".join(task.title.split()), "context": task.context, "constraints": task.constraints}
         return hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
-    @contextmanager
     def index(self):
-        self.state_dir.mkdir(parents=True, exist_ok=True)
-        path = self.state_dir / "evolution_index.json"
-        with (self.state_dir / "evolution_index.lock").open("a+") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-            data = json.loads(path.read_text()) if path.exists() else {}
-            yield data
-            temp = path.with_suffix(".tmp")
-            temp.write_text(json.dumps(data, indent=2) + "\n")
-            os.replace(temp, path)
+        return self.store.transaction()
 
+    def pending(self):
+        from selfopt_chain.evolution_inputs import prepare_inputs, InputUnavailable
+        from selfopt_chain.swarm import Demand, charter_check, load_charter
+        self.blocked, result = [], []
+        try:
+            from tools.agent_claims import collect
+            active = {c["task"] for c in collect(self.repo_root, True).values()}
+        except (OSError, ValueError, __import__("subprocess").CalledProcessError):
+            active = set()
+        for task in collect_evolution_tasks(self.state_dir, self.docs_dir, 100):
+            fp = self.fingerprint(task)
+            if any(re.match(rf"{number}(?![0-9])", task.title) for number in active):
+                continue
+            if not charter_check([Demand(task.task_id, task.title + " " + task.context, [], task.source)], load_charter())["ok"]:
+                continue
+            try:
+                bundle = prepare_inputs(task, self.repo_root, self.state_dir, self.store.feedback(fp))
+            except (InputUnavailable, ValueError, OSError) as error:
+                self.store.block(fp, str(error))
+                self.blocked.append({"task_id": task.task_id, "reason": str(error)})
+                continue
+            if self.store.eligible(fp, bundle["input_hash"]):
+                self.inputs[fp] = bundle
+                result.append(task)
+        return result
 
-    def run(self, max_tasks: int = 4, parallel_mode: str = "single") -> list[dict[str, Any]]:
+    def run(self, max_tasks=4, parallel_mode="single", tasks=None):
         if self.should_stop():
             return []
-        tasks = collect_evolution_tasks(self.state_dir, self.docs_dir, max_tasks=100)
-        with self.index() as index:
-            tasks = [t for t in tasks if self.fingerprint(t) not in index]
-        from selfopt_chain.swarm import Demand, charter_check, load_charter
-        tasks = [t for t in tasks if charter_check([Demand(t.task_id, t.title + " " + (t.context or ""), [], t.source)], load_charter())["ok"]]
+        tasks = self.pending() if tasks is None else tasks
         if not tasks:
             return []
         self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine)
+        # A decomposition is a proposal; only a complete task contract may execute.
+        self.strategy["proposed_subtasks"] = [{"title": t.title, "parent_source": t.source} for t in subtasks]
         order = {task_id: i for i, task_id in enumerate(self.strategy.get("priorities", []))}
-        tasks.sort(key=lambda t: order.get(t.task_id, len(order)))
-        # Occupied numbered tasks remain with their owner, even if mentioned
-        # in an old handoff. Check all local worktrees when available.
-        try:
-            from tools.agent_claims import collect
-            active_tasks = {c["task"] for c in collect(self.repo_root, True).values()}
-            tasks = [t for t in tasks if not any(re.match(rf"{task}(?![0-9])", t.title) for task in active_tasks)]
-        except (OSError, ValueError, __import__("subprocess").CalledProcessError):
-            pass
-        tasks = tasks[:max_tasks]
-        if subtasks:
-            tasks = (tasks[:1] + [s for s in subtasks if s.task_id not in {t.task_id for t in tasks}])[:max_tasks]
+        tasks = sorted(tasks, key=lambda t: (-t.priority, order.get(t.task_id, len(order))))[:max_tasks]
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        (self.state_dir / "last_evolution_plan.json").write_text(json.dumps({"strategy": self.strategy,
+             "selected": [t.task_id for t in tasks], "blocked": self.blocked}, ensure_ascii=False, indent=2))
         armed = self.worker is not None and HermesWorker.enabled()
         if armed and parallel_mode == "wide" and len(tasks) > 1:
             from concurrent.futures import ThreadPoolExecutor
-
-            lanes = min(self.max_lanes, len(tasks))
-            with ThreadPoolExecutor(max_workers=lanes) as pool:
-                futures = [
-                    pool.submit(self._run_task, task, parallel_mode, self._lane_model(i, task))
-                    for i, task in enumerate(tasks)
-                ]
-                return [future.result() for future in futures]
+            # Patches with overlapping declared scope must stay sequential.
+            scopes = [set(t.allowed_paths) for t in tasks]
+            from tools.agent_claims import overlap
+            disjoint = all(not any(overlap(x, y) for x in a for y in b) for i, a in enumerate(scopes) for b in scopes[i + 1:])
+            if disjoint:
+                with ThreadPoolExecutor(max_workers=min(self.max_lanes, len(tasks))) as pool:
+                    futures = [pool.submit(self._run_task, task, parallel_mode, self._lane_model(i, task)) for i, task in enumerate(tasks)]
+                    return [f.result() for f in futures]
         return [self._run_task(task, parallel_mode, self._lane_model(i, task)) for i, task in enumerate(tasks) if not self.should_stop()]
 
-    def _lane_model(self, lane_index: int, task: EvolutionTask | None = None) -> str:
-        """Model pasma: basal wybiera odpowiedni LLM; bez rdzenia/strategy — round-robin."""
-        if self.decision_core is not None and task is not None and self.lane_models:
-            hint = (self.strategy.get("model_hints", {}) or {}).get(task.task_id, "")
-            scores = {m: (1.5 if (hint == "fast" and "fast" in m) or (hint == "smart" and "smart" in m) else 0.5) for m in self.lane_models}
-            decision = self.decision_core.decide("model_selection", list(self.lane_models), scores, default_option=self.lane_models[lane_index % len(self.lane_models)], context={"task_id": task.task_id, "strategy_hint": hint})
-            return decision["final"]
+    def _lane_model(self, lane_index, task=None):
         if not self.lane_models:
-            return "auto"
-        return self.lane_models[lane_index % len(self.lane_models)]
+            return None
+        hint = (self.strategy.get("model_hints") or {}).get(task.task_id, "") if task else ""
+        scores, details = {}, {}
+        for mid in self.lane_models:
+            model = self.models.get(mid, {})
+            speed = {"fast": 1.0, "medium": 0.6, "slow": 0.2}.get(model.get("speed_class"), 0.5)
+            quality = model.get("quality_tier", 3) / 5
+            scores[mid] = (2 * quality + speed / 4) if hint == "smart" else speed + quality / 2
+            details[mid] = {"quality_tier": model.get("quality_tier"), "speed_class": model.get("speed_class"), "capabilities": model.get("capabilities", [])}
+        default = max(scores, key=scores.get)
+        if self.decision_core and task:
+            decision = self.decision_core.decide("model_selection", self.lane_models, scores, default_option=default,
+                       context={"task_id": task.task_id, "strategy_hint": hint, "model_characteristics": details})
+            return decision["final"] if decision["final"] in scores else default
+        return default
 
-    def _run_task(self, task: EvolutionTask, parallel_mode: str, model_alias: str | None) -> dict[str, Any]:
+    def _run_task(self, task, parallel_mode, model_alias):
+        from selfopt_chain.evolution_inputs import task_prompt
         fp = self.fingerprint(task)
-        with self.index() as index:
-            if fp in index or self.should_stop():
-                return {"task_id": task.task_id, "status": "duplicate_or_stopped", "auto_applied": False}
-            index[fp] = {"status": "running", "task_id": task.task_id, "started": time.time()}
-        run_id = f"task_{fp[:16]}_{uuid.uuid4().hex[:6]}"
+        bundle = self.inputs[fp]
+        if self.worker is not None and getattr(self.worker, "ledger", None) is not None and (model_alias is None or not self.worker.ledger.can_use(model_alias)):
+            return {"task_id": task.task_id, "status": "waiting_budget", "auto_applied": False}
+        lease = self.store.acquire(fp, task.task_id, bundle["input_hash"])
+        if not lease:
+            return {"task_id": task.task_id, "status": "duplicate_or_waiting", "auto_applied": False}
+        run_id = f"task_{fp[:16]}_{lease[:8]}"
         out_dir = self.queue_dir / run_id
         out_dir.mkdir(parents=True, exist_ok=True)
-        receipt: dict[str, Any] = {
-            "run_id": run_id,
-            "task_id": task.task_id,
-            "title": task.title,
-            "source": task.source,
-            "parallel_mode": parallel_mode,
-            "model_alias": model_alias,
-            "executor": "mock",
-            "gate_ok": None,
-            "quarantined": False,
-            "proposal_path": None,
-        }
-        if self.worker is not None and HermesWorker.enabled():
-            receipt["executor"] = "hermes"
-            query = build_task_query(task, self.repo_root)
-            hermes_receipt = self.worker.run_isolated(query, model_alias=model_alias)
-            receipt["hermes_run_id"] = hermes_receipt.get("run_id")
-            receipt["hermes_executed"] = hermes_receipt.get("executed")
-            receipt["hermes_exit_code"] = hermes_receipt.get("exit_code")
-            report = hermes_receipt.get("security_gate") or {"ok": False, "violations": [{"rule": "hermes_not_executed"}], "licenses_review": []}
-            (out_dir / "hermes_receipt.json").write_text(json.dumps(hermes_receipt, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-            quarantine = Path(hermes_receipt.get("quarantine_dir", out_dir))
-            pieces = []
-            total = 0
-            for produced in sorted(quarantine.rglob("*")):
-                if produced.is_file() and not produced.is_symlink() and produced.name not in {"output.json", "task.md", "hermes_receipt.json"}:
-                    content = produced.read_text(encoding="utf-8", errors="replace")
-                    total += len(content)
-                    pieces.append(f"# {produced.relative_to(quarantine)}\n{content}")
-            produced_text = "\n".join(pieces) if total <= 5500 else ""
-            review = review_by_strong_model(task, produced_text, self.strategy_engine)
-            receipt["review"] = review
-            (out_dir / "review.json").write_text(json.dumps(review, ensure_ascii=False, indent=2), encoding="utf-8")
-        else:
-            proposal = render_mock_proposal(task, parallel_mode, {"ok": True, "violations": [], "licenses_review": []})
-            proposal_path = out_dir / "PROPOSAL.md"
-            proposal_path.write_text(proposal, encoding="utf-8")
-            report = self.gate.inspect_code(proposal)
-            receipt["proposal_path"] = str(proposal_path)
-            receipt["review"] = {"reviewer": "none", "verdict": "unreviewed", "notes": "mock-lane: czeka na review człowieka"}
-        (out_dir / "gate_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-        receipt["security_ok"] = bool(report.get("ok"))
-        receipt["execution_ok"] = receipt.get("executor") == "hermes" and receipt.get("hermes_exit_code") == 0
-        receipt["review_ok"] = (receipt.get("review") or {}).get("verdict") == "pass"
-        receipt["validation_ok"] = bool((hermes_receipt.get("validation") or {}).get("ok")) if receipt["executor"] == "hermes" else False
-        receipt["gate_ok"] = receipt["security_ok"] and receipt["execution_ok"] and receipt["review_ok"] and receipt["validation_ok"]
-        receipt["ready_for_human_review"] = receipt["gate_ok"]
-        receipt["status"] = "ready" if receipt["gate_ok"] else "simulated" if receipt["executor"] == "mock" else "needs_fixes"
-        receipt["quarantined"] = bool(report.get("quarantine_required"))
-        receipt["auto_applied"] = False
-        receipt["fingerprint"] = fp
-        (out_dir / "evolution_receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
-        with self.index() as index:
-            index[fp] = {"status": receipt["status"], "run_id": run_id, "task_id": task.task_id}
+        (out_dir / "input_manifest.json").write_text(json.dumps(bundle, ensure_ascii=False, indent=2))
+        receipt = {"run_id": run_id, "task_id": task.task_id, "title": task.title, "source": task.source,
+                   "parallel_mode": parallel_mode, "model_alias": model_alias, "executor": "mock",
+                   "fingerprint": fp, "input_hash": bundle["input_hash"], "proposal_path": None,
+                   "auto_applied": False, "receipt_path": str(out_dir / "evolution_receipt.json")}
+        try:
+            if self.worker is not None and HermesWorker.enabled():
+                receipt["executor"] = "hermes"
+                produced = self.worker.run_isolated(task_prompt(bundle), model_alias=model_alias, input_bundle=bundle)
+                (out_dir / "hermes_receipt.json").write_text(json.dumps(produced, ensure_ascii=False, indent=2))
+                receipt.update(hermes_run_id=produced.get("run_id"), hermes_executed=produced.get("executed"),
+                               hermes_exit_code=produced.get("exit_code"), validation=produced.get("validation"),
+                               security_ok=bool((produced.get("security_gate") or {}).get("ok")),
+                               execution_ok=produced.get("executed") is True and produced.get("exit_code") == 0)
+                validation = produced.get("validation") or {}
+                texts = []
+                output_root = Path(produced.get("quarantine_dir", out_dir))
+                for name in ["PROPOSAL.md", "changes.patch"]:
+                    path = output_root / name
+                    if path.is_file() and not path.is_symlink():
+                        texts.append(f"# {name}\n{path.read_text()}")
+                        if name == "PROPOSAL.md":
+                            receipt["proposal_path"] = str(path)
+                text = "\n".join(texts)
+                if len(text) > 16000:
+                    receipt["error"] = "review_context_limit"
+                    text = ""
+                # Do not spend a review call on missing, unsafe or invalid production.
+                receipt["review"] = review_by_strong_model(task, text + "\nValidation: " + json.dumps(validation), self.strategy_engine) if text and receipt["security_ok"] and validation.get("ok") else {"verdict": "unreviewed", "notes": "artifact not validated"}
+                receipt["validation_ok"] = bool(validation.get("ok"))
+                receipt["error"] = produced.get("error") or produced.get("stop_reason") or receipt.get("error")
+                report = produced.get("security_gate") or {"ok": False}
+            else:
+                proposal_path = out_dir / "PROPOSAL.md"
+                proposal_path.write_text(render_mock_proposal(task, parallel_mode, {"ok": True}))
+                receipt.update(proposal_path=str(proposal_path), execution_ok=False, validation_ok=False,
+                               security_ok=True, review={"verdict": "unreviewed", "notes": "simulated"})
+                report = self.gate.inspect_code(proposal_path.read_text())
+            receipt["review_ok"] = receipt["review"].get("verdict") == "pass"
+            receipt["gate_ok"] = all(receipt.get(k) for k in ["execution_ok", "validation_ok", "security_ok", "review_ok"])
+            receipt["ready_for_human_review"] = receipt["gate_ok"]
+            receipt["status"] = "ready" if receipt["gate_ok"] else "simulated" if receipt["executor"] == "mock" else "needs_fixes"
+            receipt["quarantined"] = not receipt["gate_ok"]
+            (out_dir / "gate_report.json").write_text(json.dumps(report, indent=2))
+            if receipt["gate_ok"]:
+                archive = self.state_dir / "candidate_archive" / fp / run_id
+                archive.mkdir(parents=True, exist_ok=True)
+                import shutil
+                for name in ["PROPOSAL.md", "changes.patch"]:
+                    source = Path(receipt["proposal_path"]).parent / name
+                    if source.is_file():
+                        shutil.copyfile(source, archive / name)
+                (archive / "candidate.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
+                receipt["archive_path"] = str(archive)
+        except Exception as error:
+            receipt.update(status="needs_fixes", error=type(error).__name__, gate_ok=False, ready_for_human_review=False,
+                           security_ok=False, validation_ok=False, execution_ok=False, review_ok=False,
+                           review={"verdict": "unreviewed", "notes": "controller captured failure"}, validation={"ok": False, "error": type(error).__name__})
+        Path(receipt["receipt_path"]).write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
+        self.store.finish(fp, lease, receipt)
         return receipt
