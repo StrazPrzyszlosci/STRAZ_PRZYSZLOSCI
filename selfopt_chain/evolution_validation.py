@@ -49,12 +49,12 @@ def validate_patch(output, snapshot, manifest, destination):
         if report['checks']['baseline_acceptance_returncode'] == 0:
             return {**report, 'error': 'no_demonstrated_improvement'}
         if report['checks']['candidate_acceptance_returncode'] != 0:
-            return {**report, 'error': 'acceptance_failed'}
+            return {**report, 'error': 'acceptance_failed', 'feedback': (destination / 'candidate_acceptance.log').read_text()[-6000:]}
         result = Sandbox(candidate).run(['/usr/bin/python3', '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py'], timeout=150)
         (destination / 'full_python.log').write_text(result.stdout + result.stderr)
         report['checks']['full_python_returncode'] = result.returncode
         if result.returncode:
-            return {**report, 'error': 'regression_failed'}
+            return {**report, 'error': 'regression_failed', 'feedback': (destination / 'full_python.log').read_text()[-6000:]}
         report.update(ok=True, patch_sha256=hashlib.sha256(patch.read_bytes()).hexdigest(),
                       candidate_dir=str(candidate), demonstrated_improvement='baseline acceptance fails; candidate acceptance and full regression pass')
     except (OSError, ValueError, SyntaxError, subprocess.SubprocessError) as error:

@@ -353,7 +353,7 @@ class EvolutionLoop:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         (self.state_dir / "last_evolution_plan.json").write_text(json.dumps({"strategy": self.strategy,
              "selected": [t.task_id for t in tasks], "blocked": self.blocked}, ensure_ascii=False, indent=2))
-        armed = self.worker is not None and HermesWorker.enabled()
+        armed = self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)()
         if armed and parallel_mode == "wide" and len(tasks) > 1:
             from concurrent.futures import ThreadPoolExecutor
             # Patches with overlapping declared scope must stay sequential.
@@ -402,12 +402,12 @@ class EvolutionLoop:
                    "fingerprint": fp, "input_hash": bundle["input_hash"], "proposal_path": None,
                    "auto_applied": False, "receipt_path": str(out_dir / "evolution_receipt.json")}
         try:
-            if self.worker is not None and HermesWorker.enabled():
-                receipt["executor"] = "hermes"
+            if self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)():
+                receipt["executor"] = getattr(self.worker, "executor_name", "hermes")
                 produced = self.worker.run_isolated(task_prompt(bundle), model_alias=model_alias, input_bundle=bundle)
                 (out_dir / "hermes_receipt.json").write_text(json.dumps(produced, ensure_ascii=False, indent=2))
                 receipt.update(hermes_run_id=produced.get("run_id"), hermes_executed=produced.get("executed"),
-                               hermes_exit_code=produced.get("exit_code"), validation=produced.get("validation"),
+                               worker_exit_code=produced.get("exit_code"), hermes_exit_code=produced.get("exit_code") if receipt["executor"] == "hermes" else None, validation=produced.get("validation"),
                                security_ok=bool((produced.get("security_gate") or {}).get("ok")),
                                execution_ok=produced.get("executed") is True and produced.get("exit_code") == 0)
                 validation = produced.get("validation") or {}
@@ -455,5 +455,16 @@ class EvolutionLoop:
                            security_ok=False, validation_ok=False, execution_ok=False, review_ok=False,
                            review={"verdict": "unreviewed", "notes": "controller captured failure"}, validation={"ok": False, "error": type(error).__name__})
         Path(receipt["receipt_path"]).write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
+        if receipt.get("gate_ok") and task.kind == "patch":
+            try:
+                import subprocess
+                from selfopt_chain.evolution_publication import request_publication
+                remote = subprocess.check_output(["git", "-C", str(self.repo_root), "remote", "get-url", "origin"], text=True).strip()
+                match = re.search(r"github\.com[/:]([^/\s]+/[^/\s]+?)(?:\.git)?$", remote)
+                if match:
+                    receipt["publication_request"] = str(request_publication(self.state_dir, Path(receipt["receipt_path"]), match[1]))
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                receipt["publication_error"] = type(error).__name__
+            Path(receipt["receipt_path"]).write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
         self.store.finish(fp, lease, receipt)
         return receipt

@@ -33,3 +33,9 @@ Runtime jest kopią publicznego Git i istniejących zależności CPython 3.12, b
 Sprawdzaj `evolution_index.json`, `last_evolution_plan.json`, `evolution_queue/*/evolution_receipt.json`, `validations/*/` oraz `candidate_archive/`. `ready` wymaga wszystkich bramek. `needs_fixes` jest ponawiane z feedbackiem, nie traktowane jak ukończone. Lease wygasa po przerwaniu procesu; ten sam input po sukcesie nie uruchamia ponownie zadania.
 
 T58 zawiera rzeczywisty cel naprawy kodu wyjścia daemona z niezależnym testem odbioru. Błąd wykryto w uruchomieniu T53: oba workery zawiodły, lecz daemon zwrócił 0. Kod tej naprawy ma wytworzyć rój; kontroler nie dostarcza gotowego patcha. Pozostałe etapy pełnego celu — publikacja draft PR, odbiór człowieka, adaptacja po ocenach i dłuższa obserwacja operacyjna — muszą mieć własne dowody przed uznaniem całej ewolucji za stabilną.
+
+## Wybór producenta i publikacja
+
+Po nieudanych próbach lokalny basal dostaje liczbę faktycznych porażek i może wybrać direct_patch zamiast Hermesa. Ten producent emituje dokładne edycje JSON; kontroler odrzuca niedopasowane fragmenty i buduje patch bez fuzzy matching. Ta sama walidacja i review obowiązuje obie metody. Zmiana metody nie jest akceptacją wyniku.
+
+Gotowy patch tworzy idempotentny publication_request. Kontroler publikacji może przygotować wyłącznie branch codex/evolution-HASH; main i auto-merge są zabronione. Publikacja przez podłączony GitHub wymaga powiązania prawdziwego URL PR z żądaniem. Bez tego request pozostaje awaiting_publisher i nie udaje opublikowanej zmiany.

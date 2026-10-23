@@ -264,7 +264,7 @@ class HermesWorker:
         after = self.ledger.rpd_used
         receipt.update(executed=True, exit_code=process.returncode, stop_reason=reason,
                        latency_ms=int((time.monotonic() - started) * 1000),
-                       api_calls={k: after.get(k, 0) - before.get(k, 0) for k in after if after.get(k, 0) != before.get(k, 0)})
+                       api_calls=dict(proxy.usage), proxy_events=list(proxy.events))
         gate = {"ok": False, "violations": [{"rule": "unsafe_output_directory"}], "quarantine_required": True}
         if output.is_dir() and not output.is_symlink():
             gate = SecurityGate().inspect_tree(output)

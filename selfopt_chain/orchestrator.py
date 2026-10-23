@@ -574,12 +574,27 @@ class Orchestrator:
         mode = self.config.get("subagent_mode", "auto")
         if mode == "auto":
             mode = decide_parallel_mode(core, backlog, sum(t.priority >= 100 for t in tasks))
+        executor = self.config.get("evolution_executor", "auto")
+        if worker and executor == "auto" and any(t.kind == "patch" for t in tasks):
+            history = loop.store.snapshot()
+            failed = sum(row.get("attempts", 1) for row in history.values() if row.get("status") == "needs_fixes")
+            selection = core.decide("evolution_executor", ["direct_patch", "hermes"],
+                {"direct_patch": 1.5 + failed, "hermes": 1.0 - min(failed, 2) * 0.25},
+                default_option="direct_patch",
+                context={"ready_patch_contracts": sum(t.kind == "patch" for t in tasks),
+                         "failed_attempts": failed, "methods": {"direct_patch": "model emits exact edits; independent sandbox tests", "hermes": "agent uses terminal tools in isolated workspace"}})
+            executor = selection["final"]
+        if executor == "auto":
+            executor = "hermes"
+        if worker and executor == "direct_patch":
+            from selfopt_chain.direct_patch_worker import DirectPatchWorker
+            loop.worker = DirectPatchWorker(models, self.ledger, ROOT, self.state_dir, self.should_stop)
         receipts = loop.run(max_tasks=int(self.config.get("evolve_max_tasks", 1)), parallel_mode=mode, tasks=tasks)
         self.state.data["daily_calls"] = self.ledger.rpd_used
         self.state.save()
         return {"mode": mode, "backlog": backlog, "blocked": loop.blocked,
                 "strategy_source": loop.strategy.get("source", "n/a"), "strategy_brief": loop.strategy.get("brief", ""),
-                "lane_models": lane_models, "tasks": receipts, "executor": "hermes" if worker else "mock", "auto_applied": False}
+                "lane_models": lane_models, "tasks": receipts, "executor": executor if worker else "mock", "auto_applied": False}
 
     def run(self) -> int:
         signal.signal(signal.SIGTERM, self.request_stop)

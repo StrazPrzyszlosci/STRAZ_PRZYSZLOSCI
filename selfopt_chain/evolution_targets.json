@@ -25,6 +25,27 @@
       }
     },
     {
+      "target_id": "deferred_job_selection",
+      "title": "Respektuj final bezpiecznej decyzji basala przy deferred wyborze zadania",
+      "source_hint": "SwarmPlanner.decide_job_selection korzysta z modelowego rankingu nawet przy deferred=True. Bezpieczny final od rdzenia ma wtedy trafić na początek kolejki. Nie zmieniaj filtrowania, limitów ani polityki pewności.",
+      "constraints": "suggest-only; minimalny patch; niezależny kontrakt ma nie przechodzić na baseline i przechodzić po zmianie",
+      "kind": "patch",
+      "priority": 90,
+      "input_refs": [
+        "selfopt_chain/swarm.py"
+      ],
+      "allowed_paths": [
+        "selfopt_chain/swarm.py",
+        "tests/test_selfopt_deferred_selection.py"
+      ],
+      "acceptance_ref": "selfopt_chain/evolution_acceptance/deferred_selection.py",
+      "focus_symbols": {
+        "selfopt_chain/swarm.py": [
+          "decide_job_selection"
+        ]
+      }
+    },
+    {
       "target_id": "router_weights_from_decisions",
       "title": "Dopasuj wagi strategii routera/swarm wg statystyk decisions.jsonl",
       "source_hint": "scratch/selfopt/decisions.jsonl + calibrate.py propose",

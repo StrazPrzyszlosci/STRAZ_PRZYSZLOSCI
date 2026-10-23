@@ -115,4 +115,7 @@ class BudgetedEngine:
             self.ledger.record(model_id)
         except QuotaExceeded:
             return {'ok': False, 'output': '', 'error_class': 'quota_exhausted'}
-        return self.engine.complete(task, model_id, prompt)
+        result = self.engine.complete(task, model_id, prompt)
+        result["attempt_recorded"] = True
+        result["requested_model_id"] = model_id
+        return result

@@ -75,8 +75,14 @@ class EvolutionStore:
             if old.get('lease') != lease or old.get('status') != 'running':
                 return False
             status = receipt['status']
+            methods = old.get('method_outcomes', {})
+            method = receipt.get('executor', 'unknown')
+            stats = methods.setdefault(method, {'attempts': 0, 'ready': 0, 'failures': 0})
+            stats['attempts'] += 1
+            stats['ready'] += int(status == 'ready')
+            stats['failures'] += int(status == 'needs_fixes')
             data[key] = {**old, 'status': status, 'run_id': receipt.get('run_id'),
-                         'finished': self.clock(), 'lease_until': 0,
+                         'finished': self.clock(), 'lease_until': 0, 'method_outcomes': methods,
                          'retry_at': self.clock() + self.retry_seconds * 2 ** max(0, old['attempts'] - 1),
                          'feedback': {'error': receipt.get('error'), 'review': receipt.get('review'),
                                       'validation': receipt.get('validation'), 'security_ok': receipt.get('security_ok')},
