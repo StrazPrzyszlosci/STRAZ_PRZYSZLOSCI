@@ -2,6 +2,8 @@
 
 Decyzja operatora z 2026-10-23: **Kilo poprawia runtime; Codex weryfikuje i przygotowuje integrację**. Codex zawęził własny claim T58 do dokumentacji tej pracy. Nie zmienia kodu runtime ani claimu Kilo.
 
+**Najnowszy zakończony odbiór opisuje sekcja „Kolejne migawki Kilo” na końcu dokumentu:** dla migawki v3 pełny Python ma 492 testy i 1 błąd. Pierwsza część raportu zachowuje wyniki v1, zamiast przypisywać je późniejszym poprawkom. Kilo nadal edytuje pliki; odbiór nie dotyczy niezbadanych zmian po wskazanych hashach.
+
 **Wynik badanej migawki: niegotowa do integracji ani uruchomienia autonomicznej ewolucji.** To ocena konkretnego WIP, nie późniejszych poprawek Kilo ani stanu `main`. T58 również nie ma jeszcze dowodu stabilnej ewolucji.
 
 ## Identyfikacja wejść
@@ -76,3 +78,38 @@ Receipt: `scratch/selfopt/stable-evolution-live/evolution_queue/revalidate_92a19
 3. Na niezmiennej wersji po integracji uruchomić pełny Python, JS, manifesty, approvals i testy regresyjne ustaleń powyżej. Zielony sam zestaw testów unit nie zastępuje prywatności, budżetu, restartu i odbioru artefaktów.
 4. Dopiero potem uruchomić ograniczony rzeczywisty pilot z lokalnym Basal i tym samym quota ledger, bez resetu licznika. Zbadać przydział zadań, ponowienie z feedbackiem, restart bez duplikatów oraz brak nowych wywołań w stanie bezczynności.
 5. Publikować kandydata wyłącznie po przejściu niezależnego odbioru i review, jako draft PR. Zachować `no_auto_merge`, `no_direct_push` i `suggest-only`. Dopóki nie ma powtarzalnego domknięcia tej ścieżki, cel stabilnej ewolucji pozostaje niezrealizowany.
+
+## Kolejne migawki Kilo
+
+Wszystkie poniższe migawki mają tę samą bazę `042bde4b8158d3f9eaf361a62817f78ec97228c5`; rozróżnia je SHA256 pełnego roboczego diffu. Ponowienia pełnego Pythona wynikały z nowych zmian kodu, nie z próby uzyskania innego wyniku na identycznym wejściu.
+
+| Migawka | SHA256 diffu | Pełny Python |
+|---|---|---|
+| v1 | `96fa96da8199eb7db71e992964b1e279eafda2f5322eb2dcbc3f65bdefe1d795` | 492 testy; 3 failures, 14 errors |
+| v2 | `0a6f8d30a47f23308f13b414e5cab2b8315c4a1ac3bbe5109bd063a59dc8522c` | 492 testy; 1 failure, 3 errors |
+| v3 | `7eacc56fb5c5bb02ac2aa5bbe3f69bb816289d74da289ae3f3769ed54846bf67` | 492 testy; 1 error |
+
+W v2 poprawiono import `re` oraz oczekiwany typ decyzji w teście kalibracji. Zmiana prywatności odwoływała się jednak do `model` przed jego przypisaniem; trzy testy wykazały `UnboundLocalError`. W v3 usunięto ten błąd oraz przywrócono wyliczanie `SecurityGate.blocked` z naruszeń. Zakończony odbiór v3 nadal wykazuje `NameError: secret_env` w `engine.py:_call()` dla lokalnego API. Po jego usunięciu wymaga osobnego odbioru również parser odpowiedzi lokalnej, opisany w ustaleniu 2; nie uznawać go za sprawdzony na podstawie samego usunięcia wyjątku.
+
+Dowody v2: `scratch/selfopt/integration-review/20261023-kilo-v2/`. Dowody v3: `scratch/selfopt/integration-review/20261023-kilo-v3/`. Testy wykonywano odpowiednio w `/tmp/straz-kilo-audit-v2-f5fxbd31` i `/tmp/straz-kilo-audit-v3-rirvz7to`. Źródła 85 plików `tests/*.mjs` i `cloudflare/src/*.js` oraz manifest komórek porównano bajtowo z v1: bez zmian. Wynik JavaScript 378 pass / 0 fail pochodzi z wykonania na tych samych źródłach w v1; nie podawano fikcyjnego nowego uruchomienia JS dla każdej migawki.
+
+Podgląd integracji v2 z T58 `17e7882` nadal ma 8 konfliktujących plików i 24 obszary konfliktów; dochodzi bezkonfliktowa tekstowo zmiana testu `tests/test_selfopt_calibrate.py`. Dla v3 nie wykonano nowego podglądu scalenia i nie przenoszono wyniku v2 jako pomiaru v3. CI T58 `17e7882` zakończyło oba joby sukcesem, w tym pełny Python, JS, manifesty i approvals; nie jest to CI WIP Kilo.
+
+### Dodatkowe próby zachowania
+
+- **CLI OmniRoute (v2):** przy wywołaniu `main(['--engine','omniroute','--once','--quota-snapshot',PATH])` i zastąpieniu wyłącznie wykonania `Orchestrator` rejestratorem konfiguracji przekazany `quota_snapshot_path` był `None`. Rzeczywista `quota_gate` dla tej konfiguracji zwróciła `allowed=false`, `quota_snapshot_blocked:missing_snapshot`. Przyczyna: końcowa konfiguracja CLI uwzględnia plik tylko dla `free-api`, choć bramka po poprawce obejmuje także `omniroute`. Nie wykonywano wywołań sieciowych ani modeli. Naprawa wymaga sprawdzenia propagacji pliku, jego ważności i budżetu, a nie usunięcia bramki.
+- **Bezpieczny wybór przy defer (v3):** kontrolowany rdzeń zwrócił `deferred=true`, `final='job-safe'` i ranking `job-risk:0.6, job-safe:0.4`. `SwarmPlanner.decide_job_selection()` oddał kolejność `['job-risk','job-safe']`, ignorując bezpieczne `final`. To niezależny test znanego celu ewolucji, bez generowania nowej poprawki i bez przypisywania temu przypadkowi rzeczywistej decyzji modelu.
+- **Dedup i kalibracja:** w v2 i v3 nie zmieniły się ścieżki odpowiedzialne za pomijanie `needs_fixes` oraz wielokrotne używanie tych samych etykiet. Ustalenia 4 i 5 pozostają otwarte. Zielony zestaw obecnych testów nie będzie sam w sobie odbiorem tych zachowań.
+
+### Rzeczywisty przydział zadań przez lokalny Basal
+
+Na niezmiennej migawce v2 wykonano jedynie planowanie dla dwóch przykładów zasobów i dwóch potrzeb z repozytorium. Lokalny `http://127.0.0.1:8000/health` zwrócił `ok`, a wszystkie **6/6 decyzji** miało `engine='basal-serve'`; nie użyto builtin ani publicznego API. Wybrana strategia: **quality_first**.
+
+| Potrzeba | Przydzielony zasób | Tryb |
+|---|---|---|
+| `need_aquaponics_observer_food` | `hardware:phone:ewaste_phone_batch_local_001` | `on_device_model` |
+| `need_local_edatabase_knowledge` | `hardware:selfhost:selfhost_compute_node_recovered_001` | `on_device_model` |
+
+Do kolejki wykonania z limitem jednego joba wybrano `selfhost_compute_node_recovered_001`; confidence `0.6524`, próg `0.55`, `deferred=false`. Ten rzeczywisty przebieg nie uruchomił gałęzi defer opisanej w kontrolowanej próbie powyżej. Plan ma `policy='suggest-only'`, `auto_applied=false`; nie uruchamiano modeli na urządzeniach, fizycznej aktuacji, Hermesa ani produkcji nowego kodu. Dowody: `20261023-kilo-v2/local-basal/{plan,summary}.json` oraz `decisions.jsonl`. Przydział jest propozycją planisty, nie dowodem dostępności lub wdrożenia danego modelu na sprzęcie.
+
+Następny odbiór runtime musi obejmować pozostałe błędy funkcjonalne i integrację, a następnie kontrolowany pilot ewolucji z trwałym ledgerem. Samo zejście z 17 błędów testów do 1 nie dowodzi retencji ulepszenia, poprawnego uczenia z nowych etykiet ani publikacji zaakceptowanego patcha.
