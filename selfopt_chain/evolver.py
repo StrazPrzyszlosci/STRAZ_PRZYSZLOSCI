@@ -23,6 +23,7 @@ Deterministycznie testowalne offline; realne LLM po uzbrojeniu
 from __future__ import annotations
 
 import json
+import os
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -34,6 +35,42 @@ from selfopt_chain.swarm import BasalDecisionCore
 
 TARGETS_PATH = Path(__file__).with_name("evolution_targets.json")
 NEXT_TASKS_RE = re.compile(r"^\d+\.\s*\*\*(T\d+[^*]*)\*\*[:\s]+(.*)$", re.MULTILINE)
+DEFAULT_DRAFT_ALIAS = os.environ.get("SELFOPT_EVOLVE_DRAFT_MODEL", "auto/best-fast")
+DEFAULT_REVIEW_ALIAS = os.environ.get("SELFOPT_EVOLVE_REVIEW_MODEL", "auto/best-reasoning")
+
+
+def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engine: Any | None, review_alias: str = DEFAULT_REVIEW_ALIAS) -> dict[str, Any]:
+    """DYREKTYWA: mocny model sprawdza to, co zrobił słaby model.
+
+    Review semantyczny (oprócz SecurityGate wzorców): czy produkcja spełnia
+    zadanie, co poprawić, verdict pass | needs_fixes | fail.
+    Offline (brak engine): verdict 'unreviewed' — artefakt NIE przechodzi
+    review i czeka na człowieka (bramka wzorców nadal obowiązuje).
+    """
+    if review_engine is None or not produced_text.strip():
+        return {"reviewer": "none", "verdict": "unreviewed", "notes": "brak engine review — czeka na review człowieka"}
+    prompt = "\n".join([
+        "# Review produkcji słabego modelu (rój Straży Przyszłości)",
+        f"Zadanie: {task.title}",
+        f"Kontekst: {(task.context or '')[:300]}",
+        "",
+        "Produkcja do sprawdzenia:",
+        produced_text[:6000],
+        "",
+        "Oceń: (1) czy produkcja spełnia zadanie, (2) błędy/braki, (3) co poprawić.",
+        'Odpowiedz WYŁĄCZNIE JSON: {"verdict": "pass"|"needs_fixes"|"fail", "notes": "2-4 zdania"}',
+    ])
+    result = review_engine.complete({"kind": "review", "privacy": "public", "task_id": f"review_{task.task_id}"}, review_alias, prompt)
+    if not result.get("ok"):
+        return {"reviewer": "none", "verdict": "unreviewed", "notes": f"review engine niedostepny: {result.get('error_class', '?')}"}
+    raw = str(result.get("output", "")).strip()
+    try:
+        start, end = raw.find("{"), raw.rfind("}")
+        parsed = json.loads(raw[start:end + 1])
+        verdict = parsed.get("verdict") if parsed.get("verdict") in {"pass", "needs_fixes", "fail"} else "unreviewed"
+        return {"reviewer": result.get("model_id", review_alias), "verdict": verdict, "notes": str(parsed.get("notes", ""))[:400]}
+    except (ValueError, TypeError):
+        return {"reviewer": result.get("model_id", review_alias), "verdict": "unreviewed", "notes": "review: nieparsowalna odpowiedź"}
 
 
 @dataclass
@@ -144,6 +181,72 @@ def build_task_query(task: EvolutionTask, repo_root: Path) -> str:
     ])
 
 
+def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | None) -> tuple[dict[str, Any], list[EvolutionTask]]:
+    """KROK 1 (dyrektywa operatora): STRATEGIE tworzy LLM na darmowych modelach.
+
+    LLM dostaje surowe zadania z backlogu i produkuje 'strategy brief':
+    priorytety, podejście, hinty klas modeli ORAZ DEKOMPOZYCJĘ najważniejszych
+    zadań na konkretne PODZADANIA (atomizacja — świeży materiał co rundę,
+    żeby ewolucja non-stop nie kręciła kółka na tych samych wpisach).
+    Offline (brak engine): strategia deterministyczna, bez podzadań.
+    """
+    known_ids = {t.task_id for t in tasks}
+    fallback_strategy = {
+        "source": "deterministic_fallback",
+        "brief": "Kolejnosc wejsciowa zadan; brak rankingu LLM (offline).",
+        "priorities": [t.task_id for t in tasks],
+        "model_hints": {t.task_id: "auto" for t in tasks},
+    }
+    if strategy_engine is None or not tasks:
+        return fallback_strategy, []
+    listing = "\n".join(f"- [{t.task_id}] {t.title} (źródło: {t.source})" for t in tasks)
+    prompt = "\n".join([
+        "# Zadanie: strategia ewolucji repo dla roju Straży Przyszłości (suggest-only)",
+        "Poniżej surowe zadania z backlogu roju. Utwórz 'strategy brief' WYŁĄCZNIE jako JSON:",
+        '{"brief": str, "priorities": [task_id...], "model_hints": {task_id: "fast"|"smart"},',
+        ' "subtasks": [{"task_id": "unikalne-id-podzadania", "title": "konkretne podzadanie", "context": "jak wykonać", "parent": "task_id"}]}',
+        "Priorytety = kolejność realizacji. Podzadania = dekompozycja najważniejszych zadań",
+        "na 2-4 konkretne, wykonalne kawałki (atomizacja procesów). Maks. 6 podzadań.",
+        "",
+        "Zadania:",
+        listing,
+    ])
+    result = strategy_engine.complete({"kind": "reason", "privacy": "public", "task_id": "evolution_strategy"}, "auto", prompt)
+    if not result.get("ok"):
+        fallback_strategy["source"] = f"llm_unavailable:{result.get('error_class', 'unknown')}"
+        return fallback_strategy, []
+    raw = str(result.get("output", "")).strip()
+    try:
+        start, end = raw.find("{"), raw.rfind("}")
+        parsed = json.loads(raw[start:end + 1])
+        strategy = {
+            "source": f"llm:{result.get('model_id', 'auto')}",
+            "brief": str(parsed.get("brief", ""))[:600],
+            "priorities": [p for p in parsed.get("priorities", []) if p in known_ids],
+            "model_hints": {k: v for k, v in parsed.get("model_hints", {}).items() if k in known_ids},
+        }
+        subtasks: list[EvolutionTask] = []
+        seen_ids: set[str] = set()
+        for sub in parsed.get("subtasks", [])[:6]:
+            if not isinstance(sub, dict):
+                continue
+            sub_id = str(sub.get("task_id", "")).strip()
+            title = str(sub.get("title", "")).strip()
+            if not sub_id or sub_id in known_ids or sub_id in seen_ids or not title:
+                continue
+            seen_ids.add(sub_id)
+            subtasks.append(EvolutionTask(
+                task_id=sub_id,
+                title=title[:160],
+                source=f"llm_strategy:subtask_of:{sub.get('parent', '?')}",
+                context=str(sub.get("context", ""))[:400],
+            ))
+        return strategy, subtasks
+    except (ValueError, TypeError):
+        fallback_strategy["source"] = "llm_bad_json"
+        return fallback_strategy, []
+
+
 def render_mock_proposal(task: EvolutionTask, parallel_mode: str, gate_report: dict[str, Any]) -> str:
     return "\n".join([
         f"# Propozycja ewolucji repo — {task.title} (suggest-only)",
@@ -173,51 +276,106 @@ def render_mock_proposal(task: EvolutionTask, parallel_mode: str, gate_report: d
 
 
 class EvolutionLoop:
-    """Jeden przebieg ewolucji repo: zadania → (mock|hermes) → bramka → kolejka."""
+    """Jeden przebieg ewolucji repo: zadania → (mock|Hermes) → bramka → kolejka.
 
-    def __init__(self, state_dir: Path, docs_dir: Path, repo_root: Path, worker: HermesWorker | None = None) -> None:
+    Tryb wide: zadania wykonują się RÓWNOLEGLE, każde pasmo na INNYM modelu
+    (round-robin po darmowym katalogu OmniRoute — limity RPM rozkładają się
+    per model, np. NIM 40 RPM osobno na model). Limit pasm: max_lanes
+    (konfigurowalne, domyślnie 6).
+    """
+
+    def __init__(self, state_dir: Path, docs_dir: Path, repo_root: Path, worker: HermesWorker | None = None, lane_models: list[str] | None = None, decision_core=None, strategy_engine: Any | None = None, max_lanes: int = 6) -> None:
         self.state_dir = state_dir
         self.docs_dir = docs_dir
         self.repo_root = repo_root
         self.worker = worker
+        self.lane_models = lane_models or []
+        self.decision_core = decision_core
+        self.strategy_engine = strategy_engine
+        self.max_lanes = max_lanes
         self.gate = SecurityGate()
         self.queue_dir = state_dir / "evolution_queue"
+        self.strategy: dict[str, Any] = {}
 
     def run(self, max_tasks: int = 4, parallel_mode: str = "single") -> list[dict[str, Any]]:
-        tasks = collect_evolution_tasks(self.state_dir, self.docs_dir, max_tasks=max_tasks)
-        results: list[dict[str, Any]] = []
-        for task in tasks:
-            run_id = f"{task.task_id}_{uuid.uuid4().hex[:6]}"
-            out_dir = self.queue_dir / run_id
-            out_dir.mkdir(parents=True, exist_ok=True)
-            receipt: dict[str, Any] = {
-                "run_id": run_id,
-                "task_id": task.task_id,
-                "title": task.title,
-                "source": task.source,
-                "parallel_mode": parallel_mode,
-                "executor": "mock",
-                "gate_ok": None,
-                "quarantined": False,
-                "proposal_path": None,
-            }
-            if self.worker is not None and HermesWorker.enabled():
-                receipt["executor"] = "hermes"
-                query = build_task_query(task, self.repo_root)
-                hermes_receipt = self.worker.run_isolated(query)
-                receipt["hermes_run_id"] = hermes_receipt.get("run_id")
-                receipt["hermes_executed"] = hermes_receipt.get("executed")
-                report = hermes_receipt.get("security_gate") or {"ok": False, "violations": [{"rule": "hermes_not_executed"}], "licenses_review": []}
-                (out_dir / "hermes_receipt.json").write_text(json.dumps(hermes_receipt, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-            else:
-                proposal = render_mock_proposal(task, parallel_mode, {"ok": True, "violations": [], "licenses_review": []})
-                proposal_path = out_dir / "PROPOSAL.md"
-                proposal_path.write_text(proposal, encoding="utf-8")
-                report = self.gate.inspect_code(proposal)
-                receipt["proposal_path"] = str(proposal_path)
-            (out_dir / "gate_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-            receipt["gate_ok"] = report.get("ok")
-            receipt["quarantined"] = bool(report.get("quarantine_required"))
-            receipt["auto_applied"] = False
-            results.append(receipt)
-        return results
+        tasks = collect_evolution_tasks(self.state_dir, self.docs_dir, max_tasks=max_tasks * 2)
+        self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine)
+        order = {task_id: i for i, task_id in enumerate(self.strategy.get("priorities", []))}
+        tasks.sort(key=lambda t: order.get(t.task_id, len(order)))
+        tasks = tasks[:max_tasks]
+        if subtasks:
+            tasks = (tasks[:1] + [s for s in subtasks if s.task_id not in {t.task_id for t in tasks}])[:max_tasks]
+        armed = self.worker is not None and HermesWorker.enabled()
+        if armed and parallel_mode == "wide" and len(tasks) > 1:
+            from concurrent.futures import ThreadPoolExecutor
+
+            lanes = min(self.max_lanes, len(tasks))
+            with ThreadPoolExecutor(max_workers=lanes) as pool:
+                futures = [
+                    pool.submit(self._run_task, task, parallel_mode, self._lane_model(i, task))
+                    for i, task in enumerate(tasks)
+                ]
+                return [future.result() for future in futures]
+        return [self._run_task(task, parallel_mode, None) for task in tasks]
+
+    def _lane_model(self, lane_index: int, task: EvolutionTask | None = None) -> str:
+        """Model pasma: basal wybiera odpowiedni LLM; bez rdzenia/strategy — round-robin."""
+        if self.decision_core is not None and task is not None and self.lane_models:
+            hint = (self.strategy.get("model_hints", {}) or {}).get(task.task_id, "")
+            scores = {m: (1.5 if (hint == "fast" and "fast" in m) or (hint == "smart" and "smart" in m) else 0.5) for m in self.lane_models}
+            decision = self.decision_core.decide("model_selection", list(self.lane_models), scores, default_option=self.lane_models[lane_index % len(self.lane_models)], context={"task_id": task.task_id, "strategy_hint": hint})
+            return decision["final"]
+        if not self.lane_models:
+            return "auto"
+        return self.lane_models[lane_index % len(self.lane_models)]
+
+    def _run_task(self, task: EvolutionTask, parallel_mode: str, model_alias: str | None) -> dict[str, Any]:
+        run_id = f"{task.task_id}_{uuid.uuid4().hex[:6]}"
+        out_dir = self.queue_dir / run_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        receipt: dict[str, Any] = {
+            "run_id": run_id,
+            "task_id": task.task_id,
+            "title": task.title,
+            "source": task.source,
+            "parallel_mode": parallel_mode,
+            "model_alias": model_alias,
+            "executor": "mock",
+            "gate_ok": None,
+            "quarantined": False,
+            "proposal_path": None,
+        }
+        if self.worker is not None and HermesWorker.enabled():
+            receipt["executor"] = "hermes"
+            query = build_task_query(task, self.repo_root)
+            worker = HermesWorker(model_alias=model_alias) if model_alias else HermesWorker()
+            hermes_receipt = worker.run_isolated(query)
+            receipt["hermes_run_id"] = hermes_receipt.get("run_id")
+            receipt["hermes_executed"] = hermes_receipt.get("executed")
+            receipt["hermes_exit_code"] = hermes_receipt.get("exit_code")
+            report = hermes_receipt.get("security_gate") or {"ok": False, "violations": [{"rule": "hermes_not_executed"}], "licenses_review": []}
+            (out_dir / "hermes_receipt.json").write_text(json.dumps(hermes_receipt, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+            produced_text = ""
+            raw_out = Path(str(hermes_receipt.get("quarantine_dir", ""))) / "output.json"
+            if raw_out.exists():
+                for line in raw_out.read_text(encoding="utf-8").splitlines():
+                    if '"type": "result"' in line or '"type":"result"' in line:
+                        try:
+                            produced_text = str(json.loads(line).get("text", ""))
+                        except ValueError:
+                            pass
+            review = review_by_strong_model(task, produced_text, self.strategy_engine)
+            receipt["review"] = review
+            (out_dir / "review.json").write_text(json.dumps(review, ensure_ascii=False, indent=2), encoding="utf-8")
+        else:
+            proposal = render_mock_proposal(task, parallel_mode, {"ok": True, "violations": [], "licenses_review": []})
+            proposal_path = out_dir / "PROPOSAL.md"
+            proposal_path.write_text(proposal, encoding="utf-8")
+            report = self.gate.inspect_code(proposal)
+            receipt["proposal_path"] = str(proposal_path)
+            receipt["review"] = {"reviewer": "none", "verdict": "unreviewed", "notes": "mock-lane: czeka na review człowieka"}
+        (out_dir / "gate_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        receipt["gate_ok"] = report.get("ok")
+        receipt["quarantined"] = bool(report.get("quarantine_required"))
+        receipt["auto_applied"] = False
+        return receipt

@@ -29,7 +29,11 @@ DEFAULT_MODEL_ALIAS = "auto"
 DEFAULT_TIMEOUT_S = 180
 
 FREE_ALIAS_PREFIX = "auto"
-FREE_PROVIDER_IDS = {"mistral_free", "nvidia_nim_free", "google_ai_studio_free", "openrouter_free", "cerebras_free", "groq_free", "github_models_free"}
+FREE_PROVIDER_IDS = {
+    "mistral_free", "nvidia_nim_free", "google_ai_studio_free", "openrouter_free",
+    "cerebras_free", "groq_free", "github_models_free",
+    "mistral", "nvidia", "duckduckgo-web", "cloudflare-playground",
+}
 
 
 class FreeOnlyPolicy:

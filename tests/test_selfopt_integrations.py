@@ -234,6 +234,63 @@ class SecurityGateTest(unittest.TestCase):
         self.assertEqual(report["scanned_files"], 2)
 
 
+class EvolverStrategyTest(unittest.TestCase):
+    def _task(self, tid, title):
+        from selfopt_chain.evolver import EvolutionTask
+        return EvolutionTask(task_id=tid, title=title, source="test")
+
+    def test_strategy_llm_prioritizes_and_atomizes(self):
+        from selfopt_chain.evolver import generate_llm_strategy
+
+        class FakeEngine:
+            def complete(self, task, model_alias, prompt):
+                return {"ok": True, "model_id": "auto/best-reasoning", "output": json.dumps({
+                    "brief": "Najpierw baza części, potem mechanika.",
+                    "priorities": ["t_b", "t_a"],
+                    "model_hints": {"t_b": "smart"},
+                    "subtasks": [
+                        {"task_id": "sub_1", "title": "Kontrakt ProcessAtom v1", "context": "pola + walidacja", "parent": "t_b"},
+                        {"task_id": "t_a", "title": "duplikat — odrzucony", "context": "", "parent": "t_b"},
+                    ],
+                })}
+
+        tasks = [self._task("t_a", "zadanie A"), self._task("t_b", "zadanie B")]
+        strategy, subtasks = generate_llm_strategy(tasks, FakeEngine())
+        self.assertEqual(strategy["priorities"], ["t_b", "t_a"])
+        self.assertEqual(len(subtasks), 1)
+        self.assertEqual(subtasks[0].task_id, "sub_1")
+
+    def test_strategy_fallback_without_engine(self):
+        from selfopt_chain.evolver import generate_llm_strategy
+
+        strategy, subtasks = generate_llm_strategy([self._task("t_a", "x")], None)
+        self.assertEqual(strategy["source"], "deterministic_fallback")
+        self.assertEqual(subtasks, [])
+
+    def test_review_by_strong_model_verdicts(self):
+        from selfopt_chain.evolver import review_by_strong_model
+
+        class FakeReviewEngine:
+            def complete(self, task, model_alias, prompt):
+                assert model_alias == "auto/best-reasoning"
+                return {"ok": True, "model_id": "reviewer-strong", "output": '{"verdict": "needs_fixes", "notes": "brakuje testów"}'}
+
+        task = self._task("t_a", "sprawdź produkcję")
+        review = review_by_strong_model(task, "jakaś produkcja", FakeReviewEngine())
+        self.assertEqual(review["verdict"], "needs_fixes")
+        self.assertIn("brakuje testów", review["notes"])
+        self.assertEqual(review_by_strong_model(task, "x", None)["verdict"], "unreviewed")
+
+    def test_review_offline_marks_unreviewed(self):
+        from selfopt_chain.evolver import EvolutionLoop
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            loop = EvolutionLoop(state, ROOT / "docs", ROOT, worker=None)
+            receipts = loop.run(max_tasks=1, parallel_mode="single")
+            self.assertEqual(receipts[0]["review"]["verdict"], "unreviewed")
+
+
 class EvolverTest(unittest.TestCase):
     def test_handoff_tasks_parsed_from_real_docs(self):
         tasks = _parse_handoff_tasks(ROOT / "docs")
