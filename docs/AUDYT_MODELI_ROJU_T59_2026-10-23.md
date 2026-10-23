@@ -13,6 +13,8 @@ Ostatnia kontrola procesów i kolejek: **18:10 Europe/Warsaw**. Katalog bramki o
 | Integracja T59 | `codex-swarm-integration`, `4528e2d` | brak aktywnego orkiestratora tej wersji; ostatnie ograniczone próby zakończone |
 | Lokalny Basal i Ollama | localhost:8000 / :11434 | oba odpowiadają; Basal health=ok |
 
+HEAD worktree nie jest sam w sobie manifestem kodu załadowanego do pamięci. Zwykły orkiestrator wystartował o 16:13, przed commitem `b9cbb71` z 17:33; może wykonywać starsze importy. Daemon ewolucji wystartował o 17:36, po tym commicie. Wszystkie opisane wyniki kolejek pochodzą z plików rzeczywiście aktualizowanych przez procesy; analiza źródeł odnosi się do wskazanego HEAD.
+
 Kod CLI Kilo przekazuje quota snapshot tylko dla `free-api`, mimo że jego bramka obejmuje też `omniroute`. Dlatego zwykłe cykle są blokowane niezależnie od rzeczywistej dostępności modeli. Nie należy usuwać bramki; trzeba przekazać jej prawidłowy snapshot i stosować wspólny ledger.
 
 Kolektor Kilo widzi **13 zadań**, ale po uwzględnieniu `evolution_processed.json` zwraca **0**. Indeks ma 21 fingerprintów. Potwierdzono zadania z niezerowym wyjściem workera, które są nadal traktowane jako przetworzone i wyłączone z ponowienia. To przyczyna bezczynności, a nie dowód zakończonej ewolucji.
@@ -37,6 +39,8 @@ Kwalifikowane nazwy `:free` Kilo: Nemotron 3.5 Super VL, Flint, Xing4.0, Dots3 N
 Polityka Kilo rozszerza allowlistę modelami całych providerów i nazwami `:free`. Dla odczytanego katalogu daje to **316 kandydatów**, z których 303 nie mają profilu w bazowym rejestrze. `_lane_model()` przekazuje całą tę listę do Basal.
 
 Lokalny backend Ollama obsługuje maksymalnie **20 opcji**. Kontrolowane żądanie z 21 opcjami zwróciło HTTP **422**: `OllamaBackend reads at most 20`. W logu Kilo wszystkie **21/21 wyborów modelu** mają `engine=builtin`, a ostatnie osiem ma options_count=316 i komunikat fallbacku. Basal jest zdrowy, ale te decyzje nie są wykonywane przez lokalny LLM. Komunikat o jego nieosiągalności maskuje błędny kontrakt wejścia.
+
+Te 21 decyzji to zachowana historia wcześniejszych batchy w tym stanie, nie nowe decyzje obecnie bezczynnego PID 1222173. Obecny kod zachowuje ten sam problem rozmiaru listy; bieżący daemon nie dociera do wyboru modelu, ponieważ kolektor zwraca zero zadań.
 
 Przy niemal równych score'ach confidence wynosi ok. 0.0032; następuje defer i wybór domyślnego modelu pasma. To zachowanie kolejności/round-robin, nie świadoma kwalifikacja zdolności 316 modeli.
 
