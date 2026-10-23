@@ -127,7 +127,7 @@ class OmniRouteAdapterTest(unittest.TestCase):
             engine = OmniRouteEngine(_models(), base_url="http://127.0.0.1:20128/v1")
             result = engine.complete({"privacy": "public"}, "model-spoza-rejestru", "prompt")
         self.assertTrue(result["ok"])
-        self.assertEqual(result["requested_alias"], "ddgw/mistral-small-2603")
+        self.assertEqual(result["requested_alias"], "auto/coding:free")
 
 
 class BasalRemoteEngineTest(unittest.TestCase):

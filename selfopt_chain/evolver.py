@@ -36,8 +36,8 @@ from selfopt_chain.swarm import BasalDecisionCore
 
 TARGETS_PATH = Path(__file__).with_name("evolution_targets.json")
 NEXT_TASKS_RE = re.compile(r"^\d+\.\s*\*\*(T\d+[^*]*)\*\*[:\s]+(.*)$", re.MULTILINE)
-DEFAULT_DRAFT_ALIAS = os.environ.get("SELFOPT_EVOLVE_DRAFT_MODEL", "ddgw/mistral-small-2603")
-DEFAULT_REVIEW_ALIAS = os.environ.get("SELFOPT_EVOLVE_REVIEW_MODEL", "ddgw/tinfoil/gpt-oss-120b")
+DEFAULT_DRAFT_ALIAS = os.environ.get("SELFOPT_EVOLVE_DRAFT_MODEL", "auto/coding:free")
+DEFAULT_REVIEW_ALIAS = os.environ.get("SELFOPT_EVOLVE_REVIEW_MODEL", "nvidia/nvidia/llama-3.1-nemotron-70b-instruct")
 
 
 def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engine: Any | None, review_alias: str = DEFAULT_REVIEW_ALIAS) -> dict[str, Any]:
@@ -62,6 +62,10 @@ def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engin
         'Odpowiedz WYŁĄCZNIE JSON: {"verdict": "pass"|"needs_fixes"|"fail", "notes": "2-4 zdania"}',
     ])
     result = review_engine.complete({"kind": "review", "privacy": "public", "task_id": f"review_{task.task_id}"}, review_alias, prompt)
+    if not result.get("ok") and review_alias != DEFAULT_DRAFT_ALIAS:
+        # Recenzent (NIM) niedostepny/zwolniony => fallback na sprawdzony szybki
+        # alias, by review nie byl pomijany; w dalszym kroku czlowiek i tak review'uje.
+        result = review_engine.complete({"kind": "review", "privacy": "public", "task_id": f"review_{task.task_id}"}, DEFAULT_DRAFT_ALIAS, prompt)
     if not result.get("ok"):
         return {"reviewer": "none", "verdict": "unreviewed", "notes": f"review engine niedostepny: {result.get('error_class', '?')}"}
     raw = str(result.get("output", "")).strip()
