@@ -1,6 +1,6 @@
 # Handoff T59 — integracja i odbiór rzeczywistej ewolucji
 
-Status: in_progress. Cel „pracuj, żeby rój stabilnie ewoluował” pozostaje aktywny i nieudowodniony.
+Status: zakończony etap T59 integracji, odbioru i przekazania. Cel „pracuj, żeby rój stabilnie ewoluował” pozostaje nieudowodniony. Operator przekazuje dalszą implementację GLM 5.3; aktualny punkt wejścia: [instrukcja GLM 5.3](HANDOFF_DLA_NASTEPNEGO_AGENTA_2026-10-23_PO_T59_ZALECENIA_GLM_5_3.md).
 
 Operator potwierdził zakończenie pracy Kilo. Jego claim ma abandoned-duplicate; commit 2a72b37 i WIP claimu zachowano bez zmian. Codex utworzył osobny branch codex/T59-swarm-integration w worktree codex-swarm-integration na bazie T58 77cf830 i atomowo zarezerwował własny zakres T59 przed edycją kodu.
 
@@ -61,3 +61,13 @@ Launcher zapisuje pełną kanoniczną inwentaryzację :free Kilo, bez duplikató
 Odbiór poprawionej wersji: **541 Python OK; 378 JS pass / 0 fail we właściwym worktree; składnia launchera, 12 manifestów i approvals poprawne; brak konfliktów claimów; diff OK**. Sześć nowych testów obejmuje pulę 316 modeli, filtr ról/tools/context, singleton, brak kosztu przy niegotowej roli i rzeczywisty kształt requestu JSON oraz odrzucenie obcego tool-call. Dwa stare fixture DirectPatch uzupełniono o wymagane new_files=[], zachowując testy exact-match i traversal.
 
 Następny krok: jeden batch rzeczywisty na tym snapshotcie, ledger **75/80**, max 480 s, timeout 150 s. Producent i recenzent mają oddzielne role; priorytet daemon_failure_exit pozostaje pierwszy. Nie wdrożono ręcznie poprawki tego celu ani nie przypisano fixture autorstwa roju. Pełna kwalifikacja pozostałych 11 modeli i stabilna ewolucja pozostają otwarte.
+
+## Końcowy odbiór i przekazanie GLM 5.3
+
+Batch 6 snapshotu 051c987: lokalny Basal wybrał single i Hermes. Po filtrach pozostał Cohere jako jedyny model kodowy. Strategia zużyła 1 request, Hermes 4; ledger **75→80/80**. Kolejne żądanie zatrzymał lokalny limit. Cztery wykonane narzędzia terminala czytały repo; nie powstał artefakt. Receipt needs_fixes, gate false, walidacja/review nieprzeprowadzone. Exit daemona nadal 0 mimo błędu. Nie ma nowego gotowego patcha ani PR wytworzonego przez rój.
+
+W odpowiedzi dodano preflight budżetu wykonawcy (strategia + próby/turns + review) z uwzględnieniem puli providera. Jest to oszacowanie, nie rezerwacja współbieżna. Basal wybiera model także do strategii i review; krótka lista uwzględnia wymagane capabilities i tier właściwy dla rodzaju zadania. Uzupełniono nieaktualne opisy podziału odpowiedzialności OmniRoute/Basal.
+
+Na polecenie operatora dodano odczytowy hardware_context: host CPU/affinity/cgroup, RAM, dysk i obecność GPU, bez sekretów/identyfikatorów. Kontekst trafia do Basal oraz wejść strategii/wykonawcy i nie zmienia hash wersji zadania. Doprecyzowanie operatora: sprzęt ogranicza dopiero przyszły wybór lokalnego LLM; obecnie lokalny jest tylko Basal, a rozmiar modeli zdalnych nie jest filtrowany RAM/GPU hosta.
+
+Końcowa regresja: **550 Python OK; 378 JS pass / 0 fail w 38 plikach**, składnia launchera, 12 manifestów i approvals poprawne. Basal/Ollama mają aktywne transient units użytkownika; ograniczony pilot jest zakończony, starych instancji Kilo nie ma. Nie odebrano wdrożenia 24/7/reboot. Stan i dowody zachowano. GLM otrzymuje pięć etapów T60–T64 z warunkami odbioru; claim T59 zamknięto jako done dla tego etapu, nie jako potwierdzenie celu stabilnej ewolucji.

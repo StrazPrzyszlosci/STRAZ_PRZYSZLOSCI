@@ -128,26 +128,59 @@ class QuotaLedger:
     def rpd_headroom(self, model_id):
         return self.limits.get(model_id, (0, 0))[1] - self.rpd_used.get(model_id, 0)
 
+    def remaining_daily_calls(self, model_id=None):
+        """Admission estimate, including shared provider pools and the global cap.
+
+        This is a snapshot, not a reservation; record() still enforces every attempt.
+        """
+        with self.transaction() as data:
+            pools = {pool: max(0, limits[1] - sum(data['daily'].get(mid, 0)
+                     for mid, group in self.pools.items() if group == pool))
+                     for pool, limits in self.pool_limits.items()}
+            remaining = sum(pools.values())
+            if self.max_calls is not None:
+                remaining = min(remaining, max(0, self.max_calls - sum(data['daily'].values())))
+            if model_id is not None:
+                if model_id not in self.limits:
+                    return 0
+                remaining = min(remaining, pools[self.pools[model_id]],
+                                max(0, self.limits[model_id][1] - data['daily'].get(model_id, 0)))
+            return remaining
+
 
 class BudgetedEngine:
     """Strategy, review and nodes use the same model policy and accounting."""
-    def __init__(self, engine, models, ledger, should_stop=None):
+    def __init__(self, engine, models, ledger, should_stop=None, decision_core=None):
         self.engine, self.models, self.ledger = engine, models, ledger
         self.should_stop = should_stop or (lambda: False)
+        self.decision_core = decision_core
 
     def complete(self, task, model_id, prompt):
         from selfopt_chain.router import route_task
         if self.should_stop():
             return {'ok': False, 'output': '', 'error_class': 'stopped'}
+        if task.get('privacy') != 'public':
+            return {'ok': False, 'output': '', 'error_class': 'privacy_violation'}
         # Aliases are resolved locally, before any provider request or reservation.
         eligible = [m for m in self.models if not model_id.startswith('auto') or m.get('privacy_class') != 'local_private']
         if model_id.startswith('auto'):
             decision = route_task(task, eligible, self.ledger)
             model_id = (decision.get('chosen') or {}).get('model_id', '')
+            if model_id and self.decision_core is not None:
+                from selfopt_chain.model_selection import shortlist_models
+                selection = shortlist_models(eligible, kind=task.get('kind', ''), ledger=self.ledger,
+                    requires=task.get('requires', []) or [],
+                    minimum_context_tokens=len(prompt.encode()) // 2 + int(task.get('max_tokens', 4096)))
+                options = selection['candidates']
+                if not options:
+                    return {'ok': False, 'output': '', 'error_class': 'no_eligible_model'}
+                default = model_id if model_id in options else options[0]
+                chosen = self.decision_core.decide('model_selection', options, selection['scores'],
+                    default_option=default, context={'task_id': task.get('task_id'),
+                        'kind': task.get('kind'), 'model_characteristics': selection['details']})
+                model_id = chosen['final'] if chosen.get('final') in options else default
         elif not any(m['model_id'] == model_id for m in eligible):
             model_id = ''
-        if task.get('privacy') != 'public':
-            return {'ok': False, 'output': '', 'error_class': 'privacy_violation'}
         try:
             self.ledger.record(model_id)
         except QuotaExceeded:

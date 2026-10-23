@@ -5,12 +5,13 @@ MAX_BASAL_OPTIONS = 20
 
 
 def shortlist_models(models, *, kind, ledger=None, hint='', requires_tools=False,
-                     minimum_context_tokens=0, limit=8):
+                     minimum_context_tokens=0, requires=(), limit=8):
     if limit < 1:
         raise ValueError('shortlist limit must be positive')
     limit = min(limit, MAX_BASAL_OPTIONS)
-    required = {'text', 'code', 'json'} if kind == 'code_draft' else {'text'}
-    minimum_tier = 4 if kind in {'code_draft', 'reason'} else 3
+    from selfopt_chain.router import required_tier_for_kind
+    required = ({'text', 'code', 'json'} if kind == 'code_draft' else {'text'}) | set(requires)
+    minimum_tier = required_tier_for_kind(kind)
     candidates, rejected, scores, details = [], {}, {}, {}
     for order, model in enumerate(models):
         mid = model['model_id']
@@ -37,7 +38,8 @@ def shortlist_models(models, *, kind, ledger=None, hint='', requires_tools=False
         score = 2 * quality + speed / 4 if hint == 'smart' else speed + quality / 2
         evidence = {'quality_tier': model['quality_tier'], 'speed_class': model.get('speed_class'),
                     'capabilities': model['capabilities'], 'routing_roles': model.get('routing_roles'),
-                    'supports_tools': model.get('supports_tools')}
+                    'supports_tools': model.get('supports_tools'), 'execution_location': 'remote_api',
+                    'host_hardware_limits_model_size': False}
         if ledger is not None and hasattr(ledger, 'model_observations'):
             observed = ledger.model_observations(mid)
             good, bad = observed.get('successes') or 0, observed.get('failures') or 0

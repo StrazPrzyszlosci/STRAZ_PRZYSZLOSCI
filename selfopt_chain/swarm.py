@@ -79,10 +79,11 @@ class BasalDecisionCore:
     zgodnym z decisions.jsonl basala (pole group/question_type + context).
     """
 
-    def __init__(self, decision_log: Path | None = None, confidence_floor: float = DEFAULT_CONFIDENCE_FLOOR, temperatures: dict[str, float] | None = None) -> None:
+    def __init__(self, decision_log: Path | None = None, confidence_floor: float = DEFAULT_CONFIDENCE_FLOOR, temperatures: dict[str, float] | None = None, hardware_context: dict | None = None) -> None:
         self.decision_log = decision_log
         self.confidence_floor = confidence_floor
         self.temperatures = temperatures
+        self.hardware_context = hardware_context or {}
         self.decisions: list[dict[str, Any]] = []
         self.remote_url: str | None = None
         import os
@@ -101,6 +102,9 @@ class BasalDecisionCore:
         missing = [o for o in options if o not in scores]
         if missing:
             raise ValueError(f"decide: brak score dla opcji {missing}")
+        context = dict(context or {})
+        if self.hardware_context:
+            context['hardware_context'] = self.hardware_context
         engine = "builtin"
         probabilities, confidence = None, None
         remote_note = None
@@ -306,6 +310,12 @@ HARDWARE_KINDS = {
 CHARTER_PATH = Path(__file__).with_name("charter.json")
 
 REMOTE_INSTRUCTIONS: dict[str, str] = {
+    "model_selection": (
+        "Wybierz konkretny model pasujacy do zadania, roli, wymaganych zdolnosci i limitow API. "
+        "Dla execution_location=remote_api rozmiar modelu nie jest ograniczony RAM ani GPU hosta. "
+        "Kontekst sprzetowy hosta ogranicza dopiero wybor modelu uruchamianego lokalnie. "
+        "Obecnie lokalny jest tylko Basal; modele wykonujace zadania sa w OmniRoute."
+    ),
     "default": (
         "Wybierz najlepsza opcje dla roju Strazy Przyszlosci na podstawie stanu i kryteriow. "
         "Uwzglednij heurystyczny score roju jako dowod, ale ocen tez dopasowanie opisu opcji do sytuacji."

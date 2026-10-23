@@ -197,7 +197,7 @@ def build_task_query(task: EvolutionTask, repo_root: Path) -> str:
     ])
 
 
-def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | None) -> tuple[dict[str, Any], list[EvolutionTask]]:
+def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | None, hardware_context=None) -> tuple[dict[str, Any], list[EvolutionTask]]:
     """KROK 1 (dyrektywa operatora): STRATEGIE tworzy LLM na darmowych modelach.
 
     LLM dostaje surowe zadania z backlogu i produkuje 'strategy brief':
@@ -226,6 +226,7 @@ def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | Non
         "",
         "Zadania:",
         listing,
+        'Aktualny sprzęt i ograniczenia hosta: ' + json.dumps(hardware_context or {}, ensure_ascii=False),
     ])
     result = strategy_engine.complete({"kind": "reason", "privacy": "public", "task_id": "evolution_strategy"}, "auto", prompt)
     if not result.get("ok"):
@@ -358,7 +359,8 @@ class EvolutionLoop:
         tasks = self.pending() if tasks is None else tasks
         if not tasks:
             return []
-        self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine)
+        self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine,
+                                                       getattr(self.decision_core, 'hardware_context', {}))
         # A decomposition is a proposal; only a complete task contract may execute.
         self.strategy["proposed_subtasks"] = [{"title": t.title, "parent_source": t.source} for t in subtasks]
         order = {task_id: i for i, task_id in enumerate(self.strategy.get("priorities", []))}
@@ -409,7 +411,7 @@ class EvolutionLoop:
     def _run_task(self, task, parallel_mode, model_alias):
         from selfopt_chain.evolution_inputs import task_prompt
         fp = self.fingerprint(task)
-        bundle = self.inputs[fp]
+        bundle = {**self.inputs[fp], 'hardware_context': getattr(self.decision_core, 'hardware_context', {})}
         prior = self.store.snapshot().get(fp, {})
         prior_path = prior.get("receipt_path")
         if prior_path and prior.get("input_hash") == bundle["input_hash"] and Path(prior_path).is_file():

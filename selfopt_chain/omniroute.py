@@ -2,10 +2,10 @@
 """OmniRoute jako warstwa wykonawcza darmowych LLM (selfopt_chain, T52).
 
 Podział odpowiedzialności zgodny z architekturą operatora (2026-10-22):
-- basal (mały model decyzyjny) wybiera zadania, strategie, tryb równoległości
-  i wymagany poziom jakości — NIE wybiera konkretnego modelu;
-- OmniRoute (gateway) dobiera model i dostawcę spośród podłączonych darmowych
-  pul (wirtualne aliasy `auto`, `auto/fast`, `auto/smart`...);
+- lokalny basal wybiera zadania, tryb równoległości i konkretny model
+  z krótkiej listy dopuszczonej przez filtry ról, możliwości i limitów;
+- OmniRoute (gateway) wykonuje żądanie do jawnie wskazanego darmowego
+  modelu; nie może zastąpić go płatnym lub nieznanym modelem;
 - niniejszy adapter egzekwuje politykę FREE-ONLY (STRICT_ZERO_COST) po stronie
   roju: walidacja aliasu PRZED wywołaniem oraz realnego modelu PO odpowiedzi.
 
@@ -103,10 +103,9 @@ class OmniRouteAdapter:
         return headers
 
     def load_free_catalog(self) -> int:
-        """Katalog /v1/models: modele free providerów dokładane do allowlisty.
+        """Odczyt /v1/models bez rozszerzania allowlisty operatora.
 
-        Allowlista pozostaje ścisła: owned_by musi być znanym darmowym
-        providerem albo model musi być w naszym rejestrze/kończyć się ':free'.
+        Odkrycie modelu nie kwalifikuje go automatycznie do roli w roju.
         """
         try:
             req = urllib.request.Request(f"{self.base_url}/models", headers=self._headers())
@@ -200,9 +199,8 @@ class OmniRouteAdapter:
 class OmniRouteEngine:
     """Silnik łańcuchów roju na bramce OmniRoute (interfejs jak MockEngine).
 
-    Router nadal wybiera z rejestru (budżety RPM/RPD), ale wywołanie idzie
-    przez gateway z aliasem modelu; model spoza katalogu → fallback 'auto'.
-    Katalog free dokładany raz na instancję (load_free_catalog).
+    Basal wybiera z przefiltrowanego rejestru; wywołanie idzie przez gateway
+    z jawnym ID. Model spoza rejestru jest odrzucany przed żądaniem.
     """
 
     def __init__(self, models: list[dict], base_url: str | None = None, api_key: str | None = None, timeout_s: int = DEFAULT_TIMEOUT_S) -> None:

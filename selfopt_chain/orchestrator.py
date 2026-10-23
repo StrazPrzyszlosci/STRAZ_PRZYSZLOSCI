@@ -353,6 +353,14 @@ class Orchestrator:
             write_calibration(self.state_dir, calibration)
         return calibration
 
+    def _refresh_hardware_context(self):
+        from selfopt_chain.hardware_context import collect_hardware_context
+        from selfopt_chain.evolution_publication import atomic_write
+        context = collect_hardware_context(ROOT)
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        atomic_write(self.state_dir / 'hardware_context.json', context)
+        return context
+
     def _plan_swarm(self, cycle_no: int, jobs: list[Job], pending: list[Job], budgeted: list[dict], receipt: dict[str, Any]) -> dict[str, Any]:
         """Plan roju (basal, wiele decyzji) — przydział sprzętu do misji + kolejność procdev."""
         feedbacks = collect_feedback(self.config.get("inbox_dir"))
@@ -387,6 +395,7 @@ class Orchestrator:
             decision_log=self.state_dir / "decisions.jsonl",
             confidence_floor=float(self.config.get("confidence_floor", 0.55)),
             temperatures=calibration["temperature_per_prim"] if calibration else None,
+            hardware_context=receipt.get('hardware_context') or self._refresh_hardware_context(),
         )
         self._cycle_core = core
         planner = SwarmPlanner(core, default_strategy="speed_first")
@@ -435,6 +444,7 @@ class Orchestrator:
             "jobs_status": "ok",
             "auto_applied": False,
             "policy": "suggest-only",
+            "hardware_context": self._refresh_hardware_context(),
         }
         if not receipt["quota_gate"]["allowed"]:
             receipt["finished"] = _now_iso()
@@ -542,11 +552,13 @@ class Orchestrator:
         return receipt
 
     def _run_evolution(self, backlog: int = 0):
+        hardware = self._refresh_hardware_context()
         self._ingest_feedback_labels(collect_feedback(self.config.get("inbox_dir")))
         calibration = self._auto_calibrate()
         core = BasalDecisionCore(decision_log=self.state_dir / "decisions.jsonl",
                   confidence_floor=float(self.config.get("confidence_floor", 0.55)),
-                  temperatures=calibration["temperature_per_prim"] if calibration else None)
+                  temperatures=calibration["temperature_per_prim"] if calibration else None,
+                  hardware_context=hardware)
         gate = quota_gate(self.config["engine"], self.config.get("quota_snapshot_path"))
         if not gate["allowed"] or self.should_stop():
             return {"mode": "blocked", "tasks": [], "quota_gate": gate, "auto_applied": False}
@@ -561,7 +573,8 @@ class Orchestrator:
         worker, strategy_engine = None, None
         if self.config["engine"] == "omniroute":
             from selfopt_chain.omniroute import OmniRouteEngine
-            strategy_engine = BudgetedEngine(OmniRouteEngine(models), models, self.ledger, self.should_stop)
+            strategy_engine = BudgetedEngine(OmniRouteEngine(models), models, self.ledger, self.should_stop,
+                                             decision_core=core)
             if HermesWorker.enabled():
                 worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"), ledger=self.ledger,
                           should_stop=self.should_stop, repo_root=ROOT, models=models, state_dir=self.state_dir,
@@ -576,17 +589,27 @@ class Orchestrator:
             mode = 'waiting_models' if any(row.get('kind') == 'models' for row in loop.blocked) else 'waiting_inputs' if loop.blocked else 'idle'
             return {"mode": mode, "backlog": 0, "blocked": loop.blocked,
                     "tasks": [], "auto_applied": False}
+        remaining = self.ledger.remaining_daily_calls()
+        # Strategy + bounded producer attempts/turns + an independent review.
+        # This admission estimate does not reserve calls against other processes.
+        executor_calls = {'direct_patch': 4, 'hermes': int(self.config.get('hermes_max_turns', 12)) + 2}
+        executor = self.config.get("evolution_executor", "auto")
+        viable = [name for name, calls in executor_calls.items() if calls <= remaining
+                  and (name != 'direct_patch' or any(t.kind == 'patch' for t in tasks))]
+        if worker and (not viable or executor != 'auto' and executor not in viable):
+            return {'mode': 'waiting_budget', 'tasks': [], 'remaining_daily_calls': remaining,
+                    'executor_calls': executor_calls, 'auto_applied': False}
         mode = self.config.get("subagent_mode", "auto")
         if mode == "auto":
             mode = decide_parallel_mode(core, backlog, sum(t.priority >= 100 for t in tasks))
-        executor = self.config.get("evolution_executor", "auto")
         if worker and executor == "auto" and any(t.kind == "patch" for t in tasks):
             history = loop.store.snapshot()
             failed = sum(row.get("attempts", 1) for row in history.values() if row.get("status") == "needs_fixes")
-            selection = core.decide("evolution_executor", ["direct_patch", "hermes"],
-                {"direct_patch": 1.5 + failed, "hermes": 1.0 - min(failed, 2) * 0.25},
-                default_option="direct_patch",
+            scores = {"direct_patch": 1.5 + failed, "hermes": 1.0 - min(failed, 2) * 0.25}
+            selection = core.decide("evolution_executor", viable,
+                {name: scores[name] for name in viable}, default_option=viable[0],
                 context={"ready_patch_contracts": sum(t.kind == "patch" for t in tasks),
+                         "remaining_daily_calls": remaining, "executor_calls": executor_calls,
                          "failed_attempts": failed, "methods": {"direct_patch": "model emits exact edits; independent sandbox tests", "hermes": "agent uses terminal tools in isolated workspace"}})
             executor = selection["final"]
         if executor == "auto":
@@ -598,6 +621,7 @@ class Orchestrator:
         self.state.data["daily_calls"] = self.ledger.rpd_used
         self.state.save()
         return {"mode": mode, "backlog": backlog, "blocked": loop.blocked,
+                "hardware_context": hardware,
                 "strategy_source": loop.strategy.get("source", "n/a"), "strategy_brief": loop.strategy.get("brief", ""),
                 "lane_models": lane_models, "tasks": receipts, "executor": executor if worker else "mock", "auto_applied": False}
 

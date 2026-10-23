@@ -10,12 +10,15 @@ from selfopt_chain.evolver import EvolutionLoop, EvolutionTask
 from selfopt_chain.swarm import BasalDecisionCore
 from selfopt_chain.omniroute import OmniRouteAdapter, FreeOnlyPolicy
 from selfopt_chain.direct_patch_worker import DirectPatchWorker, PATCH_SCHEMA
-from selfopt_chain.quota import QuotaLedger
+from selfopt_chain.quota import QuotaLedger, BudgetedEngine
+from selfopt_chain.orchestrator import Orchestrator
 
 
 def model(name, **changes):
-    return {'model_id':name, 'cost_class':'free_quota', 'privacy_class':'public_only',
+    return {'model_id':name, 'provider':'free', 'cost_class':'free_quota', 'privacy_class':'public_only',
             'quality_tier':4, 'speed_class':'medium', 'capabilities':['text','code','json'],
+            'role':'test', 'api':{'style':'openai_chat','secret_env':'SELFOPT_TEST_KEY'},
+            'limits_verified':False, 'notes':'synthetic fixture',
             'context_tokens':32768, 'supports_tools':True, 'rpm_seed':10, 'rpd_seed':100, **changes}
 
 
@@ -88,6 +91,73 @@ class ModelSelectionTests(unittest.TestCase):
             self.assertIn('invalid_producer_schema',receipt['error'])
             self.assertFalse(receipt['validation']['ok'])
             self.assertFalse((Path(receipt['quarantine_dir'])/'changes.patch').exists())
+
+    def test_basal_selects_concrete_strategy_and_review_models_inside_filters(self):
+        for role in ['reason', 'review']:
+            with self.subTest(role=role):
+                pool = [model('first', routing_roles=[role]), model('basal-choice', routing_roles=[role]),
+                        model('safety-only', routing_roles=['moderation'])]
+                ledger = QuotaLedger(pool)
+                transport, core = Mock(), Mock()
+                transport.complete.return_value = {'ok': True, 'output': 'valid'}
+                core.decide.return_value = {'final': 'basal-choice'}
+                engine = BudgetedEngine(transport, pool, ledger, decision_core=core)
+                result = engine.complete({'kind': role, 'privacy': 'public', 'task_id': 'stage'}, 'auto', 'task')
+                self.assertTrue(result['ok'])
+                self.assertEqual(transport.complete.call_args.args[1], 'basal-choice')
+                self.assertEqual(ledger.rpd_used, {'basal-choice': 1})
+                self.assertEqual(set(core.decide.call_args.args[1]), {'first', 'basal-choice'})
+                self.assertEqual(core.decide.call_args.kwargs['context']['kind'], role)
+
+    def test_shortlist_includes_small_models_for_light_tasks_and_respects_requires(self):
+        pool = [model('small', quality_tier=1), model('vision', capabilities=['text', 'vision'])]
+        self.assertIn('small', shortlist_models(pool, kind='classify')['candidates'])
+        result = shortlist_models(pool, kind='classify', requires=['vision'])
+        self.assertEqual(result['candidates'], ['vision'])
+
+    def test_remaining_daily_calls_does_not_double_count_shared_provider_pool(self):
+        pool = [model('a', rpd_seed=10), model('b', rpd_seed=10),
+                model('c', provider='other', rpd_seed=20)]
+        ledger = QuotaLedger(pool, max_calls=25)
+        ledger.record('a')
+        self.assertEqual(ledger.remaining_daily_calls(), 24)
+        self.assertEqual(ledger.remaining_daily_calls('b'), 9)
+        self.assertEqual(ledger.remaining_daily_calls('unknown'), 0)
+        ledger.max_calls = 1
+        self.assertEqual(ledger.remaining_daily_calls(), 0)
+
+    def test_executor_budget_filters_before_strategy_and_preserves_basal_choice(self):
+        for remaining, expected in [(5, 'direct_patch'), (3, 'waiting_budget')]:
+            with self.subTest(remaining=remaining), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                registry = root / 'models.json'
+                registry.write_text(json.dumps({'models': [model('m')]}))
+                orchestrator = Orchestrator({'state_dir': root / 'state', 'registry_path': registry,
+                    'engine': 'omniroute', 'kill_switch': root / 'STOP', 'max_calls': remaining,
+                    'hermes_max_turns': 8, 'subagent_mode': 'single'})
+                task = EvolutionTask('patch', 'fix', 'test', kind='patch')
+                with patch('selfopt_chain.orchestrator.quota_gate', return_value={'allowed': True}), \
+                     patch('selfopt_chain.orchestrator.HermesWorker') as hermes, \
+                     patch('selfopt_chain.orchestrator.EvolutionLoop') as loop_class, \
+                     patch('selfopt_chain.orchestrator.BasalDecisionCore') as core_class, \
+                     patch('selfopt_chain.direct_patch_worker.DirectPatchWorker'):
+                    hermes.enabled.return_value = True
+                    loop = loop_class.return_value
+                    loop.pending.return_value = [task]
+                    loop.store.snapshot.return_value = {}
+                    loop.run.return_value = []
+                    loop.blocked, loop.strategy = [], {}
+                    core_class.return_value.decide.return_value = {'final': 'direct_patch'}
+                    result = orchestrator._run_evolution()
+                    if expected == 'waiting_budget':
+                        self.assertEqual(result['mode'], expected)
+                        loop.run.assert_not_called()
+                        core_class.return_value.decide.assert_not_called()
+                    else:
+                        self.assertEqual(result['executor'], expected)
+                        self.assertEqual(core_class.return_value.decide.call_args.args[1], ['direct_patch'])
+                        loop.run.assert_called_once()
+                    self.assertEqual(orchestrator.ledger.rpd_used, {})
 
 
 if __name__=='__main__':

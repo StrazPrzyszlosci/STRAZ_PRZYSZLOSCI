@@ -56,7 +56,7 @@ class DirectPatchWorker:
         snapshot, commit = repository_snapshot(self.repo_root, self.state_dir)
         receipt['source_commit'] = commit
         focused_sources = {name: bundle.get('source_excerpts', {}).get(name, text[:16000]) for name, text in bundle['input_files'].items()}
-        contract = {key: bundle.get(key) for key in ['task_id','title','context','constraints','allowed_paths','acceptance','previous_feedback']}
+        contract = {key: bundle.get(key) for key in ['task_id','title','context','constraints','allowed_paths','acceptance','previous_feedback','hardware_context']}
         contract['sources'] = focused_sources
         instruction = '\n'.join([
             'Przygotuj minimalną poprawkę kodu. Nie masz narzędzi; wszystkie wejścia i warunki masz poniżej.',
