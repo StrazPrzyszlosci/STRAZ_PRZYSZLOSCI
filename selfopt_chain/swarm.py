@@ -217,9 +217,15 @@ class BasalDecisionCore:
             return None
         probabilities = answer.get("probabilities")
         confidence = answer.get("confidence")
-        if not isinstance(probabilities, dict) or not all(k in scores for k in probabilities) or not isinstance(confidence, (int, float)):
+        if (not isinstance(probabilities, dict) or set(probabilities) != set(options)
+                or type(confidence) not in (int, float) or not math.isfinite(confidence) or not 0 <= confidence <= 1
+                or any(type(v) not in (int, float) or not math.isfinite(v) or not 0 <= v <= 1 for v in probabilities.values())):
             return None
-        return {k: float(v) for k, v in probabilities.items()}, round(float(confidence), 4)
+        total = sum(probabilities.values())
+        if not math.isclose(total, 1.0, abs_tol=0.002) or not math.isclose(confidence, max(probabilities.values()), abs_tol=0.002):
+            return None
+        probabilities = {k: float(v) / total for k, v in probabilities.items()}
+        return probabilities, max(probabilities.values())
 
 
 class SwarmResource:

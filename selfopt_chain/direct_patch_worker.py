@@ -32,6 +32,15 @@ class DirectPatchWorker:
         receipt = {'run_id': run_id, 'quarantine_dir': str(output), 'executed': False, 'exit_code': None,
                    'security_gate': {'ok': False}, 'validation': {'ok': False}, 'released_from_quarantine': False,
                    'producer': self.executor_name}
+        try:
+            max_tokens = int(os.environ.get('SELFOPT_CODE_MAX_TOKENS', '8192'))
+        except ValueError:
+            receipt['error'] = 'invalid_output_budget'
+            return receipt
+        if not 1024 <= max_tokens <= 16384:
+            receipt['error'] = 'invalid_output_budget'
+            return receipt
+        receipt['max_output_tokens'] = max_tokens
         bundle = input_bundle or {}
         if bundle.get('kind') != 'patch':
             receipt['error'] = 'direct_producer_requires_patch_contract'
@@ -52,7 +61,7 @@ class DirectPatchWorker:
         used, attempts = set(), {}
         receipt['attempt_results'] = []
         for _ in range(2):
-            result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id']}, requested, instruction)
+            result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id'], 'max_tokens': max_tokens}, requested, instruction)
             receipt['attempt_results'].append({key: result.get(key) for key in
                 ['requested_model_id', 'ok', 'error_class', 'latency_ms', 'response_diagnostic']})
             if result.get('attempt_recorded'):

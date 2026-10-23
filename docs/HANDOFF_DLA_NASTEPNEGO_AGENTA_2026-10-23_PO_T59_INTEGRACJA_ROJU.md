@@ -29,3 +29,11 @@ Strategię podało Cohere; priorytety: daemon_failure_exit (100), następnie def
 Na podstawie tych wyników dodano rozróżnienie cooldown/RPM/RPD/globalnego limitu, bezpieczną diagnostykę kształtu odpowiedzi (liczby i znane pola, bez tekstu/sekretów), rzeczywistą latencję błędnej odpowiedzi i per-attempt receipty producenta. Wybór modelu dostaje teraz rzeczywiste sukcesy/porażki transportu; nie jest to ocena jakości merytorycznej ani human label. Launcher przyjmuje --batches 1..8 dla krótszego odbioru. Odbiór po zmianach: **533 Python OK**, 6 nowych testów; składnia launchera i diff OK. Poprzednie 378 testów JS dotyczą niezmienionych plików tests/*.mjs i cloudflare/src; pełne CI ponowi je na PR.
 
 Następna próba: jeden batch na tym samym stanie i ledgerze 69/80, max 300 s. Nie resetować zużycia ani zwiększać automatycznie limitu. Cel stabilnej ewolucji pozostaje aktywny; sam poprawny start workera nie jest produkcją ulepszenia.
+
+## Diagnoza limitu odpowiedzi
+
+Snapshot 35e15fb, batch 4: NVIDIA zwróciła `finish_reason=length`, content_chars=0, completion_tokens=4096 i reasoning_tokens=4096 (latencja 54780 ms). Producent nie miał żadnego końcowego kodu; reasoning nie został uznany za artefakt ani zapisany w diagnostyce. Fallback Cohere przekroczył 60 s. Ledger **69→72**, nadal dokładnie 1 strategia + 2 próby producenta. Zero nowych patchy i brak review. Oba procesy pilota zakończone.
+
+Producent kodu ma teraz jawny budżet 8192 tokenów (konfigurowalny 1024..16384), zapisany w receipcie; pozostałe role nie dostały podwyższenia. Następna pojedyncza próba ma limit żądania 150 s i batcha 480 s, z niezmienionym ledgerem 72/80. Zmiana wynika z danych, a nie z traktowania pustej odpowiedzi jako powodzenia.
+
+Sprawdzono też kontrakt zainstalowanego lokalnego basal-serve: confidence jest maksimum rozkładu probabilities. Most odrzuca błędne typy, NaN, brakujące opcje, złą normalizację i sprzeczne confidence; poprawny wybór modelu nadal jest respektowany. Stary fixture z probabilities 0.2/0.8 i confidence 0.91 skorygowano do faktycznego kontraktu 0.8, a osobny test wymaga odrzucenia niespójnego rozkładu. **535 Python OK**. Walidacja protokołu nie jest dowodem kalibracji jakości decyzji Basal: w ostatnim przebiegu poprawne protokołowo p=1 wybrało NVIDIĘ mimo wyższego heurystycznego score Cohere.

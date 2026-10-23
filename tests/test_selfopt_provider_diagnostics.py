@@ -97,6 +97,30 @@ class ProviderDiagnosticTests(unittest.TestCase):
             observations = core.decisions[-1]['context']['model_characteristics']['first-failing']['observed_transport']
             self.assertEqual(observations['failures'], 2)
 
+    def test_invalid_basal_probabilities_fall_back_instead_of_crashing(self):
+        cases = [({'a': 'invalid', 'b': 1}, 1), ({'a': True, 'b': False}, 1),
+                 ({'a': 1}, 1), ({'a': 0, 'b': 0}, 0),
+                 ({'a': 0.8, 'b': 0.8}, 0.8), ({'a': 0.7, 'b': 0.3}, 1),
+                 ({'a': float('nan'), 'b': 0.5}, 0.5)]
+        for probabilities, confidence in cases:
+            payload = {'answers': {'decision': {'probabilities': probabilities, 'confidence': confidence}}}
+            with self.subTest(probabilities=probabilities), \
+                 mock.patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(payload).encode())):
+                core = BasalDecisionCore()
+                core.remote_url = 'http://127.0.0.1:8000'
+                decision = core.decide('model_selection', ['a', 'b'], {'a': 2.0, 'b': 1.0}, default_option='a')
+                self.assertEqual(decision['engine'], 'builtin')
+                self.assertEqual(decision['final'], 'a')
+
+    def test_valid_basal_choice_remains_authoritative(self):
+        payload = {'answers': {'decision': {'probabilities': {'a': 0.2, 'b': 0.8}, 'confidence': 0.8}}}
+        with mock.patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(payload).encode())):
+            core = BasalDecisionCore()
+            core.remote_url = 'http://127.0.0.1:8000'
+            result = core.decide('model_selection', ['a', 'b'], {'a': 2.0, 'b': 1.0}, default_option='a')
+            self.assertEqual(result['engine'], 'basal-serve')
+            self.assertEqual(result['final'], 'b')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -113,14 +113,14 @@ class OmniRouteAdapterTest(unittest.TestCase):
 
 class BasalRemoteEngineTest(unittest.TestCase):
     def test_remote_decision_used_when_available(self):
-        payload = {"answers": {"decision": {"choice": "b", "probabilities": {"a": 0.2, "b": 0.8}, "confidence": 0.91}}}
+        payload = {"answers": {"decision": {"choice": "b", "probabilities": {"a": 0.2, "b": 0.8}, "confidence": 0.8}}}
         with mock.patch.dict(os.environ, {"SELFOPT_BASAL_URL": "http://127.0.0.1:8000"}, clear=False), \
                 mock.patch.object(urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(payload).encode("utf-8"))):
             core = BasalDecisionCore()
             decision = core.decide("choice", ["a", "b"], {"a": 3.0, "b": 1.0}, default_option="a")
         self.assertEqual(decision["engine"], "basal-serve")
         self.assertEqual(decision["chosen"], "b")
-        self.assertEqual(decision["confidence"], 0.91)
+        self.assertEqual(decision["confidence"], 0.8)
 
     def test_remote_failure_falls_back_to_builtin(self):
         def boom(*args, **kwargs):
