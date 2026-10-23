@@ -56,6 +56,8 @@ Kilo zakończyło pracę; jego claim ma `abandoned-duplicate`. Worktree `kilo-se
 
 Regresja końcowej wersji: **550 Python OK; 378 JS pass / 0 fail, 38 plików; 12 manifestów komórek; approvals ważne; kontrola claimów bez konfliktów**. W tym środowisku `node --test tests/*.mjs` raportowało tylko 38 plików; rzeczywiste 378 przypadków potwierdzono także uruchomieniem każdego pliku bezpośrednio przez `node`. Nie zamieniaj liczby plików na liczbę przypadków.
 
+Po przekazaniu potwierdzono również [Repository Checks dla 0e598ae](https://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI/actions/runs/39999162601): completed/success, a log zadania 120570438866 zawiera **550 Python, 378 JS, 0 JS failures i 12 manifestów**. [PR Secret Scan](https://github.com/StrazPrzyszlosci/STRAZ_PRZYSZLOSCI/actions/runs/39999162465) również ma completed/success. Dowody zapisano lokalnie w `scratch/selfopt/t59-live/handoff_evidence.json`. To odbiór regresji kodu, nie dowód udanej ewolucji.
+
 ### Usługi i sprzęt
 
 `straz-basal-local.service` i `straz-ollama-local.service` są aktywnymi **przejściowymi jednostkami systemd użytkownika**, z restartem po błędzie. Basal: `127.0.0.1:8000`; Ollama: `127.0.0.1:11434`; OmniRoute: `127.0.0.1:20128/v1`. Potwierdzono health Basal i listę modeli Ollama. Nie pobierano modeli. Nie potwierdzono trwałego startu po restarcie hosta/wylogowaniu.
@@ -103,6 +105,10 @@ Zacznij od `quota.py`, `quota_proxy.py`, `hermes_worker.py`, `orchestrator.py`, 
 Odróżnij lokalne `quota_exhausted` od HTTP 429 providera i od merytorycznej porażki kodu. Brak budżetu nie może zużywać limitu prób poprawy treści. Zachowuj poprawny artefakt oczekujący na review; nie produkuj go ponownie. Rozlicz każdy faktyczny request dokładnie raz.
 
 Odbiór: przy pozostałych 5 wywołaniach nie wybieraj ośmioturowego Hermesa; przy budżecie niewystarczającym dla całego procesu nie wysyłaj strategii. Test współbieżnych lane'ów ma wykazać zachowanie rezerwy i capu. Niezerowy kod zakończenia ograniczonego daemona musi odpowiadać porażce wykonania. Możesz wykorzystać ten błąd jako pierwszy target prawdziwej ewolucji w T62; nie przedstawiaj ręcznej naprawy jako autorstwa roju.
+
+**Odtworzony przypadek graniczny dla T60, źródło 0e598ae:** dwa syntetyczne modele w odrębnych pulach: `producer` ma role `reason/code_draft` i RPD=100, `reviewer` wyłącznie `review` i RPD=1. Globalny cap=5. Po uprzednim zużyciu jedynego requestu recenzenta pozostaje globalnie 4, ale reviewer ma `daily_limit`. `_run_evolution()` mimo to wybiera direct_patch i dopuszcza jedno wywołanie strategii na producencie. Kontrola z wolnym recenzentem również poprawnie dopuszcza strategię. W reprodukcji transport i wykonawca były zastąpione atrapami, sieć była zabroniona, a produkcję zatrzymano przed generowaniem; rzeczywisty ledger nie został dotknięty.
+
+Lokalny raport: `scratch/selfopt/t59-live/preflight_review_gap.json`. Do testu regresyjnego użyj rzeczywistego targetu `daemon_failure_exit` oraz tymczasowego rejestru/stanu. Wymagaj, aby wyczerpana pula jedynego dopuszczonego recenzenta zatrzymywała admission **przed** strategią, z jawnym powodem i bez zużycia requestu producenta. Wolny recenzent ma nadal dopuszczać wykonalny plan. Osobno sprawdź cooldown recenzenta, brak profilu review i wyścig dwóch wykonawców o ostatni slot; sama suma globalnego headroomu nie dowodzi wykonalności procesu.
 
 ### T61 — zakwalifikuj pełną darmową pulę do ról
 
