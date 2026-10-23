@@ -2,7 +2,7 @@
 
 Decyzja operatora z 2026-10-23: **Kilo poprawia runtime; Codex weryfikuje i przygotowuje integrację**. Codex zawęził własny claim T58 do dokumentacji tej pracy. Nie zmienia kodu runtime ani claimu Kilo.
 
-**Najnowszy zakończony odbiór opisuje sekcja „Kolejne migawki Kilo” na końcu dokumentu:** dla migawki v3 pełny Python ma 492 testy i 1 błąd. Pierwsza część raportu zachowuje wyniki v1, zamiast przypisywać je późniejszym poprawkom. Kilo nadal edytuje pliki; odbiór nie dotyczy niezbadanych zmian po wskazanych hashach.
+**Najnowszy zakończony odbiór:** commit Kilo `2a72b37` ma **492 Python OK**. Odseparowany podgląd integracji na bazie T58 `866fdb9` ma **523 Python OK** i odtwarzalny patch. Dodatkowa próba lifecycle wykazała blokadę przejścia `simulated → rzeczywisty worker`; rzeczywisty lokalny engine przekroczył 30-sekundowy timeout. Szczegóły w ostatniej sekcji. Wcześniejsze sekcje zachowują historyczne wyniki v1–v3 i nie opisują późniejszych poprawek.
 
 **Wynik badanej migawki: niegotowa do integracji ani uruchomienia autonomicznej ewolucji.** To ocena konkretnego WIP, nie późniejszych poprawek Kilo ani stanu `main`. T58 również nie ma jeszcze dowodu stabilnej ewolucji.
 
@@ -113,3 +113,46 @@ Na niezmiennej migawce v2 wykonano jedynie planowanie dla dwóch przykładów za
 Do kolejki wykonania z limitem jednego joba wybrano `selfhost_compute_node_recovered_001`; confidence `0.6524`, próg `0.55`, `deferred=false`. Ten rzeczywisty przebieg nie uruchomił gałęzi defer opisanej w kontrolowanej próbie powyżej. Plan ma `policy='suggest-only'`, `auto_applied=false`; nie uruchamiano modeli na urządzeniach, fizycznej aktuacji, Hermesa ani produkcji nowego kodu. Dowody: `20261023-kilo-v2/local-basal/{plan,summary}.json` oraz `decisions.jsonl`. Przydział jest propozycją planisty, nie dowodem dostępności lub wdrożenia danego modelu na sprzęcie.
 
 Następny odbiór runtime musi obejmować pozostałe błędy funkcjonalne i integrację, a następnie kontrolowany pilot ewolucji z trwałym ledgerem. Samo zejście z 17 błędów testów do 1 nie dowodzi retencji ulepszenia, poprawnego uczenia z nowych etykiet ani publikacji zaakceptowanego patcha.
+
+## Odbiór commitu Kilo i odtwarzalny podgląd integracji
+
+### Commit Kilo v4
+
+Kilo zapisało `2a72b3702e23b6335d6d2d47113308dc5e0a2d3f`. Archiwum tego commitu, bez dodatkowego roboczego diffu, niezależnie przeszło **492 testy Python**. W stosunku do v3 naprawiono `secret_env` i parser odpowiedzi `local` (format OpenAI). Źródła do testów: `/tmp/straz-kilo-audit-v4-u17fvzco`; dowody: `scratch/selfopt/integration-review/20261023-kilo-v4/{snapshot.json,python.log}`. Nie przypisywać temu odbiorowi domknięcia dedupu, kalibracji, rachunku Hermesa czy prywatności we wszystkich ścieżkach tylko na podstawie opisu commitu.
+
+### Propozycja integracji
+
+Artefakt: [`INTEGRACJA_T58_KILO_2026-10-23.patch`](INTEGRACJA_T58_KILO_2026-10-23.patch).
+
+- Baza: T58 `866fdb930d298f0482c0ca9c4ff996cdfbb84e80`.
+- Wejście Kilo: `2a72b3702e23b6335d6d2d47113308dc5e0a2d3f`.
+- SHA256 patcha: `9576a25f8f1a038f74547df8bcb897d45196f7ed79c06756a12bf4bf9769ea57`.
+- Kandydat do testów: `/tmp/straz-integration-preview-vzomm8sq`; niezależne odtworzenie: `/tmp/straz-integration-replay-fu7e672l`.
+- `git apply --check` i aplikacja na nowym archiwum bazy przechodzą; cztery pliki po odtworzeniu są bajtowo identyczne z testowanym kandydatem.
+- Pełny Python podglądu: **523 testy OK**. To wynik osobnej wersji integracyjnej, nie aktywnego runtime ani main. Nie stosowano patcha do źródeł w żadnym aktywnym worktree.
+
+Patch przenosi obsługę lokalnego API z Kilo do `engine.py`, zachowując ograniczony timeout, obsługę błędnych odpowiedzi, odrzucanie pustej odpowiedzi i rzeczywisty pomiar czasu istniejące w T58. Dodaje instrukcje `job_selection` i `model_selection` oraz poprawkę literówki w opisie alokacji. Z listy Kilo dodaje `uzbrojen`, zachowując istniejące `bron` i matcher T58; pozostaje to propozycją zmiany charteru do review człowieka.
+
+Nie przenosi starszych implementacji `evolver`, `orchestrator`, `run_loop` i `hermes_worker`: T58 zawiera już ich naprawy kontekstu, accounting, prywatności, sandboxa, bramek i retencji. Nie przenosi ślepej kumulacji temperatur ani indeksu wszystkich uruchomionych fingerprintów, ponieważ wcześniejsze próby wykazały ich sprzeczność z wymaganiami planu K5.2/K5.4. To jawne rozstrzygnięcia proponowanej integracji, nie uznanie pominiętych problemów za zamknięte.
+
+Do osobnego `tests/test_selfopt_kilo_integration.py` przeniesiono **wszystkie 11 scenariuszy** klasy `AuditFixesTest` Kilo. Pierwsza próba ich niezmienionej postaci dała 523 testy / 2 failures / 4 errors; ten log zachowano. W finalnym podglądzie dostosowano sześć kontraktów testów:
+
+1. Dwie podklasy `ChainRunner` przekazują nowe argumenty ledger/stop do klasy bazowej.
+2. Prywatność inboxa jest sprawdzana na czterech rzeczywistych węzłach `build_chain_def`, zamiast wymagać pomocniczego atrybutu `Job.privacy`.
+3. Pusta produkcja wymaga `ok=false`, `blocked=true` i `scanned_files=0`; test nie narzuca tekstowej nazwy reguły z innej wersji.
+4. Receipt wyłączonego Hermesa nie zawiera sekretu ani `--api-key`; nie wymaga dopisania znacznika redakcji tam, gdzie klucza w ogóle nie przekazano. Ten przypadek nie udaje testu uruchomionego procesu.
+5. Kalibracja na tej samej negatywnej etykiecie ma dać identyczną temperaturę i jedną etykietę przy ponowieniu. Zastępuje to słabe `assertLessEqual` na zerowym sygnale i jest zgodne z wcześniej ustalonym idempotentnym fit batch.
+
+Nie dodawano obsługi parametrów produkcyjnych wyłącznie po to, żeby spełnić starszy kształt testów. Wynik 523 OK potwierdza te jawnie opisane kontrakty integracji; nie jest wynikiem niezmodyfikowanych 11 testów Kilo na T58.
+
+Dowody podglądu: `scratch/selfopt/integration-review/20261023-integration-preview/{manifest.json,replay.json,python.log,python-original-tests.log,integration.patch,build_preview.py}`. Pierwotny podgląd miał inny hash i nie został zastosowany do runtime. Źródła JS i pliki manifestów nie są zmieniane przez finalny patch. CI istniejącego T58 `866fdb9` zakończyło Repository Checks i Secret Scan sukcesem; to odrębny wynik od testów podglądu.
+
+### Próby, które nadal nie przechodzą po zielonej regresji
+
+**Symulacja blokuje uruchomienie rzeczywiste.** Na kodzie kontrolera T58 i finalnym podglądzie integracji uruchomiono ten sam kompletny manifest najpierw bez workera, a następnie z kontrolowanym workerem `enabled=true` w tym samym stanie i z tym samym hashem wejść. Pierwszy receipt: `simulated`; po uzbrojeniu `eligible=false`, drugi receipt `duplicate_or_waiting`, liczba wywołań kontrolowanego workera **0**. Nie było rzeczywistych wywołań API. `EvolutionStore.TERMINAL` zawiera `simulated`, a wersja wejść nie obejmuje trybu wykonania. Dowód: `20261023-integration-preview/mock-to-real-probe.json`.
+
+Warunek odbioru dla właściciela runtime: historia symulacji ma być rozdzielona od historii realnego wykonania lub mieć jawne przejście do realnej kolejki. Powtórzony mock nie powinien mnożyć artefaktów, ale jego wynik nie może zastępować ukończonego realnego zadania. Test ma objąć restart kontrolera, te same wejścia i brak nowych sztucznych etykiet. Nie zmieniano tu runtime, żeby wymusić przejście próby.
+
+**Rzeczywisty local engine przekracza limit czasu.** Dla commitu Kilo potwierdzono istniejący lokalny model `basal-omni-pico:latest` w Ollama i wskazano go jawnie w diagnostycznej konfiguracji lokalnego modelu (nie jest to domyślny identyfikator `small-instruct`). Jedno prywatne żądanie `FreeApiEngine` przez `http://127.0.0.1:11434/v1`, z `SELFOPT_NETWORK=1`, poprawnym `SELFHOST_AI_BASE_URL` i timeoutem 30 s, zakończyło się `connection_error` po **30030 ms**, bez odpowiedzi. Raportowany przez engine czas wyniósł 0 ms; rzeczywisty czas zmierzono zewnętrznym zegarem monotonicznym. Publicznych wywołań API: 0; pobranych modeli: 0. Dowód: `20261023-kilo-v4/local-engine.json`. Backend nie był restartowany na podstawie samego timeoutu. Ta próba nie dowodzi niedostępności wszystkich lokalnych modeli ani sprawnego wdrożenia lokalnego engine.
+
+Podgląd jest gotowym materiałem integracyjnym do review, **nie zgodą na produkcyjny pilot**. Przed wznowieniem pełnej ewolucji trzeba odebrać przejście mock→real, bezpieczny `defer`, retry/feedback, propagację limitów oraz adekwatny lokalny runtime. Przyjęcie i publikacja rzeczywistego ulepszenia nadal pozostają niepotwierdzone.

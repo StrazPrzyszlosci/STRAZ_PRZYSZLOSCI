@@ -1,0 +1,257 @@
+--- a/selfopt_chain/engine.py
++++ b/selfopt_chain/engine.py
+@@ -92,13 +92,11 @@
+     def complete(self, task: dict[str, Any], model_id: str, prompt: str) -> dict[str, Any]:
+         if not self.network_enabled():
+             return _result(False, "", {"model_id": model_id, "provider": "?"}, 0, 0, f"network disabled: ustaw {NETWORK_ENV_FLAG}=1, aby wlaczyc", "network_disabled")
+-        if task.get("privacy") == "private":
+-            return _result(False, "", {"model_id": model_id, "provider": "?"}, 0, 0, "private task na publicznym API zabronione", "privacy_violation")
+         model = self._models.get(model_id)
+         if model is None:
+             return _result(False, "", {"model_id": model_id, "provider": "?"}, 0, 0, "unknown model", "unknown_model")
+-        if model.get("api", {}).get("style") == "local":
+-            return _result(False, "", model, 0, 0, "local engine unavailable", "local_engine_unavailable")
++        if task.get("privacy") == "private" and model.get("privacy_class") != "local_private":
++            return _result(False, "", model, 0, 0, "private task na publicznym API zabronione", "privacy_violation")
+         secret_env = model.get("api", {}).get("secret_env", "")
+         api_key = os.environ.get(secret_env, "")
+         if not api_key:
+@@ -121,10 +119,18 @@
+     def _call(self, model: dict, api_key: str, prompt: str) -> str:
+         style = model.get("api", {}).get("style")
+         base = model.get("api", {}).get("base_url", "").rstrip("/")
++        secret_env = model.get("api", {}).get("secret_env", "")
+         if style == "openai_chat":
+             url = f"{base}/chat/completions"
+             body = json.dumps({"model": model["model_id"], "messages": [{"role": "user", "content": prompt}], "max_tokens": 2048}).encode("utf-8")
+             req = urllib.request.Request(url, data=body, headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
++        elif style == "local":
++            local_base = os.environ.get(secret_env, "") or base
++            if not local_base:
++                return _result(False, "", model, 0, 0, f"brak lokalnego endpointu (ustaw {secret_env})", "missing_secret")
++            url = f"{local_base.rstrip('/')}/chat/completions"
++            body = json.dumps({"model": model["model_id"], "messages": [{"role": "user", "content": prompt}], "max_tokens": 2048}).encode("utf-8")
++            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+         elif style == "google_gemini":
+             url = f"{base}/v1beta/models/{model['model_id']}:generateContent"
+             body = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
+@@ -133,6 +139,6 @@
+             raise ValueError(f"nieobslugiwany styl API: {style}")
+         with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+             payload = json.loads(resp.read().decode("utf-8"))
+-        if style == "openai_chat":
++        if style in {"openai_chat", "local"}:
+             return payload["choices"][0]["message"]["content"]
+         return payload["candidates"][0]["content"]["parts"][0]["text"]
+--- a/selfopt_chain/swarm.py
++++ b/selfopt_chain/swarm.py
+@@ -307,15 +307,24 @@
+         "presja limitow darmowych API, zadania krytyczne, okno OZE. Wybierz strategie, ktora "
+         "maksymalizuje liczbe zweryfikowanych ulepszen przy dostepnych zasobach."
+     ),
++    "job_selection": (
++        "Decyzja: selekcja i kolejnosc zadan do wykonania w tym cyklu (limity budzetow darmowych API). "
++        "Priorytet wyzej = wazniejsze zadanie."
++    ),
+     "allocation": (
+         "Decyzja: przydzial zasobu (sprzet/model) do zapotrzebowania misyjnego. Zasoby: telefony, "
+-        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wczely selfhost, darmowe modele API. "
++        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wezly selfhost, darmowe modele API. "
+         "Wybierz zasob najlepiej pokrywajacy wymagania zapotrzebowania."
+     ),
+     "exec_mode": (
+         "Decyzja: tryb wykonania zadania. device_profile = gotowy algorytm pisany pod sprzet; "
+         "on_device_model = maly model decyzyjny na wezle; cloud_chain = lancuch LLM w hubie na "
+         "darmowych API. Priorytet: lokalnie i tanszej, jesli wystarcza."
++    ),
++    "model_selection": (
++        "Decyzja: wybor modelu LLM do zadania sposrod kandydatow rotera (kolejnosc wg polityki "
++        "jakosc/szybkosc/budzet). Score 2.0 = wybor rotera; alternatywy malejaco. "
++        "Ocen dopasowanie modelu do rodzaju zadania."
+     ),
+ }
+ 
+--- a/selfopt_chain/charter.json
++++ b/selfopt_chain/charter.json
+@@ -27,7 +27,8 @@
+     "monitoring osób",
+     "twarz",
+     "facial recognition",
+-    "dane osobowe bez zgody"
++    "dane osobowe bez zgody",
++    "uzbrojen"
+   ],
+   "matching_note": "Dopasowanie rdzeni od granicy słowa; bron bez diakrytyków jako pełne słowo, aby dopuścić bronowanie; lista pozostaje konserwatywna — przydział zablokowany słowem kluczowym może odzyskać człowiek przez review.",
+   "rules": [
+--- /dev/null
++++ b/tests/test_selfopt_kilo_integration.py
+@@ -0,0 +1,169 @@
++import io
++import json
++import os
++import sys
++import tempfile
++import unittest
++import urllib.request
++from pathlib import Path
++from unittest import mock
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT))
++
++from selfopt_chain.evolver import (
++    EvolutionLoop,
++    collect_evolution_tasks,
++    decide_parallel_mode,
++    _parse_handoff_tasks,
++    _parse_targets,
++)
++from selfopt_chain.hermes_worker import HermesWorker, SecurityGate, parse_stream_json_output
++from selfopt_chain.omniroute import FreeOnlyPolicy, OmniRouteAdapter, OmniRouteEngine
++from selfopt_chain.engine import FreeApiEngine
++from selfopt_chain.registry import load_registry
++from selfopt_chain.swarm import BasalDecisionCore, resources_from_records, load_charter
++from selfopt_chain.orchestrator import load_capability_map, collect_jobs
++
++
++
++class AuditFixesTest(unittest.TestCase):
++    """Testy napraw z audytu T48–T52 (P0/P1)."""
++
++    def test_chain_passes_context_review_sees_draft(self):
++        import selfopt_chain.run_loop as rl
++        from selfopt_chain.swarm import BasalDecisionCore
++        from pathlib import Path as P
++        captured = {}
++
++        class RecordingEngine:
++            def __init__(self, models):
++                self.calls = []
++            def complete(self, task, model_id, prompt):
++                captured[task.get("task_id")] = prompt
++                return {"ok": True, "output": f"out:{task.get('task_id')}", "model_id": model_id, "provider": "p", "latency_ms": 1, "tokens_est": 1}
++
++        chain = json.loads((ROOT / "selfopt_chain" / "examples" / "chain_resource_triage.json").read_text(encoding="utf-8"))
++        with tempfile.TemporaryDirectory() as tmp:
++            chain_path = P(tmp) / "chain.json"
++            chain_path.write_text(json.dumps(chain), encoding="utf-8")
++            rl.ChainRunner  # sanity
++            import unittest as _u
++            original = rl.ChainRunner
++            class PatchedRunner(original):
++                def __init__(self, models, engine_name, quota_snapshot, tracer, spool=None, decision_core=None, **runner_options):
++                    super().__init__(models, engine_name, quota_snapshot, tracer, spool, decision_core, **runner_options)
++                    self.engine = RecordingEngine(models)
++            with _u.mock.patch.object(rl, "ChainRunner", PatchedRunner):
++                rc = rl.run_chain(chain_path, P(tmp) / "out", "mock", ROOT / "selfopt_chain" / "free_models.json", None, None)
++        self.assertEqual(rc, 0)
++        self.assertIn("out:classify", captured["extract"], "extract ma widzieć wynik classify")
++        self.assertIn("out:draft", captured["review"], "review ma widzieć draft")
++
++    def test_degraded_status_on_partial_failure(self):
++        import selfopt_chain.run_loop as rl
++        from pathlib import Path as P
++        chain = json.loads((ROOT / "selfopt_chain" / "examples" / "chain_resource_triage.json").read_text(encoding="utf-8"))
++        with tempfile.TemporaryDirectory() as tmp:
++            chain_path = P(tmp) / "chain.json"
++            chain_path.write_text(json.dumps(chain), encoding="utf-8")
++            import unittest as _u
++            original = rl.ChainRunner
++            class FailingEngineRunner(original):
++                def __init__(self, models, engine_name, quota_snapshot, tracer, spool=None, decision_core=None, **runner_options):
++                    super().__init__(models, engine_name, quota_snapshot, tracer, spool, decision_core, **runner_options)
++                    from selfopt_chain.engine import MockEngine
++                    self.engine = MockEngine(models, fail_kinds={"extract"})
++            with _u.mock.patch.object(rl, "ChainRunner", FailingEngineRunner):
++                rc = rl.run_chain(chain_path, P(tmp) / "out", "mock", ROOT / "selfopt_chain" / "free_models.json", None, None)
++            receipt = json.loads((P(tmp) / "out" / "run_receipt.json").read_text(encoding="utf-8"))
++        self.assertEqual(rc, 1)
++        self.assertIn("degraded", receipt["status"])
++
++    def test_record_calls_counts_calls_not_models(self):
++        from selfopt_chain.orchestrator import OrchestratorState
++        state = OrchestratorState(Path(tempfile.mkdtemp()))
++        state.record_calls({"model-a": 5, "model-b": 0})
++        state.record_calls({"model-a": 3})
++        self.assertEqual(state.data["daily_calls"]["model-a"], 8)
++        self.assertEqual(state.data["daily_calls"].get("model-b", 0), 0)
++
++    def test_charter_word_boundaries_no_false_positives(self):
++        charter = load_charter()
++        ok_text = "Wytwarzanie obudow z odzysku oraz bronowanie sali warsztatowej dla spolecznosci"
++        bad = SecurityGate()
++        from selfopt_chain.swarm import Demand as D, charter_check
++        good = D("n1", ok_text, ["assembly"], "human_needs", payload={"mission_classes": ["production", "food"]})
++        self.assertTrue(charter_check([good], charter)["ok"], "wytwarzanie/bronowanie NIE moga byc blokowane")
++        weapon = D("n2", "potrzebna broń i amunicja do testow", [], "human_needs", payload={"mission_classes": ["safety"]})
++        self.assertFalse(charter_check([weapon], charter)["ok"], "broń musi byc zablokowana")
++        face = D("n3", "system rozpoznawania twarzy na osiedlu", ["vision"], "human_needs", payload={"mission_classes": ["sensing"]})
++        self.assertFalse(charter_check([face], charter)["ok"])
++
++    def test_private_inbox_job_privacy_end_to_end(self):
++        with tempfile.TemporaryDirectory() as tmp:
++            inbox = Path(tmp)
++            (inbox / "m1.json").write_text(json.dumps({"origin_network": "MESHTASTIC", "payload_text": "[EDGE→HUB] temp 27C"}), encoding="utf-8")
++            jobs = collect_jobs([], inbox)
++        from selfopt_chain.orchestrator import build_chain_def
++        self.assertEqual([node["privacy"] for node in build_chain_def(jobs[0])["nodes"]], ["private"] * 4)
++
++    def test_engine_local_style_uses_env_base(self):
++        fake = {"choices": [{"message": {"content": "lokalna odpowiedz"}}]}
++        with mock.patch.dict(os.environ, {"SELFOPT_NETWORK": "1", "SELFHOST_AI_BASE_URL": "http://127.0.0.1:9999"}, clear=False), \
++                mock.patch.object(urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(fake).encode("utf-8"))) as urlopen:
++            engine = FreeApiEngine(load_registry())
++            result = engine.complete({"privacy": "private"}, "small-instruct", "prompt")
++        self.assertTrue(result["ok"])
++        self.assertIn("127.0.0.1:9999", urlopen.call_args[0][0].full_url)
++        self.assertNotIn("Authorization", urlopen.call_args[0][0].headers)
++
++    def test_engine_local_style_fail_closed_without_env(self):
++        env = {"SELFOPT_NETWORK": "1"}
++        with mock.patch.dict(os.environ, env, clear=False), \
++                mock.patch.dict("os.environ", {"SELFHOST_AI_BASE_URL": ""}, clear=False):
++            engine = FreeApiEngine(load_registry())
++            result = engine.complete({"privacy": "private"}, "small-instruct", "prompt")
++        self.assertFalse(result["ok"])
++        self.assertIn(result["error_class"], {"missing_secret", "connection_error"})
++
++    def test_gate_fail_closed_on_zero_artifacts(self):
++        gate = SecurityGate()
++        with tempfile.TemporaryDirectory() as tmp:
++            (Path(tmp) / "output.json").write_text("{}", encoding="utf-8")
++            report = gate.inspect_tree(Path(tmp), skip={"output.json"})
++        self.assertFalse(report["ok"])
++        self.assertTrue(report["blocked"])
++        self.assertEqual(report["scanned_files"], 0)
++
++    def test_hermes_command_key_redacted_in_receipt(self):
++        worker = HermesWorker(api_key="sk-SECRET-123")
++        with tempfile.TemporaryDirectory() as tmp:
++            run_dir = Path(tmp) / "run"
++            run_dir.mkdir()
++            task = worker.write_task_file("r", "task.md", "# t")
++            receipt = worker.run_isolated("# t")
++        serialized = json.dumps(receipt, default=str)
++        self.assertNotIn("sk-SECRET-123", serialized)
++        self.assertNotIn("--api-key", serialized)
++        self.assertFalse(receipt["executed"])
++
++    def test_calibration_repeated_evidence_is_idempotent(self):
++        from selfopt_chain.calibrate import fit_temperatures
++        decisions = [{"id": "d1", "question_type": "strategy", "deferred": False, "confidence": 0.6, "chosen": "x", "final": "x"}]
++        labels = [{"decision_id": "d1", "accepted": False}]
++        first = fit_temperatures(decisions, labels)
++        second = fit_temperatures(decisions, labels)
++        self.assertEqual(second["temperature_per_prim"], first["temperature_per_prim"])
++        self.assertEqual(second["n_labels"], 1)
++
++    def test_evolution_dedup_across_cycles(self):
++        with tempfile.TemporaryDirectory() as tmp:
++            state = Path(tmp) / "state"
++            loop = EvolutionLoop(state, ROOT / "docs", ROOT, worker=None)
++            first = loop.run(max_tasks=2, parallel_mode="single")
++            second = loop.run(max_tasks=2, parallel_mode="single")
++            self.assertTrue(first)
++            first_ids = {t["task_id"] for t in first}
++            second_ids = {t["task_id"] for t in second}
++            self.assertFalse(first_ids & second_ids, "zadnia z pierwszej tury nie moze powtorzyc sie w drugiej")
