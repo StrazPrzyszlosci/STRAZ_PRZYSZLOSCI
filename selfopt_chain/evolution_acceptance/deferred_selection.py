@@ -24,6 +24,13 @@ class DeferredSelectionContract(unittest.TestCase):
         result = SwarmPlanner(Core(True)).decide_job_selection(self.demands(), 1)
         self.assertEqual(result['final'][0], 'first')
 
+    def test_deferred_preserves_all_demands(self):
+        # Utrata reszty rankingu przy defer to regresja (łapała pełna suita,
+        # kontrakt też musi to wyłapać): final zawiera WSZYSTKIE demand_id.
+        result = SwarmPlanner(Core(True)).decide_job_selection(self.demands(), 2)
+        self.assertEqual(set(result['final']), {'first', 'second'})
+        self.assertEqual(len(result['final']), len(result['ranking']))
+
     def test_confident_choice_keeps_model_ranking(self):
         result = SwarmPlanner(Core(False)).decide_job_selection(self.demands(), 1)
         self.assertEqual(result['final'][0], 'second')
