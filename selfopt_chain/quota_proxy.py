@@ -74,7 +74,20 @@ class QuotaProxy:
                         owner.events.append({'model':owner.model_id,'ok':True,'latency_ms':int((time.monotonic()-started)*1000)})
                     owner.ledger.record_outcome(owner.model_id, {'ok':True,'latency_ms':int((time.monotonic()-started)*1000)})
                 except QuotaExceeded:
-                    self.send_error(429)
+                    # T60: lokalne wyczerpanie budżetu NIE udaje providera —
+                    # jawne oznaczenie origin=local (header + body), by rozróżnić
+                    # od realnego 429 upstream (tamten wychodzi z proxy jako 502).
+                    payload = json.dumps({'error': {'type': 'local_quota_exhausted',
+                                      'origin': 'local', 'message': 'localny limit/budzet roju'}}).encode()
+                    self.send_response(429)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('X-Straz-Quota-Origin', 'local')
+                    self.send_header('Content-Length', str(len(payload)))
+                    self.end_headers()
+                    try:
+                        self.wfile.write(payload)
+                    except (BrokenPipeError, ConnectionResetError):
+                        pass
                 except (BrokenPipeError, ConnectionResetError):
                     pass
                 except Exception as error:

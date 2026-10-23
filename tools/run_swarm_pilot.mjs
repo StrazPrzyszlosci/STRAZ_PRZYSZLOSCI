@@ -14,15 +14,16 @@ const evolution = args.includes('--evolve');
 const continuous = args.includes('--continuous');
 const value = (name, fallback) => args.includes(name) ? args[args.indexOf(name)+1] : fallback;
 const allowDb = args.includes('--use-omniroute-db-key');
-const maxCalls = args.includes('--max-calls') ? Number(args[args.indexOf('--max-calls') + 1]) : 8;
-if (!Number.isInteger(maxCalls) || maxCalls < 1 || maxCalls > 256) throw Error('max-calls must be 1..256');
+const maxCalls = args.includes('--max-calls') ? Number(args[args.indexOf('--max-calls') + 1]) : 0; // 0 = bez sztucznego capu (operator zdjął 2026-10-23); jawna wartość = opcjonalny limit
+if (!Number.isInteger(maxCalls) || maxCalls < 0 || maxCalls > 256) throw Error('max-calls must be 0..256 (0 = cap removed)');
 const maxBatches = Number(value('--batches', '2'));
 if (!Number.isInteger(maxBatches) || maxBatches < 1 || maxBatches > 8) throw Error('batches must be 1..8');
 const state = resolve(value('--state-dir', resolve(root, 'scratch/selfopt', evolution ? 'stable-evolution' : real ? 'pilot-live' : 'pilot-offline')));
 await mkdir(state, { recursive: true });
 const env = { ...process.env, SELFOPT_NETWORK: real ? '1' : '0', SELFOPT_HERMES: real && evolution ? '1' : '0', SELFOPT_REQUEST_TIMEOUT: process.env.SELFOPT_REQUEST_TIMEOUT || '60' };
 const options = ['selfopt_chain/orchestrator.py', '--state-dir', state, '--kill-switch', join(state, 'KILL_SWITCH'),
-                 '--max-cycles', String(maxBatches), '--interval', '3', '--max-jobs', '1', '--max-calls', String(maxCalls), '--max-seconds', '300'];
+                 '--max-cycles', String(maxBatches), '--interval', '3', '--max-jobs', '1', '--max-seconds', '300'];
+if (maxCalls > 0) options.push('--max-calls', String(maxCalls));
 
 if (real) {
   const gateway = new URL(env.SELFOPT_OMNIROUTE_URL || 'http://127.0.0.1:20128/v1');
@@ -82,7 +83,7 @@ if (real) {
     const models = candidates.map(m => ({ model_id: m.id, provider: 'kilocode_free', role: profiles[m.id].routing_roles.join(','),
       ...profiles[m.id], privacy_class:'public_only', supports_tools:m.capabilities?.tool_calling===true,
       tool_calling_source:'gateway_catalog_unverified', cost_class:'free_quota', context_tokens:m.context_length,
-      rpm_seed:8, rpd_seed:maxCalls, limits_verified:false,
+      rpm_seed:8, rpd_seed:maxCalls > 0 ? maxCalls : 1000, limits_verified:false,
       api:{style:'openai_chat',base_url:base,secret_env:'SELFOPT_OMNIROUTE_KEY',response_model_id:m.id.slice('kilocode/'.length),max_output_tokens:m.max_output_tokens},
       notes:profiles[m.id].basis+'; operator quota cap only; upstream quota unverified.' }));
     const registry = join(state, 'armed_registry.json');
@@ -90,7 +91,7 @@ if (real) {
     const snapshot = join(state, 'quota_snapshot.json');
     await writeFile(snapshot, JSON.stringify({ generated_at: new Date().toISOString(), entries: models.map(m => ({
       provider: m.provider, model: m.model_id, source: 'bounded_operator_pilot', checked_at: new Date().toISOString(),
-      status: 'ok', rpm: 8, rpd: maxCalls, tpm: null, guaranteed: false, note: 'Operator cap only; upstream quota unverified' })) }, null, 2));
+      status: 'ok', rpm: 8, rpd: maxCalls > 0 ? maxCalls : 1000, tpm: null, guaranteed: false, note: maxCalls > 0 ? 'Operator cap only; upstream quota unverified' : 'Operator removed pilot cap 2026-10-23; rpd seed 1000, upstream quota unverified; ledger tracks for metrics' })) }, null, 2));
     options.push('--engine', 'omniroute', '--registry', registry, '--quota-snapshot', snapshot);
     console.log(JSON.stringify({ mode: 'real', state_dir: state, models: models.map(m => m.model_id), max_calls: maxCalls, upstream_quota_verified: false }));
   } finally { db?.close(); }
