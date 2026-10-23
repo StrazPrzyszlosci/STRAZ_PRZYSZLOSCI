@@ -91,11 +91,11 @@ class FreeApiEngine:
     def complete(self, task: dict[str, Any], model_id: str, prompt: str) -> dict[str, Any]:
         if not self.network_enabled():
             return _result(False, "", {"model_id": model_id, "provider": "?"}, 0, 0, f"network disabled: ustaw {NETWORK_ENV_FLAG}=1, aby wlaczyc", "network_disabled")
-        if task.get("privacy") == "private":
-            return _result(False, "", {"model_id": model_id, "provider": "?"}, 0, 0, "private task na publicznym API zabronione", "privacy_violation")
         model = self._models.get(model_id)
         if model is None:
             return _result(False, "", {"model_id": model_id, "provider": "?"}, 0, 0, "unknown model", "unknown_model")
+        if task.get("privacy") == "private" and model.get("privacy_class") != "local_private":
+            return _result(False, "", model, 0, 0, "private task na publicznym API zabronione", "privacy_violation")
         secret_env = model.get("api", {}).get("secret_env", "")
         api_key = os.environ.get(secret_env, "")
         if not api_key:
@@ -113,10 +113,18 @@ class FreeApiEngine:
     def _call(self, model: dict, api_key: str, prompt: str) -> str:
         style = model.get("api", {}).get("style")
         base = model.get("api", {}).get("base_url", "").rstrip("/")
+        secret_env = model.get("api", {}).get("secret_env", "")
         if style == "openai_chat":
             url = f"{base}/chat/completions"
             body = json.dumps({"model": model["model_id"], "messages": [{"role": "user", "content": prompt}], "max_tokens": 2048}).encode("utf-8")
             req = urllib.request.Request(url, data=body, headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
+        elif style == "local":
+            local_base = os.environ.get(secret_env, "") or base
+            if not local_base:
+                return _result(False, "", model, 0, 0, f"brak lokalnego endpointu (ustaw {secret_env})", "missing_secret")
+            url = f"{local_base.rstrip('/')}/chat/completions"
+            body = json.dumps({"model": model["model_id"], "messages": [{"role": "user", "content": prompt}], "max_tokens": 2048}).encode("utf-8")
+            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
         elif style == "google_gemini":
             url = f"{base}/v1beta/models/{model['model_id']}:generateContent"
             body = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
@@ -125,6 +133,6 @@ class FreeApiEngine:
             raise ValueError(f"nieobslugiwany styl API: {style}")
         with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
-        if style == "openai_chat":
+        if style in {"openai_chat", "local"}:
             return payload["choices"][0]["message"]["content"]
         return payload["candidates"][0]["content"]["parts"][0]["text"]

@@ -161,7 +161,14 @@ class ChainRunner:
                 "complexity": node.get("complexity", "light"),
                 "requires": node.get("requires", []),
             }
-            prompt = node.get("prompt", "") + "\n" + json.dumps(state.get("payload", {}), ensure_ascii=False)
+            prompt = node.get("prompt", "")
+            prior_outputs = state.get("outputs", {})
+            if prior_outputs:
+                prompt += "\n\n# Wyniki poprzednich węzłów (kontekst łańcucha):\n" + json.dumps(
+                    {k: (v.get("output", "") if isinstance(v, dict) else str(v)) for k, v in prior_outputs.items()},
+                    ensure_ascii=False,
+                )
+            prompt += "\n\n# Payload zadania:\n" + json.dumps(state.get("payload", {}), ensure_ascii=False)
             decision = route_task(task, self.models, self.ledger, self.quota_snapshot)
             self.tracer.routed(decision, node["id"])
             if decision["blocked"]:
@@ -172,8 +179,19 @@ class ChainRunner:
                 model_id = self.decision_core.select_model(decision, node_type) if self.decision_core else decision["chosen"]["model_id"]
                 self.ledger.record(model_id)
                 result = self.engine.complete(task, model_id, prompt)
+                retried_via = None
+                if not result.get("ok") and result.get("error_class") in {"http_error", "connection_error", "free_only_violation"}:
+                    for alt in decision.get("alternatives", []):
+                        alt_id = alt.get("model_id")
+                        if not alt_id or alt_id == model_id or not self.ledger.can_use(alt_id):
+                            continue
+                        self.ledger.record(alt_id)
+                        alt_result = self.engine.complete(task, alt_id, prompt)
+                        if alt_result.get("ok"):
+                            result, retried_via = alt_result, alt_id
+                            break
                 self.tracer.node_result(node["id"], result)
-                self.routing.append({**decision, "node": node["id"], "ok": result["ok"], "model_selected_by_basal": model_id})
+                self.routing.append({**decision, "node": node["id"], "ok": result["ok"], "model_selected_by_basal": model_id, "retry_fallback_model": retried_via})
             outputs = {**state.get("outputs", {}), node["id"]: result}
             return {"outputs": outputs, "last_node": node["id"], "route": result.get("output", "")}
 
@@ -267,6 +285,9 @@ def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: 
         tracer.error("graph", str(exc))
     if runner.routing and all(not r["ok"] for r in runner.routing):
         status = "failed: wszystkie wywolania modeli nieudane"
+    elif runner.routing and any(not r["ok"] for r in runner.routing):
+        failed_nodes = [r["node"] for r in runner.routing if not r["ok"]]
+        status = f"degraded: nieudane wezly {failed_nodes}"
     tracer.run_end(status, nodes_run)
     (out_dir / "final_outputs.json").write_text(json.dumps(final_outputs, ensure_ascii=False, indent=2), encoding="utf-8")
     finished = datetime.now(timezone.utc).isoformat(timespec="seconds")

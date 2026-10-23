@@ -100,6 +100,10 @@ class SecurityGate:
                     report["violations"].append(v2)
                 report["licenses_review"].extend(f"{note} [{path}]" for note in single["licenses_review"])
         report["blocked"] = bool(report["violations"])
+        if report["scanned_files"] == 0:
+            # Fail-closed (audyt §5.6): brak artefaktów = brak zielonego światła.
+            report["violations"].append({"rule": "no_artifacts_produced", "hint": "kwarantanna pusta — worker nic nie wyprodukował"})
+            report["blocked"] = True
         report["ok"] = not report["violations"] and not report["licenses_review"]
         report["quarantine_required"] = report["blocked"] or bool(report["licenses_review"])
         return report
@@ -191,19 +195,26 @@ class HermesWorker:
         }
         if not self.enabled():
             receipt["skipped_reason"] = f"{HERMES_RUN_ENV_FLAG}=1 wymagane do uruchomienia workera"
+            receipt["command"] = [c if c != self.api_key else "[REDACTED]" for c in command]
             return receipt
         import subprocess
 
-        completed = subprocess.run(
-            command,
-            cwd=str(run_dir),
-            env=self.scrub_env(),
-            capture_output=True,
-            text=True,
-            timeout=run_budget_s + 60,
-        )
-        receipt.update(executed=True, exit_code=completed.returncode)
-        raw = completed.stdout or ""
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=str(run_dir),
+                env=self.scrub_env(),
+                capture_output=True,
+                text=True,
+                timeout=run_budget_s + 60,
+            )
+            exit_code: Any = completed.returncode
+            raw = completed.stdout or ""
+        except subprocess.TimeoutExpired:
+            exit_code, raw = "timeout", ""
+        receipt.update(executed=True, exit_code=exit_code)
+        # Redakcja klucza (audyt §5.6): klucz nigdy nie trafia do artefaktów.
+        receipt["command"] = [c if c != self.api_key else "[REDACTED]" for c in command]
         quarantine = self.quarantine_dir(run_id)
         (quarantine / "output.json").write_text(raw, encoding="utf-8")
         for produced in sorted(run_dir.glob("**/*")):
@@ -212,6 +223,10 @@ class HermesWorker:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(produced, target)
         gate = SecurityGate().inspect_tree(quarantine, skip={"output.json", "task.md"})
+        if exit_code != 0 and not gate["violations"]:
+            gate["violations"].append({"rule": "hermes_nonzero_exit", "hint": f"exit={exit_code}"})
+            gate["blocked"] = True
+            gate["quarantine_required"] = True
         receipt["security_gate"] = gate
         receipt["released_from_quarantine"] = False
         return receipt

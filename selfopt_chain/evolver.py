@@ -22,6 +22,7 @@ Deterministycznie testowalne offline; realne LLM po uzbrojeniu
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -137,17 +138,32 @@ def _parse_targets(path: Path = TARGETS_PATH) -> list[EvolutionTask]:
     ]
 
 
-def collect_evolution_tasks(state_dir: Path, docs_dir: Path, max_tasks: int = 6) -> list[EvolutionTask]:
-    """Zbiór zadań: handoffy + proposals + celowniki; deterministycznie."""
-    tasks = _parse_handoff_tasks(docs_dir) + _parse_proposal_tasks(state_dir) + _parse_targets()
+def _task_fingerprint(task: EvolutionTask) -> str:
+    return hashlib.sha1(f"{task.task_id}|{task.title}".encode("utf-8")).hexdigest()[:16]
+
+
+def collect_evolution_tasks(state_dir: Path, docs_dir: Path, max_tasks: int = 6, processed: set[str] | None = None) -> list[EvolutionTask]:
+    """Zbiór zadań: przeplatanie źródeł (handoff/proposal/target — audyt §5.3:
+    żadne źródło nie zalega kolejnych), dedup w obrębie tury i między cyklami
+    (processed = odciski wykonanych zadań)."""
+    processed = processed or set()
+    sources = [
+        _parse_handoff_tasks(docs_dir),
+        _parse_proposal_tasks(state_dir),
+        _parse_targets(),
+    ]
+    interleaved: list[EvolutionTask] = []
     seen: set[str] = set()
-    unique: list[EvolutionTask] = []
-    for task in tasks:
-        if task.task_id in seen:
-            continue
-        seen.add(task.task_id)
-        unique.append(task)
-    return unique[:max_tasks]
+    for i in range(max(len(s) for s in sources)):
+        for bucket in sources:
+            if i < len(bucket):
+                task = bucket[i]
+                fp = _task_fingerprint(task)
+                if task.task_id in seen or fp in processed:
+                    continue
+                seen.add(task.task_id)
+                interleaved.append(task)
+    return interleaved[:max_tasks]
 
 
 def decide_parallel_mode(core: BasalDecisionCore, backlog: int, critical: int) -> str:
@@ -298,7 +314,11 @@ class EvolutionLoop:
         self.strategy: dict[str, Any] = {}
 
     def run(self, max_tasks: int = 4, parallel_mode: str = "single") -> list[dict[str, Any]]:
-        tasks = collect_evolution_tasks(self.state_dir, self.docs_dir, max_tasks=max_tasks * 2)
+        processed_path = self.state_dir / "evolution_processed.json"
+        processed: set[str] = set()
+        if processed_path.exists():
+            processed = set(json.loads(processed_path.read_text(encoding="utf-8")).get("fingerprints", []))
+        tasks = collect_evolution_tasks(self.state_dir, self.docs_dir, max_tasks=max_tasks * 2, processed=processed)
         self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine)
         order = {task_id: i for i, task_id in enumerate(self.strategy.get("priorities", []))}
         tasks.sort(key=lambda t: order.get(t.task_id, len(order)))
@@ -306,17 +326,31 @@ class EvolutionLoop:
         if subtasks:
             tasks = (tasks[:1] + [s for s in subtasks if s.task_id not in {t.task_id for t in tasks}])[:max_tasks]
         armed = self.worker is not None and HermesWorker.enabled()
+        executed_fps: list[str] = []
+
+        def mark(task: EvolutionTask) -> None:
+            executed_fps.append(_task_fingerprint(task))
+
         if armed and parallel_mode == "wide" and len(tasks) > 1:
             from concurrent.futures import ThreadPoolExecutor
 
             lanes = min(self.max_lanes, len(tasks))
             with ThreadPoolExecutor(max_workers=lanes) as pool:
-                futures = [
-                    pool.submit(self._run_task, task, parallel_mode, self._lane_model(i, task))
-                    for i, task in enumerate(tasks)
-                ]
-                return [future.result() for future in futures]
-        return [self._run_task(task, parallel_mode, None) for task in tasks]
+                futures = []
+                for i, task in enumerate(tasks):
+                    mark(task)
+                    futures.append(pool.submit(self._run_task, task, parallel_mode, self._lane_model(i, task)))
+                results = [future.result() for future in futures]
+        else:
+            results = []
+            for task in tasks:
+                mark(task)
+                results.append(self._run_task(task, parallel_mode, None))
+        if executed_fps:
+            processed.update(executed_fps)
+            processed_path.parent.mkdir(parents=True, exist_ok=True)
+            processed_path.write_text(json.dumps({"fingerprints": sorted(processed)}, ensure_ascii=False, indent=2), encoding="utf-8")
+        return results
 
     def _lane_model(self, lane_index: int, task: EvolutionTask | None = None) -> str:
         """Model pasma: basal wybiera odpowiedni LLM; bez rdzenia/strategy — round-robin."""

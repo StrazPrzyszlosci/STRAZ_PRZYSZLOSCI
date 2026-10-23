@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 import uuid
 from pathlib import Path
@@ -303,9 +304,13 @@ REMOTE_INSTRUCTIONS: dict[str, str] = {
         "presja limitow darmowych API, zadania krytyczne, okno OZE. Wybierz strategie, ktora "
         "maksymalizuje liczbe zweryfikowanych ulepszen przy dostepnych zasobach."
     ),
+    "job_selection": (
+        "Decyzja: selekcja i kolejnosc zadan do wykonania w tym cyklu (limity budzetow darmowych API). "
+        "Priorytet wyzej = wazniejsze zadanie."
+    ),
     "allocation": (
         "Decyzja: przydzial zasobu (sprzet/model) do zapotrzebowania misyjnego. Zasoby: telefony, "
-        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wczely selfhost, darmowe modele API. "
+        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wezly selfhost, darmowe modele API. "
         "Wybierz zasob najlepiej pokrywajacy wymagania zapotrzebowania."
     ),
     "exec_mode": (
@@ -313,7 +318,20 @@ REMOTE_INSTRUCTIONS: dict[str, str] = {
         "on_device_model = maly model decyzyjny na wezle; cloud_chain = lancuch LLM w hubie na "
         "darmowych API. Priorytet: lokalnie i tanszej, jesli wystarcza."
     ),
+    "model_selection": (
+        "Decyzja: wybor modelu LLM do zadania sposrod kandydatow rotera (kolejnosc wg polityki "
+        "jakosc/szybkosc/budzet). Score 2.0 = wybor rotera; alternatywy malejaco. "
+        "Ocen dopasowanie modelu do rodzaju zadania."
+    ),
 }
+
+LETTER_CLASS = r"A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9"
+
+
+def _stem_pattern(stem: str) -> re.Pattern[str]:
+    """Wzorzec rdzenia na GRANICY słowa (koniec false positives typu
+    'wytwarzanie'~'twarz', 'bronowanie'~'bron')."""
+    return re.compile(rf"(?<![{LETTER_CLASS}]){re.escape(stem)}")
 
 
 def load_charter(path: Path = CHARTER_PATH) -> dict[str, Any]:
@@ -335,7 +353,7 @@ def charter_check(mission_demands: list[Demand], charter: dict[str, Any]) -> dic
     forbidden = [kw.lower() for kw in charter["forbidden_keywords"]]
     for demand in mission_demands:
         text = f"{demand.label} {' '.join(sorted(demand.required))}".lower()
-        hit = next((kw for kw in forbidden if kw in text), None)
+        hit = next((kw for kw in forbidden if _stem_pattern(kw.lower()).search(text)), None)
         if hit:
             violations.append({"demand_id": demand.demand_id, "rule": "forbidden_keywords", "detail": hit})
             continue
@@ -520,14 +538,14 @@ class SwarmPlanner:
             "queue_when_busy": 0.1 + 0.4 * max(0, backlog - 5),
         }
         options = list(STRATEGY_DESCRIPTIONS)
-        return self.core.decide("choice", options, scores, default_option=self.default_strategy, context={"cycle_signals": cycle_signals})
+        return self.core.decide("strategy", options, scores, default_option=self.default_strategy, context={"cycle_signals": cycle_signals})
 
     def decide_job_selection(self, demands: list[Demand], max_jobs: int) -> dict[str, Any]:
         """Basal wybiera zapotrzebowania cyklu (ranking + confidence + defer)."""
         if not demands:
             return {"final": [], "deferred": False, "confidence": 1.0, "ranking": [], "decision": None}
         scores = {d.demand_id: float(d.priority) for d in demands}
-        decision = self.core.decide("choice", [d.demand_id for d in demands], scores, default_option=max(demands, key=lambda d: d.priority).demand_id, context={"max_jobs": max_jobs})
+        decision = self.core.decide("job_selection", [d.demand_id for d in demands], scores, default_option=max(demands, key=lambda d: d.priority).demand_id, context={"max_jobs": max_jobs})
         ranking = [k for k, _ in decision["probabilities"].items()]
         return {"final": ranking, "deferred": decision["deferred"], "confidence": decision["confidence"], "ranking": ranking, "decision": decision}
 
@@ -538,13 +556,13 @@ class SwarmPlanner:
             return {"decision": None, "resource": None, "reason": "no_capable_resource"}
         options = list(scores)
         default = sorted(options, key=lambda k: -scores[k])[0]
-        decision = self.core.decide("choice", options, scores, default_option=default, context={"demand": demand.demand_id, "strategy": strategy})
+        decision = self.core.decide("allocation", options, scores, default_option=default, context={"demand": demand.demand_id, "strategy": strategy})
         return {"decision": decision, "resource": decision["final"], "reason": "ok"}
 
     def decide_exec_mode(self, demand: Demand, resource: SwarmResource) -> dict[str, Any]:
         scores = exec_mode_scores(demand, resource)
         default = "cloud_chain"
-        decision = self.core.decide("choice", EXEC_MODES, scores, default_option=default, context={"demand": demand.demand_id, "resource": resource.resource_id})
+        decision = self.core.decide("exec_mode", EXEC_MODES, scores, default_option=default, context={"demand": demand.demand_id, "resource": resource.resource_id})
         return decision
 
     def plan_cycle(self, mission_demands: list[Demand], procdev_demands: list[Demand], resources: list[SwarmResource], cycle_signals: dict[str, Any], max_jobs: int = 3) -> dict[str, Any]:

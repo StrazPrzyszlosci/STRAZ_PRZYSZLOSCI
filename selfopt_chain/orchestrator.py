@@ -102,7 +102,7 @@ def match_capability(resource_class: str, capability_map: dict[str, Any]) -> dic
 
 def quota_gate(engine_name: str, snapshot_path: Path | None) -> dict[str, Any]:
     """Bramka „no_agent_chain_without_ok_snapshot" dla realnych wywołań API."""
-    if engine_name != "free-api":
+    if engine_name not in {"free-api", "omniroute"}:
         return {"allowed": True, "reason": "mock_engine_bez_bramki_quota"}
     if snapshot_path is None or not snapshot_path.exists():
         return {"allowed": False, "reason": "quota_snapshot_blocked:missing_snapshot"}
@@ -140,9 +140,10 @@ class OrchestratorState:
     def mark_processed(self, fp: str, job_id: str) -> None:
         self.data["processed"][fp] = {"job_id": job_id, "ts": _now_iso()}
 
-    def record_calls(self, models_used: list[str]) -> None:
-        for mid in models_used:
-            self.data["daily_calls"][mid] = self.data["daily_calls"].get(mid, 0) + 1
+    def record_calls(self, usage: dict[str, int]) -> None:
+        """Accounting PER WYWOŁANIE (audyt §5.4): usage = {model_id: liczba wywołań}."""
+        for mid, n in usage.items():
+            self.data["daily_calls"][mid] = self.data["daily_calls"].get(mid, 0) + int(n)
 
     def budgeted_models(self, models: list[dict]) -> list[dict]:
         """Widok rejestru z odjętym dobowym zużyciem; modele z wyczerpanym
@@ -187,6 +188,9 @@ class Job:
         self.source = source
         self.record = record
         self.fingerprint = fingerprint(record)
+        # Privacy end-to-end (audyt §5.6): dane z pola/LoRa = private (fail-closed
+        # bez lokalnego engine); publiczne oferty zasobów = public.
+        self.privacy = "private" if source == "lora_inbox" else "public"
 
 
 def collect_jobs(records_paths: list[Path], inbox_dir: Path | None) -> list[Job]:
@@ -221,13 +225,13 @@ def build_chain_def(job: Job) -> dict[str, Any]:
     return {
         "chain_id": f"procdev_{job.job_id}",
         "nodes": [
-            {"id": "classify", "kind": "classify", "privacy": "public", "complexity": "light", "requires": ["text"],
+            {"id": "classify", "kind": "classify", "privacy": job.privacy, "complexity": "light", "requires": ["text"],
              "prompt": f"Ocen klase zasobu i pilnosci dla misji Strazy Przyszlosci. Rekord:\n{prompt_context}"},
-            {"id": "extract", "kind": "extract", "privacy": "public", "complexity": "medium", "requires": ["text", "json"],
+            {"id": "extract", "kind": "extract", "privacy": job.privacy, "complexity": "medium", "requires": ["text", "json"],
              "prompt": f"Wyciagnij kluczowe parametry zasobu (klasa, lokalizacja, koszt, ryzyka, evidence, energia/logistyka):\n{prompt_context}"},
-            {"id": "draft", "kind": "draft", "privacy": "public", "complexity": "medium", "requires": ["text", "json"],
+            {"id": "draft", "kind": "draft", "privacy": job.privacy, "complexity": "medium", "requires": ["text", "json"],
              "prompt": f"Zredaguj krotki draft dossier potencjalu: co z tego zasobu moze sluzyc ludziom, jaki produkt, dla kogo:\n{prompt_context}"},
-            {"id": "review", "kind": "review", "privacy": "public", "complexity": "light", "requires": ["text"],
+            {"id": "review", "kind": "review", "privacy": job.privacy, "complexity": "light", "requires": ["text"],
              "prompt": f"Zweryfikuj draft wzgledem ryzyk i brakujacej evidencji; co musi potwierdzic czlowiek:\n{prompt_context}"},
         ],
         "pipeline": ["classify", "extract", "draft", "review"],
@@ -319,10 +323,15 @@ class Orchestrator:
         return appended
 
     def _auto_calibrate(self) -> dict[str, Any] | None:
-        """Samokalibracja roju: decisions.jsonl + labels.jsonl → CALIBRATION.selfopt.json."""
+        """Samokalibracja roju: decisions.jsonl + labels.jsonl → CALIBRATION.selfopt.json.
+
+        Kumulatywnie: fit startuje od poprzedniej kalibracji (audyt §5.2),
+        nie od stałego seeda."""
         decisions = load_decisions(self.state_dir)
         labels = load_labels(self.state_dir)
-        calibration = fit_temperatures(decisions, labels)
+        previous = load_calibration(self.state_dir)
+        base = previous.get("temperature_per_prim") if previous else None
+        calibration = fit_temperatures(decisions, labels, base=base)
         if calibration is not None:
             write_calibration(self.state_dir, calibration)
         return calibration
@@ -348,7 +357,7 @@ class Orchestrator:
             for j in pending
         ]
         hardware_resources = resources_from_records([j.record for j in jobs])
-        model_resources = resources_from_models(budgeted, self.state.data.get("daily_calls", {}))
+        model_resources = resources_from_models(load_registry(self.registry_path), self.state.data.get("daily_calls", {}))
         scarce = sum(1 for m in model_resources if m.headroom <= 0.2)
         cycle_signals = {
             "backlog": len(pending),
@@ -445,6 +454,14 @@ class Orchestrator:
         selected_jobs = [j for j in pending if j.job_id in procdev_order]
         selected_jobs.sort(key=lambda j: procdev_order[j.job_id])
         for job in selected_jobs[: self.config["max_jobs"]]:
+            budgeted = self.state.budgeted_models(load_registry(self.registry_path))
+            if not budgeted:
+                receipt["jobs_status"] = "daily_budget_exhausted"
+                receipt["finished"] = _now_iso()
+                return receipt
+            budget_registry_path = self.state_dir / f"registry_view_cycle_{cycle_no}_{job.job_id}.json"
+            budget_registry_path.parent.mkdir(parents=True, exist_ok=True)
+            budget_registry_path.write_text(json.dumps({"models": budgeted}, ensure_ascii=False, indent=2), encoding="utf-8")
             run_dir = self.state_dir / "runs" / f"cycle_{cycle_no}_{job.job_id}"
             chain_path = run_dir / "chain.json"
             chain_path.parent.mkdir(parents=True, exist_ok=True)
@@ -473,7 +490,7 @@ class Orchestrator:
             procdev_dir.mkdir(parents=True, exist_ok=True)
             draft_path = procdev_dir / f"{job.job_id}.md"
             draft_path.write_text(draft, encoding="utf-8")
-            self.state.record_calls(models_used)
+            self.state.record_calls(quota_usage)
             self.state.mark_processed(job.fingerprint, job.job_id)
             receipt["jobs_run"].append({
                 "job_id": job.job_id,
