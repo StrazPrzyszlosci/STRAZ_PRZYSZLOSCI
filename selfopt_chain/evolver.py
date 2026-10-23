@@ -36,8 +36,8 @@ from selfopt_chain.swarm import BasalDecisionCore
 
 TARGETS_PATH = Path(__file__).with_name("evolution_targets.json")
 NEXT_TASKS_RE = re.compile(r"^\d+\.\s*\*\*(T\d+[^*]*)\*\*[:\s]+(.*)$", re.MULTILINE)
-DEFAULT_DRAFT_ALIAS = os.environ.get("SELFOPT_EVOLVE_DRAFT_MODEL", "auto/best-fast")
-DEFAULT_REVIEW_ALIAS = os.environ.get("SELFOPT_EVOLVE_REVIEW_MODEL", "auto/best-reasoning")
+DEFAULT_DRAFT_ALIAS = os.environ.get("SELFOPT_EVOLVE_DRAFT_MODEL", "ddgw/mistral-small-2603")
+DEFAULT_REVIEW_ALIAS = os.environ.get("SELFOPT_EVOLVE_REVIEW_MODEL", "ddgw/tinfoil/gpt-oss-120b")
 
 
 def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engine: Any | None, review_alias: str = DEFAULT_REVIEW_ALIAS) -> dict[str, Any]:
@@ -227,7 +227,7 @@ def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | Non
         "Zadania:",
         listing,
     ])
-    result = strategy_engine.complete({"kind": "reason", "privacy": "public", "task_id": "evolution_strategy"}, "auto", prompt)
+    result = strategy_engine.complete({"kind": "reason", "privacy": "public", "task_id": "evolution_strategy"}, DEFAULT_REVIEW_ALIAS, prompt)
     if not result.get("ok"):
         fallback_strategy["source"] = f"llm_unavailable:{result.get('error_class', 'unknown')}"
         return fallback_strategy, []
@@ -382,7 +382,7 @@ class EvolutionLoop:
         if self.worker is not None and HermesWorker.enabled():
             receipt["executor"] = "hermes"
             query = build_task_query(task, self.repo_root)
-            worker = HermesWorker(model_alias=model_alias) if model_alias else HermesWorker()
+            worker = HermesWorker(model_alias=model_alias or DEFAULT_DRAFT_ALIAS)
             hermes_receipt = worker.run_isolated(query)
             receipt["hermes_run_id"] = hermes_receipt.get("run_id")
             receipt["hermes_executed"] = hermes_receipt.get("executed")

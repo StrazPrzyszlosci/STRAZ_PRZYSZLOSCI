@@ -127,7 +127,7 @@ class OmniRouteAdapterTest(unittest.TestCase):
             engine = OmniRouteEngine(_models(), base_url="http://127.0.0.1:20128/v1")
             result = engine.complete({"privacy": "public"}, "model-spoza-rejestru", "prompt")
         self.assertTrue(result["ok"])
-        self.assertEqual(result["requested_alias"], "auto")
+        self.assertEqual(result["requested_alias"], "ddgw/mistral-small-2603")
 
 
 class BasalRemoteEngineTest(unittest.TestCase):
@@ -407,11 +407,11 @@ class EvolverStrategyTest(unittest.TestCase):
         self.assertEqual(subtasks, [])
 
     def test_review_by_strong_model_verdicts(self):
-        from selfopt_chain.evolver import review_by_strong_model
+        from selfopt_chain.evolver import review_by_strong_model, DEFAULT_REVIEW_ALIAS
 
         class FakeReviewEngine:
             def complete(self, task, model_alias, prompt):
-                assert model_alias == "auto/best-reasoning"
+                assert model_alias == DEFAULT_REVIEW_ALIAS
                 return {"ok": True, "model_id": "reviewer-strong", "output": '{"verdict": "needs_fixes", "notes": "brakuje testów"}'}
 
         task = self._task("t_a", "sprawdź produkcję")
