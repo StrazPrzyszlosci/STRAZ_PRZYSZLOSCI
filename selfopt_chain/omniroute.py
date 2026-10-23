@@ -57,7 +57,9 @@ class FreeOnlyPolicy:
             return True
         if provider and provider in self.free_providers:
             return True
-        return False
+        # OmniRoute stripuje prefiksy w odpowiedzi (np. 'ddgw/x' -> 'x'):
+        # akceptujemy dopasowanie sufiksowe do katalogu free.
+        return any(str(cat_id).split("/", 1)[-1] == actual_model for cat_id in self.free_model_ids)
 
 
 def omniroute_url() -> str | None:

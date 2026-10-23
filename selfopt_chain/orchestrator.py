@@ -526,6 +526,13 @@ class Orchestrator:
 
             strategy_engine = OmniRouteEngine(load_registry(self.registry_path))
             lane_models = sorted(strategy_engine.adapter.policy.free_model_ids)
+            # Priorytet pasm: najpierw sprawdzone dzialajace (ddgw), potem mistral,
+            # na koncu reszte katalogu (cfp/* czesto wyspecjalizowane -> exit!=0).
+            def lane_priority(mid: str) -> tuple:
+                prefix = mid.split("/", 1)[0]
+                rank = {"ddgw": 0, "mistral": 1, "nvidia": 2}.get(prefix, 9)
+                return (rank, mid)
+            lane_models.sort(key=lane_priority)
             if HermesWorker.enabled():
                 worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"))
         loop = EvolutionLoop(self.state_dir, ROOT / "docs", ROOT, worker=worker, lane_models=lane_models, decision_core=core, strategy_engine=strategy_engine, max_lanes=int(self.config.get("evolve_lanes", 6)))
