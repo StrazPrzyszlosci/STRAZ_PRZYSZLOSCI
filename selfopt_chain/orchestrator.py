@@ -733,6 +733,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--evolve-max-tasks", type=int, default=4)
     parser.add_argument("--evolve-lanes", type=int, default=6, help="maks. równoległych pasm (różne darmowe modele naraz)")
     parser.add_argument("--subagent-mode", choices=["auto", "single", "wide", "deep"], default="auto", help="równoległość subagentów (basal decyduje w trybie auto)")
+    parser.add_argument("--evolve-executor", choices=["auto", "direct_patch", "hermes"], default="auto", help="executor ewolucji: basal wybiera w auto; jawna wartość = override operatora (wciąż w granicach admission)")
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_S, help="sekundy między cyklami")
     parser.add_argument("--max-cycles", type=int, default=None, help="limit cykli (brak = daemon)")
     parser.add_argument("--once", action="store_true", help="jeden cykl i wyjście")
@@ -780,6 +781,7 @@ def main(argv: list[str] | None = None) -> int:
         "hermes_run_seconds": args.hermes_run_seconds,
         "evolve_retry_seconds": args.evolve_retry_seconds,
         "evolve_lanes": args.evolve_lanes,
+        "evolution_executor": args.evolve_executor,
         "subagent_mode": args.subagent_mode,
         "quota_snapshot_path": args.quota_snapshot if args.engine != "mock" else None,
     }
