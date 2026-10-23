@@ -29,6 +29,12 @@ class DaemonExitContract(unittest.TestCase):
     def test_ready_result_is_success(self):
         self.assertEqual(self.run_case([{'status': 'ready', 'executor': 'hermes', 'hermes_exit_code': 0, 'gate_ok': True}]), 0)
 
+    def test_ready_direct_patch_is_success(self):
+        self.assertEqual(self.run_case([{'status': 'ready', 'executor': 'direct_patch', 'worker_exit_code': 0, 'hermes_exit_code': None, 'gate_ok': True}]), 0)
+
+    def test_failed_direct_patch_is_nonzero(self):
+        self.assertNotEqual(self.run_case([{'status': 'needs_fixes', 'executor': 'direct_patch', 'worker_exit_code': 1, 'hermes_exit_code': None, 'gate_ok': False}]), 0)
+
     def test_empty_queue_is_not_a_failure(self):
         self.assertEqual(self.run_case([]), 0)
 
