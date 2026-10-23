@@ -13,7 +13,7 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   pełne zadanie 189-lin. dokumentu w ~11 min). Zalecany fallback `nvidia/z-ai/glm-5.2` też już
   nie istnieje — w rejestrze są `nvidia/z-ai/glm-5.3` oraz `nvidia/z-ai/glm-5.3-flash`.
 - Binarka: skrypty farmy (`nsip_farm_run.py`, `nsip_farm_readiness.py`) mają fallback ścieżki
-  OC: scratch (podlega czyszczeniu 24h) → `~/.opencode/bin/opencode` (trwała, v2.0.28).
+  OC: scratch (podlega czyszczeniu 24h) → `~/.opencode/bin/opencode` (trwała; noc 23/24: probe z scratch zgłasza już v2.1.3, Muse nadal „Model unavailable").
   Binarkę warto wciąż odtwarzać do scratch (kopia z `~/.opencode/bin/opencode`).
 - Ograniczenia cron-a: `python3 -c` i execute_code są blokowane approval-em (cron bez
   użytkownika) — jednorazowe skrypty zapisywać write_file i odpalać `python3 <plik>`.
@@ -355,6 +355,46 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   (c) artefakty FARM DIR nazywać z datą (gen_plan_noc5.py okazał się plikiem z 2026-10-20 —
   nie nadpisywać, nowy bieg: gen_plan_noc5_20261022.py).
 
+### Noc 2026-10-23 (NOC-22, start 22:07 — pierwszy pełny bieg nocy 23/24)
+
+- Kontekst: repo było BRUDNE — 3 pliki z **przerwanego biegu `20261023-013816` (noc 22/23, start 01:38)**:
+  A-marketing-zakres-25-34 `done`, B-pilotaz-35-baza-wiedzy `timeout_killed`, C-contributing-wzorzec-34
+  `timeout_killed`; tamten nadzorca nie wykonał KROKU 4 (weryfikacja/commit/AI-PROCESS). Ten bieg dokończył
+  przerwaną pracę zamiast stashować na trwałe (lekcja NOC-0: `timeout_killed` z kompletnym plikiem = przyjmować
+  po przeglądzie treści, nie po statusie).
+- Sync z remote: remote 14 commitów przed HEAD (selfopt T50–T53, AGENTS.md) → `git stash -u` + `git rebase
+  origin/main` + `git stash pop` — czysto, kolizji zero (remote nie dotyka CONTRIBUTING/MARKETING/PROJEKTY).
+- Weryfikacja orphaned pracy: check fraz 56 igieł (fold OBU stron — wzorzec NOC-5c) 43/56 od razu; 13 „BRAK"
+  rozstrzygnięte greppami — WSZYSTKIE grounded (m.in. „pomiar, rekomendacja, decyzja człowieka…" = ROADMAPA l.187,
+  nie 30; „własnością społeczności… nie monetyzacji" = 30 l.47; „Knowledge bundle export | ✅ Działa" =
+  PROJEKTY/00_knowledge_base/API_INVENTORY l.86; „wynik analizy, a nie surowy strumień danych" = 34 l.9;
+  anonimizacja = 01 l.614; reszta = deklinacje igieł nadzorcy). Pułapka: `PROJEKTY/00_knowledge_base/` jest
+  PODKATALOGIEM PROJEKTY/ — względne linki z 35 są poprawne; H1 pliku 13 to dosłownie
+  „[PROJEKT 13] GitHub-First Baza Czesci z Recyklingu" (źródło bez diakrytyków).
+- Commit i push **6aab780**: PROJEKTY/35 (czwarty pilotaż poprzeczny — wspólna baza wiedzy i snapshoty,
+  spięcie 01+24+13+30, 158 linii + 1 mermaid), MARKETING §9 → (25–35) (lista += 35; punkty 1/4 zakresy 25–34→25–35;
+  punkt 5 „25–31"→„25–35" — stary zakres), CONTRIBUTING §7 „Wzorzec w praktyce: pilotaże poprzeczne 32–34"
+  (akapit o 34 z przerwanego biegu) + integracja README (oś 4 *Inspiracje* += 35 — konwencja: wspólne warstwy
+  między węzłami już mieszkają na osi 4; lista pilotaży += poz. 35).
+- **Własny bieg farmy** (run `20261023-235325`; probe `nvidia/z-ai/glm-5.3-flash` PROBE_OK):
+  A-roadmapa-spiecia-34-35 `done` (21,7 min), B-ankieta-sciezka-d-35 `done` (14,7 min),
+  C-contributing-wzorzec-35 `timeout_killed` (25,0 min — plik kompletny, przyjęty wg lekcji NOC-0).
+- Weryfikacja biegu: tura 2 — 24/25 igieł od razu; 1 „BRAK" = deklinacja cytatu (34 l.59 ma nominativ
+  „Wspólna baza wiedzy w wersji wielowęzłowej" — cudzysłów wokół zdeclinowanej frazy usunięty); linki
+  354 / 0 martwych. Korekty nadzorcy (4): (1+2) ROADMAPA — etykieta
+  „[\[PROJEKT 13\] GitHub-First Baza Czesci z Recyklingu]" → „GitHub-first baza części z recyklingu"
+  w DWÓCH miejscach (błąd wproszony przez NOC-5 w ¶ o 33, bieżąca instancja skopiowała go do ¶ o 35;
+  escapowane nawiasy w etykiecie renderują się dosłownie); (3) ROADMAPA ¶ o 34 — atrybucja „podsekcja
+  «Łączność i wspólne dane» wskazała… wspólny kontrakt danych" → „…oraz wspólną bazę wiedzy" (32 l.82
+  nie mówi o kontrakcie danych); (4) CONTRIBUTING — jak wyżej pkt (4) tury 2.
+- Commit i push **d6cd456** (ROADMAPA +6/−2 w dwóch akapitach, ankieta +2, CONTRIBUTING +4/−2).
+  Instancje mają zakaz git — commity przez nadzorcę.
+- Lekcje: (a) przerwana praca poprzedniego nadzorcy = dokończyć KROK 4, nie stashować na trwałe;
+  (b) etykiety linków kopiowane wiernie z H1 źródeł bez diakrytyków (plik 13) normalizować do konwencji
+  cross-referencji (README l.67) — escapowane nawiasy w labelu są wadą renderingu;
+  (c) igły checku z deklinacją rodzą fałszywe BRAK — sprawdzić nominativ w źródle, zanim frazę oznaczy się
+  jako wymyśloną.
+
 
 ## Wzorzec promptu instancji (szablon dla nadzorcy)
 
@@ -514,33 +554,33 @@ zanim trafią do commita i push na main.
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-Stan po NOC-5 (2026-10-22): pilotaże 25–34 (34 = łączność i wspólna telemetria węzłów — trzeci
-pilotaż poprzeczny, spięcie 10+25+27+30); ROADMAPA „Kolejne spięcia osi" dokumentuje 30/31 oraz —
-po NOC-5 — pilotaże poprzeczne 32/33; CONTRIBUTING §7 ma „Wzorzec w praktyce" dla 30/31 i (po
-NOC-5) dla poprzecznych 32/33; MARKETING §9 „(25–32)" z punktem 6 o pilotażach poprzecznych —
-UWAGA: 33 i 34 nie są tam jeszcze wymienione (patrz propozycja 1); README: oś 4 *Inspiracje* +=
-33 i 34, lista pilotaży += 33 i 34; AI-PROCESS ma wzorzec promptu, wzorzec weryfikacji nadzorcy
-i wzorzec integracji README; ankieta ma ŚCIEŻKI A–D; CONTRIBUTING 1–7.
+Stan po NOC-22 (2026-10-23): pilotaże 25–35 (35 = wspólna baza wiedzy i snapshoty — czwarty pilotaż poprzeczny,
+spięcie 01+24+13+30); ROADMAPA „Kolejne spięcia osi" dokumentuje 30/31 oraz poprzeczne 32/33/34/35; CONTRIBUTING
+§7 „Wzorzec w praktyce: pilotaże poprzeczne 32–35"; MARKETING §9 (25–35) z punktem 6 o pierwszym pilotażu
+poprzecznym (32); README: oś 4 *Inspiracje* += 33/34/35, lista pilotaży += 35; ankieta: ŚCIEŻKI A–D, D z kuracją
+wspólnej bazy wiedzy (pkt 5 + punkt mapujący); AI-PROCESS ma wzorzec promptu, wzorzec weryfikacji nadzorcy
+i wzorzec integracji README.
 
-1. **MARKETING §9 — aktualizacja zakresu do (25–34)**: sekcja obejmuje dziś listą i nagłówkiem
-   zakres 25–32; dopisać pozycje 33 i 34 do listy pilotaży sekcji oraz (jako jedyną zmianę
-   istniejącej treści, wzorzec korekty zakresu z NOC-3) zaktualizować zakres w nagłówku na
-   (25–34); inspiracje (verify ls-em): MARKETING.md §9, PROJEKTY/33, PROJEKTY/34. BEZ liczb i dat.
-2. **PROJEKTY/35 — czwarty pilotaż poprzeczny: wspólna baza wiedzy i snapshoty (spięcie
-   01+24+13+30)**: pilotaże 25–34 wielokrotnie przywołują „wspólną bazę wiedzy", „snapshoty" i
-   „raporty zbiorcze" (m.in. 01 l.297 — runbooki i schematy jako dorobek, 24 — profile JSON/YAML,
-   13 — katalog z kolejką kuracji, 30 — pętla nauki z telemetrii), ale warstwa przechowywania i
-   kuracji wiedzy wielu węzłów nie ma jeszcze własnej koncepcji; pilotaż 35 projektuje ten
-   wspólny magazyn dorobku (wzorzec struktury: 32/33/34 — H1, Intelekt wyprzedza Kapitał!, Opis,
-   moduły ###, JEDEN mermaid, Zależności, Mapa drogowa, Społeczność, Zasoby, stopka); inspiracje
-   (verify ls-em): 01, 24, 13, 30, 34. BEZ danych liczbowych, BEZ lokalizacji, kolejność
-   wyłącznie względna.
-3. **CONTRIBUTING §7 — rozszerzenie podsekcji „Wzorzec w praktyce: pilotaże poprzeczne 32 i 33"
-   o 34**: dopisek (edycja wyłącznie dodająca, po istniejących akapitach) o trzecim przypadku
-   poprzecznym — wspólna warstwa MIĘDZY węzłami (34: łączność i kontrakt danych wielu węzłów)
-   obok łączenia osi w jednym węźle (32) i utrzymania w ruchu (33); inspiracje (verify ls-em):
-   CONTRIBUTING §7, PROJEKTY/32, PROJEKTY/33, PROJEKTY/34.
+1. **PROJEKTY/36 — piąty pilotaż poprzeczny: wspólna analiza porównawcza wielu węzłów (spięcie 01+30+34+35)**:
+   34 l.59 mówi wprost, że „porównywanie przypadków między węzłami różnych osi jest tym, czego nie da osiągnąć
+   żadna pojedyncza telemetria", 01 l.153: „Takie wyniki są wystarczające, by zasilać wspólny model wiedzy
+   i porównywać przypadki między stawami", a oś 4 w ROADMAPA (Faza 1, cytat w 35 l.90) zapowiada „wspólne
+   narzędzia analityczne i modele wspierające decyzje o alokacji zasobów między węzłami… pracujące na wiedzy
+   zgromadzonej przez wiele węzłów naraz" — warstwa analizy korzystającej z bazy 35 nie ma jeszcze własnej
+   koncepcji; pilotaż 36 projektuje ten wspólny model analityczny (wzorzec struktury: 32/33/34/35 — H1,
+   Intelekt wyprzedza Kapitał!, Opis, moduły ###, JEDEN mermaid, Zależności, Mapa drogowa, Społeczność,
+   Zasoby, stopka); inspiracje (verify ls-em): PROJEKTY/01, PROJEKTY/30, PROJEKTY/34, PROJEKTY/35, ROADMAPA.
+   BEZ danych liczbowych, BEZ lokalizacji, kolejność wyłącznie względna.
+2. **MARKETING §9 — punkt 7 o opowiadaniu o pilotażach poprzecznych 33–35**: punkt 6 opisuje dziś tylko pierwszy
+   pilotaż poprzeczny (32); dopisać punkt 7 według wzorca punktu 6 — jak opowiadać o pilotażach, które nie budują
+   węzła, lecz wspólne warstwy (33 utrzymanie w ruchu, 34 łączność i wspólna telemetria, 35 wspólna baza wiedzy),
+   nadal wyłącznie przez tytuły i sekcje, którymi pliki same się przedstawiają; inspiracje (verify ls-em):
+   MARKETING.md §9, PROJEKTY/33, PROJEKTY/34, PROJEKTY/35. BEZ liczb i dat.
+3. **REKRUTACJA_ANKIETA — ŚCIEŻKA C (KOD I PROOF OF CONCEPT) += realne zalążki kodu wspólnej bazy wiedzy**:
+   dopisek (edycja wyłącznie dodająca) wskazujący `pipelines/export_knowledge_snapshot.py` oraz
+   `reports/README.md` (istnieją — verify ls-em) jako dokonania z kodu przy pilotażu 35 (generator eksportu
+   snapshotu wiedzy, katalog raportów i snapshotów); inspiracje (verify ls-em): ankieta ŚCIEŻKA C, PROJEKTY/35,
+   pipelines/export_knowledge_snapshot.py, reports/README.md. BEZ liczb i dat.
    (Model: `nvidia/z-ai/glm-5.3-flash`; przy 429/limit → 1 instancja. Plan.json = płaska tablica;
    absolutna ścieżka repo; instancje mają zakaz git; weryfikacja wg „## Wzorzec weryfikacji
-   nadzorcy", integracja wg „## Wzorzec integracji README". Start farmy przed 06:00 — patrz
-   UWAGA godzinowa w logu NOC-5.)
+   nadzorcy", integracja wg „## Wzorzec integracji README".)
