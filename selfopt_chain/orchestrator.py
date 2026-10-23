@@ -526,12 +526,16 @@ class Orchestrator:
 
             strategy_engine = OmniRouteEngine(load_registry(self.registry_path))
             lane_models = sorted(strategy_engine.adapter.policy.free_model_ids)
-            # Priorytet pasm: najpierw sprawdzone dzialajace (ddgw), potem mistral,
-            # na koncu reszte katalogu (cfp/* czesto wyspecjalizowane -> exit!=0).
+            # Priorytet pasm: sprawdzony szybki combo free -> ddwg -> nvidia
+            # (dziala, ale powolny — cierpliwie) -> mistral -> reszta.
+
             def lane_priority(mid: str) -> tuple:
+                if mid.startswith("auto") and mid.endswith(":free"):
+                    return (0, mid)
                 prefix = mid.split("/", 1)[0]
-                rank = {"ddgw": 0, "mistral": 1, "nvidia": 2}.get(prefix, 9)
+                rank = {"ddgw": 1, "nvidia": 2, "mistral": 3}.get(prefix, 9)
                 return (rank, mid)
+
             lane_models.sort(key=lane_priority)
             if HermesWorker.enabled():
                 worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"))

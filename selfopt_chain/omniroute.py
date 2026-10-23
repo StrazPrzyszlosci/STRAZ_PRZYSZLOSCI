@@ -25,8 +25,10 @@ NETWORK_ENV_FLAG = "SELFOPT_NETWORK"
 OMNIROUTE_URL_ENV = "SELFOPT_OMNIROUTE_URL"
 OMNIROUTE_KEY_ENV = "SELFOPT_OMNIROUTE_KEY"
 DEFAULT_OMNIROUTE_URL = "http://127.0.0.1:20128/v1"
-DEFAULT_MODEL_ALIAS = os.environ.get("SELFOPT_OMNIROUTE_MODEL", "ddgw/mistral-small-2603")
-DEFAULT_TIMEOUT_S = 180
+DEFAULT_MODEL_ALIAS = os.environ.get("SELFOPT_OMNIROUTE_MODEL", "auto/coding:free")
+DEFAULT_TIMEOUT_S = 600
+RETRYABLE_ERROR_CLASSES = {"http_error", "connection_error", "free_only_violation"}
+RETRY_BACKOFF_S = 30
 
 FREE_ALIAS_PREFIX = "auto"
 FREE_PROVIDER_IDS = {
@@ -142,14 +144,24 @@ class OmniRouteAdapter:
         }).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=self._headers())
         started = time.monotonic()
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
-                payload = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            result.update(error=f"HTTP {exc.code} od OmniRoute", error_class="http_error")
-            return result
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            result.update(error=f"blad polaczenia z OmniRoute ({type(exc).__name__})", error_class="connection_error")
+        payload = None
+        last_error: dict[str, Any] | None = None
+        for attempt in (1, 2):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+                    payload = json.loads(resp.read().decode("utf-8"))
+                last_error = None
+                break
+            except urllib.error.HTTPError as exc:
+                last_error = {"error": f"HTTP {exc.code} od OmniRoute", "error_class": "http_error"}
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                last_error = {"error": f"blad polaczenia z OmniRoute ({type(exc).__name__})", "error_class": "connection_error"}
+            if attempt == 1 and last_error and last_error["error_class"] in RETRYABLE_ERROR_CLASSES:
+                time.sleep(RETRY_BACKOFF_S)
+                req = urllib.request.Request(url, data=body, headers=self._headers())
+                continue
+        if last_error is not None or payload is None:
+            result.update(last_error or {"error": "brak odpowiedzi", "error_class": "connection_error"})
             return result
         latency_ms = int((time.monotonic() - started) * 1000)
         actual_model = str(payload.get("model", ""))
