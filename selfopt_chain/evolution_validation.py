@@ -1,5 +1,6 @@
 """Independent validation of a quarantined patch against an immutable source snapshot."""
 import ast
+import os
 import fnmatch
 import hashlib
 import json
@@ -17,8 +18,13 @@ def validate_patch(output, snapshot, manifest, destination):
     if not patch.is_file() or patch.is_symlink() or not proposal.is_file() or not proposal.read_text().strip():
         return {**report, 'error': 'missing_patch_or_proposal'}
     try:
-        stat = subprocess.run(['git', 'apply', '--numstat', '-z', str(patch.resolve())], cwd=snapshot,
-                              capture_output=True, check=True).stdout.decode()
+        destination.mkdir(parents=True, exist_ok=True)
+        metadata = destination / 'isolated-git'
+        subprocess.run(['git', 'init', '--bare', '-q', str(metadata.resolve())], capture_output=True, check=True)
+        def apply(args, tree):
+            return subprocess.run(['git', '--git-dir=' + str(metadata.resolve()), '--work-tree=' + str(tree.resolve()), 'apply', *args, str(patch.resolve())],
+                                  cwd=tree, capture_output=True, check=True)
+        stat = apply(['--numstat', '-z'], snapshot).stdout.decode()
         paths = [row.split('\t', 2)[-1] for row in stat.split('\0') if row]
         forbidden = {'.git', '.env', 'AGENTS.md', 'charter.json'}
         if not paths or any(Path(p).is_absolute() or '..' in Path(p).parts or any(x in forbidden for x in Path(p).parts)
@@ -27,8 +33,8 @@ def validate_patch(output, snapshot, manifest, destination):
         destination.mkdir(parents=True, exist_ok=True)
         candidate = destination / 'candidate'
         shutil.copytree(snapshot, candidate)
-        subprocess.run(['git', 'apply', '--check', str(patch.resolve())], cwd=candidate, capture_output=True, check=True)
-        subprocess.run(['git', 'apply', str(patch.resolve())], cwd=candidate, capture_output=True, check=True)
+        apply(['--check'], candidate)
+        apply([], candidate)
         for path in paths:
             file = candidate / path
             if file.is_symlink() or not file.resolve().is_relative_to(candidate.resolve()):

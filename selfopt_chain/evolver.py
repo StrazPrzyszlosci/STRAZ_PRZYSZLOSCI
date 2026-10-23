@@ -388,6 +388,12 @@ class EvolutionLoop:
         from selfopt_chain.evolution_inputs import task_prompt
         fp = self.fingerprint(task)
         bundle = self.inputs[fp]
+        prior = self.store.snapshot().get(fp, {})
+        prior_path = prior.get("receipt_path")
+        if prior_path and prior.get("input_hash") == bundle["input_hash"] and Path(prior_path).is_file():
+            previous = json.loads(Path(prior_path).read_text())
+            if previous.get("validation_ok") and previous.get("review", {}).get("verdict") == "unreviewed":
+                return self.revalidate(prior_path)
         if self.worker is not None and getattr(self.worker, "ledger", None) is not None and (model_alias is None or not self.worker.ledger.can_use(model_alias)):
             return {"task_id": task.task_id, "status": "waiting_budget", "auto_applied": False}
         lease = self.store.acquire(fp, task.task_id, bundle["input_hash"])
@@ -438,6 +444,8 @@ class EvolutionLoop:
             receipt["gate_ok"] = all(receipt.get(k) for k in ["execution_ok", "validation_ok", "security_ok", "review_ok"])
             receipt["ready_for_human_review"] = receipt["gate_ok"]
             receipt["status"] = "ready" if receipt["gate_ok"] else "simulated" if receipt["executor"] == "mock" else "needs_fixes"
+            if receipt["validation_ok"] and receipt["execution_ok"] and receipt["security_ok"] and receipt["review"].get("verdict") == "unreviewed":
+                receipt["status"] = "waiting_review"
             if receipt.get("error") in {"connection_error", "http_error", "bad_response"}:
                 receipt["status"] = "waiting_provider"
             elif receipt.get("error") == "quota_exhausted":
@@ -445,19 +453,25 @@ class EvolutionLoop:
             receipt["quarantined"] = not receipt["gate_ok"]
             (out_dir / "gate_report.json").write_text(json.dumps(report, indent=2))
             if receipt["gate_ok"]:
-                archive = self.state_dir / "candidate_archive" / fp / run_id
-                archive.mkdir(parents=True, exist_ok=True)
-                import shutil
-                for name in ["PROPOSAL.md", "changes.patch"]:
-                    source = Path(receipt["proposal_path"]).parent / name
-                    if source.is_file():
-                        shutil.copyfile(source, archive / name)
-                (archive / "candidate.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
-                receipt["archive_path"] = str(archive)
+                self._archive(receipt)
         except Exception as error:
             receipt.update(status="needs_fixes", error=type(error).__name__, gate_ok=False, ready_for_human_review=False,
                            security_ok=False, validation_ok=False, execution_ok=False, review_ok=False,
                            review={"verdict": "unreviewed", "notes": "controller captured failure"}, validation={"ok": False, "error": type(error).__name__})
+        return self._record(fp, lease, task, receipt)
+
+    def _archive(self, receipt):
+        import shutil
+        archive = self.state_dir / "candidate_archive" / receipt["fingerprint"] / receipt["run_id"]
+        archive.mkdir(parents=True, exist_ok=True)
+        for name in ["PROPOSAL.md", "changes.patch"]:
+            source = Path(receipt["proposal_path"]).parent / name
+            if source.is_file():
+                shutil.copyfile(source, archive / name)
+        receipt["archive_path"] = str(archive)
+        (archive / "candidate.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
+
+    def _record(self, fp, lease, task, receipt):
         Path(receipt["receipt_path"]).write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
         if receipt.get("gate_ok") and task.kind == "patch":
             try:
@@ -472,3 +486,53 @@ class EvolutionLoop:
             Path(receipt["receipt_path"]).write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
         self.store.finish(fp, lease, receipt)
         return receipt
+
+
+    def revalidate(self, receipt_path):
+        """Recover controller validation or provider review without regenerating model code."""
+        from selfopt_chain.evolution_validation import validate_patch
+        from selfopt_chain.evolution_inputs import prepare_inputs
+        path = Path(receipt_path).resolve()
+        if not path.is_relative_to(self.queue_dir.resolve()):
+            raise ValueError("receipt_outside_queue")
+        old = json.loads(path.read_text())
+        if not old.get("execution_ok") or not old.get("security_ok") or old.get("executor") == "mock":
+            raise ValueError("production_not_revalidatable")
+        task = next(t for t in collect_evolution_tasks(self.state_dir, self.docs_dir, 100) if t.task_id == old["task_id"])
+        bundle = prepare_inputs(task, self.repo_root, self.state_dir, self.store.feedback(old["fingerprint"]))
+        if bundle["input_hash"] != old["input_hash"]:
+            raise ValueError("inputs_changed_require_new_generation")
+        lease = self.store.acquire(old["fingerprint"], task.task_id, bundle["input_hash"])
+        if not lease:
+            return {"task_id":task.task_id,"status":"waiting_retry"}
+        run_id = "revalidate_" + lease[:12]
+        output = self.queue_dir / run_id
+        output.mkdir(parents=True)
+        (output / "input_manifest.json").write_text(json.dumps(bundle, ensure_ascii=False, indent=2))
+        worker = json.loads((path.parent / "hermes_receipt.json").read_text())
+        artifact = Path(worker["quarantine_dir"])
+        snapshot = self.state_dir / "repo_snapshots" / worker["source_commit"]
+        receipt = {**old, "run_id":run_id,"receipt_path":str(output / "evolution_receipt.json"),
+                   "revalidated_from":str(path),"producer_rerun":False,"auto_applied":False,"error":None}
+        receipt.pop("publication_request",None)
+        receipt.pop("publication_error",None)
+        validation = validate_patch(artifact, snapshot, bundle, self.state_dir / "validations" / run_id)
+        receipt["validation"], receipt["validation_ok"] = validation, bool(validation.get("ok"))
+        text = "\n".join((artifact / name).read_text() for name in ["PROPOSAL.md","changes.patch"])
+        gate = self.gate.inspect_code(text)
+        receipt["security_ok"] = gate["ok"]
+        receipt["review"] = review_by_strong_model(task, text + "\nChecks: " + json.dumps(validation.get("checks")), self.strategy_engine) if validation.get("ok") and gate["ok"] else {"verdict":"unreviewed"}
+        receipt["review_ok"] = receipt["review"].get("verdict") == "pass"
+        receipt["gate_ok"] = all(receipt.get(k) for k in ["execution_ok","security_ok","validation_ok","review_ok"])
+        receipt["ready_for_human_review"] = receipt["gate_ok"]
+        receipt["quarantined"] = not receipt["gate_ok"]
+        receipt["status"] = "ready" if receipt["gate_ok"] else "waiting_review" if receipt["validation_ok"] and receipt["security_ok"] and receipt["review"].get("verdict") == "unreviewed" else "needs_fixes"
+        worker["original_api_calls"] = worker.get("api_calls",{})
+        worker["api_calls"] = {}
+        worker["validation"] = validation
+        worker["revalidated_from"] = str(path.parent / "hermes_receipt.json")
+        (output / "hermes_receipt.json").write_text(json.dumps(worker, ensure_ascii=False, indent=2))
+        (output / "gate_report.json").write_text(json.dumps(gate, indent=2))
+        if receipt["gate_ok"]:
+            self._archive(receipt)
+        return self._record(old["fingerprint"], lease, task, receipt)
