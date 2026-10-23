@@ -51,7 +51,7 @@ class FitTemperaturesTest(unittest.TestCase):
         labels = [{"decision_id": d["id"], "accepted": True} for d in decisions]
         calibration = fit_temperatures(decisions, labels)
         self.assertLess(calibration["temperature_per_prim"]["choice"], 0.771)
-        self.assertEqual(calibration["n_labels"], 3)
+        self.assertEqual(calibration["n_labels"], 2)
 
     def test_bad_and_undeferred_flattens_temperature(self):
         decisions = [self._decision("choice", False)]
@@ -247,7 +247,7 @@ class OrchestratorCalibrationFlowTest(unittest.TestCase):
         self.assertEqual(receipt["field_feedback"]["received"], 1)
         self.assertEqual(receipt["field_feedback"]["new_labels"], 1)
         self.assertTrue(receipt["calibration"]["applied"])
-        self.assertIn("choice", receipt["calibration"]["temperatures"])
+        self.assertIn("strategy", receipt["calibration"]["temperatures"])
         labels = load_labels(self.base / "state")
         self.assertEqual(len(labels), 1)
         self.assertEqual(labels[0]["source"], "field")

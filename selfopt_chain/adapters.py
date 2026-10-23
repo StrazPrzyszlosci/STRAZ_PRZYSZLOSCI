@@ -44,7 +44,9 @@ def get_openevolve_engine() -> dict[str, Any]:
 def engines_summary() -> dict[str, Any]:
     return {
         "graph": get_graph_engine()["engine"],
-        "gepa": get_gepa_engine()["engine"],
-        "openevolve": get_openevolve_engine()["engine"],
+        "gepa": "builtin",
+        "gepa_available": get_gepa_engine()["available"],
+        "openevolve": "builtin",
+        "openevolve_available": get_openevolve_engine()["available"],
         "note": "builtin = implementacje zero-dependency selfopt_chain; pakiety opcjonalne wg README",
     }

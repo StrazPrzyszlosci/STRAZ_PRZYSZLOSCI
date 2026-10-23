@@ -27,7 +27,7 @@ from selfopt_chain.omniroute import OmniRouteEngine
 from selfopt_chain.graph import GraphError
 from selfopt_chain.optimizers import GepaPromptOptimizer, MapElitesOptimizer
 from selfopt_chain.registry import DEFAULT_REGISTRY, load_registry
-from selfopt_chain.router import QuotaLedger, route_task
+from selfopt_chain.router import QuotaLedger, QuotaExceeded, route_task
 from selfopt_chain.tracer import TraceRecorder, extract_insights, summarize_traces
 from selfopt_chain.transport import (
     LoraEnvelope,
@@ -131,11 +131,14 @@ def build_chain_graph(chain: dict[str, Any], runner: "ChainRunner") -> Any:
 
 
 class ChainRunner:
-    def __init__(self, models: list[dict], engine_name: str, quota_snapshot: dict[str, Any] | None, tracer: TraceRecorder, spool: LoraSpool | None = None, decision_core: Any | None = None) -> None:
+    def __init__(self, models: list[dict], engine_name: str, quota_snapshot: dict[str, Any] | None, tracer: TraceRecorder, spool: LoraSpool | None = None, decision_core: Any | None = None, ledger=None, should_stop=None, max_attempts: int = 2) -> None:
         self.models = models
         self.engine_name = engine_name
         self.decision_core = decision_core
-        self.ledger = QuotaLedger(models)
+        self.ledger = ledger if ledger is not None else QuotaLedger(models)
+        self.should_stop = should_stop or (lambda: False)
+        self.max_attempts = max_attempts
+        self.usage: dict[str, int] = {}
         self.quota_snapshot = quota_snapshot
         self.tracer = tracer
         self.spool = spool
@@ -152,6 +155,10 @@ class ChainRunner:
     def make_node_fn(self, node: dict[str, Any]):
         def fn(state: dict[str, Any]) -> dict[str, Any]:
             node_type = node.get("type") or node.get("kind")
+            previous = state.get("last_node")
+            if self.should_stop() or (previous and not state.get("outputs", {}).get(previous, {}).get("ok")):
+                result = {"ok": False, "output": "", "error_class": "stopped" if self.should_stop() else "dependency_failed"}
+                return {"outputs": {**state.get("outputs", {}), node["id"]: result}, "last_node": node["id"], "route": "SKIP"}
             if node_type == "dispatch":
                 return self._dispatch_node(node, state)
             task = {
@@ -161,19 +168,40 @@ class ChainRunner:
                 "complexity": node.get("complexity", "light"),
                 "requires": node.get("requires", []),
             }
-            prompt = node.get("prompt", "") + "\n" + json.dumps(state.get("payload", {}), ensure_ascii=False)
-            decision = route_task(task, self.models, self.ledger, self.quota_snapshot)
-            self.tracer.routed(decision, node["id"])
-            if decision["blocked"]:
-                self.blocked.append({"node": node["id"], "reason": decision["blocked_reason"]})
-                self.tracer.error(node["id"], f"routing blocked: {decision['blocked_reason']}")
-                result = {"ok": False, "output": "", "error": decision["blocked_reason"], "error_class": "routing_blocked"}
-            else:
+            context = {"payload": state.get("payload", {}), "previous_outputs": state.get("outputs", {})}
+            prompt = node.get("prompt", "") + "\n" + json.dumps(context, ensure_ascii=False)
+            if len(prompt.encode()) > 65536:
+                result = {"ok": False, "output": "", "error_class": "context_limit_exceeded"}
+                return {"outputs": {**state.get("outputs", {}), node["id"]: result}, "last_node": node["id"]}
+            result = {"ok": False, "output": "", "error": "not attempted", "error_class": "routing_blocked"}
+            attempted = set()
+            for attempt in range(self.max_attempts):
+                if self.should_stop():
+                    result = {"ok": False, "output": "", "error": "operator stop", "error_class": "stopped"}
+                    break
+                eligible = [m for m in self.models if m["model_id"] not in attempted]
+                decision = route_task(task, eligible, self.ledger, self.quota_snapshot)
+                self.tracer.routed(decision, node["id"])
+                if decision["blocked"]:
+                    self.blocked.append({"node": node["id"], "reason": decision["blocked_reason"]})
+                    result = {"ok": False, "output": "", "error": decision["blocked_reason"], "error_class": "routing_blocked"}
+                    break
                 model_id = self.decision_core.select_model(decision, node_type) if self.decision_core else decision["chosen"]["model_id"]
-                self.ledger.record(model_id)
+                candidates = {decision["chosen"]["model_id"], *[m["model_id"] for m in decision["alternatives"]]}
+                if model_id not in candidates:
+                    result = {"ok": False, "output": "", "error": "model outside candidates", "error_class": "routing_blocked"}
+                    break
+                attempted.add(model_id)
+                try:
+                    self.ledger.record(model_id)
+                except QuotaExceeded:
+                    continue
+                self.usage[model_id] = self.usage.get(model_id, 0) + 1
                 result = self.engine.complete(task, model_id, prompt)
                 self.tracer.node_result(node["id"], result)
-                self.routing.append({**decision, "node": node["id"], "ok": result["ok"], "model_selected_by_basal": model_id})
+                self.routing.append({**decision, "node": node["id"], "ok": result["ok"], "model_selected_by_basal": model_id, "attempt": attempt + 1})
+                if result["ok"] or result.get("error_class") not in {"http_error", "connection_error"}:
+                    break
             outputs = {**state.get("outputs", {}), node["id"]: result}
             return {"outputs": outputs, "last_node": node["id"], "route": result.get("output", "")}
 
@@ -229,7 +257,7 @@ def render_proposals_md(run_id: str, insights: list[dict[str, Any]], gepa: dict[
     return "\n".join(lines)
 
 
-def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: Path, quota_snapshot_path: Path | None, spool_dir: Path | None, decision_core: Any | None = None) -> int:
+def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: Path, quota_snapshot_path: Path | None, spool_dir: Path | None, decision_core: Any | None = None, ledger=None, should_stop=None) -> int:
     chain = json.loads(chain_path.read_text(encoding="utf-8"))
     errors = validate_chain(chain)
     if errors:
@@ -249,7 +277,7 @@ def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: 
 
     has_dispatch = any((n.get("type") or n.get("kind")) == "dispatch" for n in chain["nodes"])
     spool = LoraSpool(effective_spool_dir) if has_dispatch else None
-    runner = ChainRunner(models, engine_name, quota_snapshot, tracer, spool, decision_core=decision_core)
+    runner = ChainRunner(models, engine_name, quota_snapshot, tracer, spool, decision_core=decision_core, ledger=ledger, should_stop=should_stop)
     tracer.run_start(chain.get("chain_id", chain_path.stem), engine_name)
 
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -265,16 +293,18 @@ def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: 
         status = f"failed: {exc}"
         nodes_run = 0
         tracer.error("graph", str(exc))
-    if runner.routing and all(not r["ok"] for r in runner.routing):
-        status = "failed: wszystkie wywolania modeli nieudane"
+    failures = [nid for nid, result in final_outputs.items() if not result.get("ok")]
+    if failures or nodes_run == 0:
+        status = "failed" if not any(r.get("ok") for r in final_outputs.values()) else "degraded"
     tracer.run_end(status, nodes_run)
     (out_dir / "final_outputs.json").write_text(json.dumps(final_outputs, ensure_ascii=False, indent=2), encoding="utf-8")
     finished = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     insights = extract_insights(tracer.dump())
     gepa = GepaPromptOptimizer().optimize(chain.get("prompt_candidates", []))
-    map_elites = MapElitesOptimizer().step(chain.get("program_candidates", []))
-    me_proposal = MapElitesOptimizer().proposal()
+    map_elites = MapElitesOptimizer()
+    map_elites.step(chain.get("program_candidates", []))
+    me_proposal = map_elites.proposal()
     me_proposal["archive"] = [
         {"kind": row["kind"], "complexity": row["complexity"], "program_id": row["program_id"], "fitness": row["fitness"]}
         for row in me_proposal["archive"]
@@ -294,7 +324,7 @@ def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: 
         "routed": len(runner.routing),
         "blocked": runner.blocked,
         "lora_dispatched": runner.dispatched,
-        "quota_usage": {"rpm_used": runner.ledger.rpm_used, "rpd_used": runner.ledger.rpd_used},
+        "quota_usage": {"rpm_used": runner.usage, "rpd_used": runner.usage},
         "insights_count": len(insights),
         "policy": "suggest-only",
         "auto_applied": False,
@@ -314,7 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--chain", type=Path, required=True)
     parser.add_argument("--out", type=Path, default=None, help="katalog wyjsciowy (default: scratch/selfopt/<chain>_<ts>)")
     parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
-    parser.add_argument("--engine", choices=["mock", "free-api"], default="mock")
+    parser.add_argument("--engine", choices=["mock", "free-api", "omniroute"], default="mock")
     parser.add_argument("--quota-snapshot", type=Path, default=None)
     parser.add_argument("--spool-dir", type=Path, default=None)
     args = parser.parse_args(argv if argv is not None else None)
