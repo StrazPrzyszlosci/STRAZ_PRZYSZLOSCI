@@ -40,10 +40,12 @@ class EvolutionStore:
             return 0
         return row.get('attempts', 0)
 
-    def eligible(self, key, input_hash=None):
+    def eligible(self, key, input_hash=None, *, promote_simulated=False):
         with self.transaction() as data:
             row = data.get(key, {})
             status = row.get('status', 'queued')
+            if status == 'simulated' and promote_simulated:
+                return True
             if status in self.TERMINAL:
                 return status != 'rejected' and input_hash is not None and input_hash != row.get('input_hash')
             if status == 'running' and row.get('lease_until', 0) > self.clock():
@@ -60,22 +62,28 @@ class EvolutionStore:
             data[key] = {**old, 'status': 'blocked_inputs', 'reason': reason, 'input_hash': input_hash,
                          'retry_at': self.clock() + self.retry_seconds}
 
-    def acquire(self, key, task_id, input_hash):
+    def acquire(self, key, task_id, input_hash, *, promote_simulated=False):
         with self.transaction() as data:
             old = data.get(key, {})
-            if old.get('status') in self.TERMINAL and (old.get('status') == 'rejected' or old.get('input_hash') == input_hash):
+            simulation_promotion = old.get('status') == 'simulated' and promote_simulated
+            if old.get('status') in self.TERMINAL and not simulation_promotion and (old.get('status') == 'rejected' or old.get('input_hash') == input_hash):
                 return None
             if old.get('status') == 'running' and old.get('lease_until', 0) > self.clock():
                 return None
-            changed = old.get('input_hash') != input_hash
+            changed = old.get('input_hash') != input_hash or simulation_promotion
             attempts = 0 if changed else old.get('attempts', 0)
             content_attempts = 0 if changed else self.content_attempts(old)
             if content_attempts >= self.max_attempts or (not changed and old.get('retry_at', 0) > self.clock()):
                 return None
+            history = list(old.get('simulation_history', []))
+            if simulation_promotion:
+                history.append({name: old.get(name) for name in
+                                ['run_id', 'receipt_path', 'input_hash', 'finished', 'attempts']})
             lease = uuid.uuid4().hex
             data[key] = {**old, 'task_id': task_id, 'status': 'running', 'lease': lease,
                          'lease_until': self.clock() + self.lease_seconds, 'input_hash': input_hash,
-                         'attempts': attempts + 1, 'content_attempts': content_attempts, 'started': self.clock()}
+                         'attempts': attempts + 1, 'content_attempts': content_attempts,
+                         'simulation_history': history, 'started': self.clock()}
             return lease
 
     def finish(self, key, lease, receipt):

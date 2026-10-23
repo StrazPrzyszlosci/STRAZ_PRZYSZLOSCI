@@ -27,7 +27,8 @@
     "monitoring osób",
     "twarz",
     "facial recognition",
-    "dane osobowe bez zgody"
+    "dane osobowe bez zgody",
+    "uzbrojen"
   ],
   "matching_note": "Dopasowanie rdzeni od granicy słowa; bron bez diakrytyków jako pełne słowo, aby dopuścić bronowanie; lista pozostaje konserwatywna — przydział zablokowany słowem kluczowym może odzyskać człowiek przez review.",
   "rules": [

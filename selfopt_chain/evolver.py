@@ -313,6 +313,9 @@ class EvolutionLoop:
     def index(self):
         return self.store.transaction()
 
+    def _worker_enabled(self):
+        return self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)()
+
     def pending(self):
         from selfopt_chain.evolution_inputs import prepare_inputs, InputUnavailable
         from selfopt_chain.swarm import Demand, charter_check, load_charter
@@ -334,7 +337,7 @@ class EvolutionLoop:
                 self.store.block(fp, str(error))
                 self.blocked.append({"task_id": task.task_id, "reason": str(error)})
                 continue
-            if self.store.eligible(fp, bundle["input_hash"]):
+            if self.store.eligible(fp, bundle["input_hash"], promote_simulated=self._worker_enabled()):
                 self.inputs[fp] = bundle
                 result.append(task)
         return result
@@ -353,7 +356,7 @@ class EvolutionLoop:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         (self.state_dir / "last_evolution_plan.json").write_text(json.dumps({"strategy": self.strategy,
              "selected": [t.task_id for t in tasks], "blocked": self.blocked}, ensure_ascii=False, indent=2))
-        armed = self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)()
+        armed = self._worker_enabled()
         if armed and parallel_mode == "wide" and len(tasks) > 1:
             from concurrent.futures import ThreadPoolExecutor
             # Patches with overlapping declared scope must stay sequential.
@@ -396,7 +399,7 @@ class EvolutionLoop:
                 return self.revalidate(prior_path)
         if self.worker is not None and getattr(self.worker, "ledger", None) is not None and (model_alias is None or not self.worker.ledger.can_use(model_alias)):
             return {"task_id": task.task_id, "status": "waiting_budget", "auto_applied": False}
-        lease = self.store.acquire(fp, task.task_id, bundle["input_hash"])
+        lease = self.store.acquire(fp, task.task_id, bundle["input_hash"], promote_simulated=self._worker_enabled())
         if not lease:
             return {"task_id": task.task_id, "status": "duplicate_or_waiting", "auto_applied": False}
         run_id = f"task_{fp[:16]}_{lease[:8]}"
@@ -408,7 +411,7 @@ class EvolutionLoop:
                    "fingerprint": fp, "input_hash": bundle["input_hash"], "proposal_path": None,
                    "auto_applied": False, "receipt_path": str(out_dir / "evolution_receipt.json")}
         try:
-            if self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)():
+            if self._worker_enabled():
                 receipt["executor"] = getattr(self.worker, "executor_name", "hermes")
                 produced = self.worker.run_isolated(task_prompt(bundle), model_alias=model_alias, input_bundle=bundle)
                 (out_dir / "hermes_receipt.json").write_text(json.dumps(produced, ensure_ascii=False, indent=2))

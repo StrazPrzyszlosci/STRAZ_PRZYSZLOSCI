@@ -307,15 +307,24 @@ REMOTE_INSTRUCTIONS: dict[str, str] = {
         "presja limitow darmowych API, zadania krytyczne, okno OZE. Wybierz strategie, ktora "
         "maksymalizuje liczbe zweryfikowanych ulepszen przy dostepnych zasobach."
     ),
+    "job_selection": (
+        "Decyzja: selekcja i kolejnosc zadan do wykonania w tym cyklu (limity budzetow darmowych API). "
+        "Priorytet wyzej = wazniejsze zadanie."
+    ),
     "allocation": (
         "Decyzja: przydzial zasobu (sprzet/model) do zapotrzebowania misyjnego. Zasoby: telefony, "
-        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wczely selfhost, darmowe modele API. "
+        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wezly selfhost, darmowe modele API. "
         "Wybierz zasob najlepiej pokrywajacy wymagania zapotrzebowania."
     ),
     "exec_mode": (
         "Decyzja: tryb wykonania zadania. device_profile = gotowy algorytm pisany pod sprzet; "
         "on_device_model = maly model decyzyjny na wezle; cloud_chain = lancuch LLM w hubie na "
         "darmowych API. Priorytet: lokalnie i tanszej, jesli wystarcza."
+    ),
+    "model_selection": (
+        "Decyzja: wybor modelu LLM do zadania sposrod kandydatow rotera (kolejnosc wg polityki "
+        "jakosc/szybkosc/budzet). Score 2.0 = wybor rotera; alternatywy malejaco. "
+        "Ocen dopasowanie modelu do rodzaju zadania."
     ),
 }
 
