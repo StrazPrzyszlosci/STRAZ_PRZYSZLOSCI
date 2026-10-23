@@ -247,7 +247,7 @@ class OrchestratorCalibrationFlowTest(unittest.TestCase):
         self.assertEqual(receipt["field_feedback"]["received"], 1)
         self.assertEqual(receipt["field_feedback"]["new_labels"], 1)
         self.assertTrue(receipt["calibration"]["applied"])
-        self.assertIn("choice", receipt["calibration"]["temperatures"])
+        self.assertIn("strategy", receipt["calibration"]["temperatures"])
         labels = load_labels(self.base / "state")
         self.assertEqual(len(labels), 1)
         self.assertEqual(labels[0]["source"], "field")

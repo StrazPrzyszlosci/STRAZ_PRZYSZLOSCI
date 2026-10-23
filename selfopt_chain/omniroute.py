@@ -25,7 +25,7 @@ NETWORK_ENV_FLAG = "SELFOPT_NETWORK"
 OMNIROUTE_URL_ENV = "SELFOPT_OMNIROUTE_URL"
 OMNIROUTE_KEY_ENV = "SELFOPT_OMNIROUTE_KEY"
 DEFAULT_OMNIROUTE_URL = "http://127.0.0.1:20128/v1"
-DEFAULT_MODEL_ALIAS = "auto"
+DEFAULT_MODEL_ALIAS = os.environ.get("SELFOPT_OMNIROUTE_MODEL", "ddgw/mistral-small-2603")
 DEFAULT_TIMEOUT_S = 180
 
 FREE_ALIAS_PREFIX = "auto"
@@ -48,7 +48,9 @@ class FreeOnlyPolicy:
             return False
         if model_alias.startswith(FREE_ALIAS_PREFIX):
             return True
-        return model_alias in self.free_model_ids
+        if model_alias in self.free_model_ids:
+            return True
+        return model_alias.split("/")[0] in FREE_PROVIDER_IDS or model_alias.split("/")[0] == "ddgw"
 
     def actual_allowed(self, actual_model: str, provider: str | None = None) -> bool:
         if actual_model in self.free_model_ids:
