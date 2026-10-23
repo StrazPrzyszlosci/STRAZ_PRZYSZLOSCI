@@ -2,7 +2,7 @@
 
 Decyzja operatora z 2026-10-23: **Kilo poprawia runtime; Codex weryfikuje i przygotowuje integrację**. Codex zawęził własny claim T58 do dokumentacji tej pracy. Nie zmienia kodu runtime ani claimu Kilo.
 
-**Najnowszy zakończony odbiór:** commit Kilo `2a72b37` ma **492 Python OK**. Odseparowany podgląd integracji na bazie T58 `866fdb9` ma **523 Python OK** i odtwarzalny patch. Dodatkowa próba lifecycle wykazała blokadę przejścia `simulated → rzeczywisty worker`; rzeczywisty lokalny engine przekroczył 30-sekundowy timeout. Szczegóły w ostatniej sekcji. Wcześniejsze sekcje zachowują historyczne wyniki v1–v3 i nie opisują późniejszych poprawek.
+**Najnowszy zakończony odbiór:** commit Kilo `2a72b37` ma **492 Python OK**. Pierwszy podgląd integracji miał 523 Python OK, a kandydat rozszerzony o naprawę `simulated → real` ma **527 Python OK**. Aktualny patch ma SHA256 `3dd8a71741cf531f080bda977a576df5162fe28c8924933482b21fbb796d745c`; nie jest zastosowany do aktywnego runtime. Rzeczywisty lokalny engine przekroczył 30-sekundowy timeout. Kolejne sekcje zachowują historię i dokładne granice każdego odbioru.
 
 **Wynik badanej migawki: niegotowa do integracji ani uruchomienia autonomicznej ewolucji.** To ocena konkretnego WIP, nie późniejszych poprawek Kilo ani stanu `main`. T58 również nie ma jeszcze dowodu stabilnej ewolucji.
 
@@ -156,3 +156,17 @@ Warunek odbioru dla właściciela runtime: historia symulacji ma być rozdzielon
 **Rzeczywisty local engine przekracza limit czasu.** Dla commitu Kilo potwierdzono istniejący lokalny model `basal-omni-pico:latest` w Ollama i wskazano go jawnie w diagnostycznej konfiguracji lokalnego modelu (nie jest to domyślny identyfikator `small-instruct`). Jedno prywatne żądanie `FreeApiEngine` przez `http://127.0.0.1:11434/v1`, z `SELFOPT_NETWORK=1`, poprawnym `SELFHOST_AI_BASE_URL` i timeoutem 30 s, zakończyło się `connection_error` po **30030 ms**, bez odpowiedzi. Raportowany przez engine czas wyniósł 0 ms; rzeczywisty czas zmierzono zewnętrznym zegarem monotonicznym. Publicznych wywołań API: 0; pobranych modeli: 0. Dowód: `20261023-kilo-v4/local-engine.json`. Backend nie był restartowany na podstawie samego timeoutu. Ta próba nie dowodzi niedostępności wszystkich lokalnych modeli ani sprawnego wdrożenia lokalnego engine.
 
 Podgląd jest gotowym materiałem integracyjnym do review, **nie zgodą na produkcyjny pilot**. Przed wznowieniem pełnej ewolucji trzeba odebrać przejście mock→real, bezpieczny `defer`, retry/feedback, propagację limitów oraz adekwatny lokalny runtime. Przyjęcie i publikacja rzeczywistego ulepszenia nadal pozostają niepotwierdzone.
+
+## Kandydat z naprawą przejścia simulated → real
+
+Kilo oznaczyło swój claim `abandoned-duplicate`, wskazując PR #26/#27 jako pełniejszą bazę. Jest to informacja właściciela claimu; nie zastępuje ostatniego podziału ról ustalonego przez operatora. Codex nadal przygotowuje i bada odseparowany materiał integracyjny.
+
+Aktualny plik patcha rozszerza poprzednią propozycję o `evolution_store.py`, `evolver.py` i `tests/test_selfopt_simulation_promotion.py`. Baza pozostaje `866fdb9`; hash poprzedniej propozycji `9576a25f...` jest historyczny, a jej dokładna postać jest zachowana w commicie `76788d2` i poprzednim katalogu dowodów.
+
+Naprawa pozwala na wznowienie stanu `simulated` wyłącznie po rzeczywistym uzbrojeniu workera. Zachowuje hash wejść, atomowo rezerwuje jednego właściciela, rozpoczyna oddzielny licznik realnych prób i zachowuje poprzedni receipt w `simulation_history`. Powtarzanie mocka nadal niczego nie duplikuje; `ready`, `published`, `accepted` i `rejected` nie są ponownie otwierane dla tych samych wejść. Późniejsze niepowodzenie realne nadal podlega cooldownowi i limitowi napraw, bez resetu przez flagę promocji.
+
+Odbiór: test restartu na poprzednim kodzie odtwarzał brak realnego wykonania. Na kandydacie przechodzą cztery testy obejmujące pełny restart i retencję wyniku, ośmiu współbieżnych pretendentów, niezmienność realnych stanów terminalnych oraz migrację istniejącego wpisu symulacji bez obchodzenia limitu błędów realnych. Pełny Python: **527 OK**. Kontrolowany worker i review w tych testach są fixture, nie dowodem realnej produkcji modelu.
+
+SHA256: `3dd8a71741cf531f080bda977a576df5162fe28c8924933482b21fbb796d745c`. Kandydat: `/tmp/straz-integration-preview-7ic0rqjm`; niezależne odtworzenie: `/tmp/straz-promotion-replay-4nw59lz7`. `git apply --check` przechodzi, a siedem plików po odtworzeniu ma identyczne bajty. Dowody: `scratch/selfopt/integration-review/20261023-simulation-promotion/{manifest.json,replay.json,baseline-regression.log,candidate-regression.log,python.log,build_preview.py}`.
+
+Następny test ma objąć ograniczony rzeczywisty pilot na osobnej kopii: najpierw symulacja, restart z uzbrojonym workerem i tym samym manifeście, trwały wspólny ledger bez resetu oraz niezależny odbiór produkcji. Ten test weryfikuje kandydata; nie jest wdrożeniem do main ani zmianą uzgodnionego właściciela aktywnego runtime.

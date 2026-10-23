@@ -49,3 +49,11 @@ Przygotowano `docs/INTEGRACJA_T58_KILO_2026-10-23.patch`, baza `866fdb9`, SHA256
 Nowa próba po zielonej regresji wykazała lukę również w T58: `simulated` jest stanem terminalnym; przy tych samych wejściach późniejsze uzbrojenie workera daje `duplicate_or_waiting` i zero wywołań realnej ścieżki. Właściciel runtime musi odebrać przejście mock→real z zachowaniem dedupu. Osobna rzeczywista próba lokalnego engine Kilo przez Ollama (istniejący basal-omni-pico, dane syntetyczne, bez publicznego API) przekroczyła 30 s i zwróciła connection_error, przy reported_latency_ms=0. Nie restartowano backendu na podstawie timeoutu. Lokalny Basal w roli decydenta był wcześniej potwierdzony osobno; nie utożsamiać tych dwóch ścieżek.
 
 Cel stabilnej ewolucji pozostaje aktywny i nieudowodniony. Następna praca to odbiór poprawek lifecycle/defer/feedback oraz pełnej integracji, a potem ograniczony pilot na istniejącym ledgerze. Kolejne raporty z tego samego wejścia bez nowych dowodów nie są postępem.
+
+## Przygotowana naprawa simulated → real
+
+Poprzednia tura była postępem: powstał odtwarzalny patch integracji i dowód nowej luki; nie była oczekiwaniem na proces. CI `76788d2`: Repository Checks i Secret Scan success. Kilo oznaczyło własny claim `abandoned-duplicate`; nie edytowano jego pliku. Ostatni podział operatora nadal przypisuje Codexowi weryfikację i przygotowanie integracji.
+
+Odseparowany kandydat rozszerzono o promocję `simulated` wyłącznie dla uzbrojonego workera, atomowy lease i zachowanie historii symulacji. Gotowe realne stany oraz limity ponowień pozostają chronione. Cztery nowe testy obejmują restart z tymi samymi wejściami, ośmiu równoległych pretendentów, stany terminalne i migrację starego wpisu. Pełna regresja kandydata: **527 Python OK**. Baza `866fdb9`, nowy SHA256 patcha `3dd8a71741cf531f080bda977a576df5162fe28c8924933482b21fbb796d745c`; wszystkie siedem plików odtworzono bajtowo na nowym archiwum. Poprzedni patch/523 testy pozostają historycznym wynikiem w `76788d2`.
+
+Dokumentacja i patch są materiałem przygotowania integracji. Nie zastosowano poprawki do źródeł aktywnego runtime. Następny krok: rzeczywisty ograniczony odbiór mock→real na oddzielnym snapshotcie z zachowaniem istniejącego quota ledger (66 wcześniejszych prób, limit 80), bez zmiany przydziału właścicieli i bez merge main.
