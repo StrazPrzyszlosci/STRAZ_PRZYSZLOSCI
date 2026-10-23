@@ -63,7 +63,8 @@ class QuotaLedger:
         pool_rpm, pool_rpd = self.pool_limits.get(pool, (0, 0))
         pool_ok = (sum(len(data['minute'].get(mid, [])) for mid in peers) < pool_rpm
                    and sum(data['daily'].get(mid, 0) for mid in peers) < pool_rpd)
-        return (pool_ok and not self.should_stop() and len(data['minute'].get(model_id, [])) < rpm
+        healthy = data.get('health', {}).get(model_id, {}).get('cooldown_until', 0) <= self.clock()
+        return (healthy and pool_ok and not self.should_stop() and len(data['minute'].get(model_id, [])) < rpm
                 and data['daily'].get(model_id, 0) < rpd
                 and (self.max_calls is None or sum(data['daily'].values()) < self.max_calls))
 
@@ -77,6 +78,21 @@ class QuotaLedger:
                 raise QuotaExceeded('quota_exhausted_or_stopped')
             data['daily'][model_id] = data['daily'].get(model_id, 0) + 1
             data['minute'].setdefault(model_id, []).append(self.clock())
+
+    def record_outcome(self, model_id, result):
+        with self.transaction() as data:
+            row = data.setdefault('health', {}).setdefault(model_id, {'successes': 0, 'failures': 0})
+            if result.get('ok'):
+                row['successes'] += 1
+                row['consecutive_failures'] = 0
+                row['cooldown_until'] = 0
+            else:
+                row['failures'] += 1
+                if result.get('error_class') in {'connection_error', 'http_error', 'bad_response'}:
+                    row['consecutive_failures'] = row.get('consecutive_failures', 0) + 1
+                    row['cooldown_until'] = self.clock() + min(900, 120 * 2 ** (row['consecutive_failures'] - 1))
+            row['last_error_class'] = result.get('error_class')
+            row['last_latency_ms'] = result.get('latency_ms')
 
     @property
     def rpd_used(self):
@@ -116,6 +132,7 @@ class BudgetedEngine:
         except QuotaExceeded:
             return {'ok': False, 'output': '', 'error_class': 'quota_exhausted'}
         result = self.engine.complete(task, model_id, prompt)
+        self.ledger.record_outcome(model_id, result)
         result["attempt_recorded"] = True
         result["requested_model_id"] = model_id
         return result

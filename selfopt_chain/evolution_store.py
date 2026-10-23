@@ -32,6 +32,14 @@ class EvolutionStore:
                 os.fsync(handle.fileno())
             os.replace(temp, path)
 
+    @staticmethod
+    def content_attempts(row):
+        if 'content_attempts' in row:
+            return row['content_attempts']
+        if (row.get('feedback') or {}).get('error') in {'connection_error','http_error','bad_response','quota_exhausted'}:
+            return 0
+        return row.get('attempts', 0)
+
     def eligible(self, key, input_hash=None):
         with self.transaction() as data:
             row = data.get(key, {})
@@ -42,7 +50,7 @@ class EvolutionStore:
                 return False
             if row.get('input_hash') != input_hash:
                 return True
-            return row.get('attempts', 0) < self.max_attempts and row.get('retry_at', 0) <= self.clock()
+            return self.content_attempts(row) < self.max_attempts and row.get('retry_at', 0) <= self.clock()
 
     def block(self, key, reason, input_hash=None):
         with self.transaction() as data:
@@ -61,12 +69,13 @@ class EvolutionStore:
                 return None
             changed = old.get('input_hash') != input_hash
             attempts = 0 if changed else old.get('attempts', 0)
-            if attempts >= self.max_attempts or (not changed and old.get('retry_at', 0) > self.clock()):
+            content_attempts = 0 if changed else self.content_attempts(old)
+            if content_attempts >= self.max_attempts or (not changed and old.get('retry_at', 0) > self.clock()):
                 return None
             lease = uuid.uuid4().hex
             data[key] = {**old, 'task_id': task_id, 'status': 'running', 'lease': lease,
                          'lease_until': self.clock() + self.lease_seconds, 'input_hash': input_hash,
-                         'attempts': attempts + 1, 'started': self.clock()}
+                         'attempts': attempts + 1, 'content_attempts': content_attempts, 'started': self.clock()}
             return lease
 
     def finish(self, key, lease, receipt):
@@ -83,7 +92,8 @@ class EvolutionStore:
             stats['failures'] += int(status == 'needs_fixes')
             data[key] = {**old, 'status': status, 'run_id': receipt.get('run_id'),
                          'finished': self.clock(), 'lease_until': 0, 'method_outcomes': methods,
-                         'retry_at': self.clock() + self.retry_seconds * 2 ** max(0, old['attempts'] - 1),
+                         'content_attempts': old.get('content_attempts', 0) + int(status == 'needs_fixes'),
+                         'retry_at': self.clock() + min(900, self.retry_seconds * 2 ** min(4, max(0, old['attempts'] - 1))),
                          'feedback': {'error': receipt.get('error'), 'review': receipt.get('review'),
                                       'validation': receipt.get('validation'), 'security_ok': receipt.get('security_ok')},
                          'receipt_path': receipt.get('receipt_path')}

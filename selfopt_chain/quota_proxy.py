@@ -72,6 +72,7 @@ class QuotaProxy:
                         pass
                     with owner.lock:
                         owner.events.append({'model':owner.model_id,'ok':True,'latency_ms':int((time.monotonic()-started)*1000)})
+                    owner.ledger.record_outcome(owner.model_id, {'ok':True,'latency_ms':int((time.monotonic()-started)*1000)})
                 except QuotaExceeded:
                     self.send_error(429)
                 except (BrokenPipeError, ConnectionResetError):

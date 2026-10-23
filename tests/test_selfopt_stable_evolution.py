@@ -142,3 +142,29 @@ class CompleteRetryTests(unittest.TestCase):
                 self.assertIn('no_artifacts', prompts[-1])
                 self.assertTrue(Path(receipt['archive_path']).is_dir())
                 self.assertEqual(loop.run(1), [])
+
+
+class ProviderRecoveryTests(unittest.TestCase):
+    def test_infrastructure_failures_do_not_exhaust_content_repairs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            now = [100.0]
+            store = EvolutionStore(tmp, clock=lambda: now[0], max_attempts=2, retry_seconds=10)
+            for _ in range(4):
+                lease = store.acquire('key', 'task', 'input')
+                self.assertIsNotNone(lease)
+                store.finish('key', lease, {'status':'waiting_provider','error':'connection_error','executor':'direct_patch'})
+                now[0] += 901
+            self.assertTrue(store.eligible('key','input'))
+            self.assertEqual(store.snapshot()['key']['content_attempts'],0)
+
+    def test_model_cooldown_allows_healthy_alternative(self):
+        from selfopt_chain.quota import QuotaLedger
+        now = [100.0]
+        models = [{'model_id':name,'rpm_seed':10,'rpd_seed':100} for name in ['bad','good']]
+        ledger = QuotaLedger(models,clock=lambda:now[0])
+        ledger.record('bad')
+        ledger.record_outcome('bad',{'ok':False,'error_class':'connection_error'})
+        self.assertFalse(ledger.can_use('bad'))
+        self.assertTrue(ledger.can_use('good'))
+        now[0] += 121
+        self.assertTrue(ledger.can_use('bad'))

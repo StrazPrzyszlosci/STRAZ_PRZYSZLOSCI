@@ -38,16 +38,35 @@ class DirectPatchWorker:
             return receipt
         snapshot, commit = repository_snapshot(self.repo_root, self.state_dir)
         receipt['source_commit'] = commit
+        focused_sources = {name: bundle.get('source_excerpts', {}).get(name, text[:16000]) for name, text in bundle['input_files'].items()}
+        contract = {key: bundle.get(key) for key in ['task_id','title','context','constraints','allowed_paths','acceptance','previous_feedback']}
+        contract['sources'] = focused_sources
         instruction = '\n'.join([
             'Przygotuj minimalną poprawkę kodu. Nie masz narzędzi; wszystkie wejścia i warunki masz poniżej.',
             'Odpowiedz WYŁĄCZNIE JSON: {"proposal": "opis markdown", "edits": [{"path":"plik", "old":"dokładny unikalny istniejący fragment", "new":"nowy fragment"}], "new_files": [{"path":"nowy test", "content":"kod"}]}',
             'W edits zachowaj dokładne wcięcia i znaki nowej linii. old musi występować raz. Nie zmieniaj nic poza allowed_paths.',
-            'Nie zwracaj unified diff; kontroler zbuduje go z dokładnych edycji i sprawdzi poza twoim procesem.', query,
+            'Nie zwracaj unified diff ani poleceń shell. Kontroler zbuduje patch i uruchomi niezależne testy.',
+            json.dumps(contract, ensure_ascii=False),
         ])
-        result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id']}, model_alias, instruction)
+        requested = model_alias
+        used, attempts = set(), {}
+        for _ in range(2):
+            result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id']}, requested, instruction)
+            if result.get('attempt_recorded'):
+                mid = result['requested_model_id']
+                attempts[mid] = attempts.get(mid, 0) + 1
+                used.add(mid)
+            if result.get('ok') or result.get('error_class') not in {'connection_error','http_error','bad_response'}:
+                break
+            from selfopt_chain.router import route_task
+            alternatives = [m for m in self.models if m['model_id'] not in used]
+            decision = route_task({'kind':'code_draft','privacy':'public','requires':['text','code']}, alternatives, self.ledger)
+            requested = (decision.get('chosen') or {}).get('model_id')
+            if not requested:
+                break
         receipt['executed'] = True
         receipt['model_id'] = result.get('model_id')
-        receipt['api_calls'] = {result['requested_model_id']: 1} if result.get('attempt_recorded') else {}
+        receipt['api_calls'] = attempts
         if not result.get('ok'):
             receipt.update(exit_code=1, error=result.get('error_class'))
             return receipt

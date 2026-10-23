@@ -438,6 +438,10 @@ class EvolutionLoop:
             receipt["gate_ok"] = all(receipt.get(k) for k in ["execution_ok", "validation_ok", "security_ok", "review_ok"])
             receipt["ready_for_human_review"] = receipt["gate_ok"]
             receipt["status"] = "ready" if receipt["gate_ok"] else "simulated" if receipt["executor"] == "mock" else "needs_fixes"
+            if receipt.get("error") in {"connection_error", "http_error", "bad_response"}:
+                receipt["status"] = "waiting_provider"
+            elif receipt.get("error") == "quota_exhausted":
+                receipt["status"] = "waiting_budget"
             receipt["quarantined"] = not receipt["gate_ok"]
             (out_dir / "gate_report.json").write_text(json.dumps(report, indent=2))
             if receipt["gate_ok"]:
