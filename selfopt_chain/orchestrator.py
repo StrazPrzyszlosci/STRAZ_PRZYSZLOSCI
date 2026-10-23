@@ -362,6 +362,7 @@ class Orchestrator:
             confidence_floor=float(self.config.get("confidence_floor", 0.55)),
             temperatures=calibration["temperature_per_prim"] if calibration else None,
         )
+        self._cycle_core = core
         planner = SwarmPlanner(core, default_strategy="speed_first")
         plan = planner.plan_cycle(mission_demands, procdev_demands, hardware_resources + model_resources, cycle_signals, max_jobs=self.config["max_jobs"])
         plans_dir = self.state_dir / "swarm_plans"
@@ -490,8 +491,9 @@ class Orchestrator:
         return receipt
 
     def _run_evolution(self, backlog: int) -> dict[str, Any]:
-        """Samoewolucja repo: zadania z artifacts → (mock|Hermes headless) → bramka → kolejka PR-draftów."""
-        core = BasalDecisionCore(
+        """Samoewolucja repo wg dyrektywy operatora: LLM tworzy STRATEGIĘ,
+        basal wybiera decyzje i odpowiednie LLM, Hermes wykonuje headless."""
+        core = getattr(self, "_cycle_core", None) or BasalDecisionCore(
             decision_log=self.state_dir / "decisions.jsonl",
             confidence_floor=float(self.config.get("confidence_floor", 0.55)),
         )
@@ -499,14 +501,22 @@ class Orchestrator:
         if mode == "auto":
             mode = decide_parallel_mode(core, backlog=backlog, critical=1 if backlog > 3 else 0)
         worker = None
-        if self.config.get("engine") == "omniroute" and HermesWorker.enabled():
-            import os
+        strategy_engine = None
+        lane_models: list[str] = []
+        if self.config.get("engine") == "omniroute":
+            from selfopt_chain.omniroute import OmniRouteEngine
 
-            worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"))
-        loop = EvolutionLoop(self.state_dir, ROOT / "docs", ROOT, worker=worker)
+            strategy_engine = OmniRouteEngine(load_registry(self.registry_path))
+            lane_models = sorted(strategy_engine.adapter.policy.free_model_ids)
+            if HermesWorker.enabled():
+                worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"))
+        loop = EvolutionLoop(self.state_dir, ROOT / "docs", ROOT, worker=worker, lane_models=lane_models, decision_core=core, strategy_engine=strategy_engine, max_lanes=int(self.config.get("evolve_lanes", 6)))
         receipts = loop.run(max_tasks=int(self.config.get("evolve_max_tasks", 4)), parallel_mode=mode)
         return {
             "mode": mode,
+            "strategy_source": loop.strategy.get("source", "n/a"),
+            "strategy_brief": loop.strategy.get("brief", "")[:300],
+            "lane_models": lane_models[:6],
             "tasks": receipts,
             "executor": "hermes" if worker else "mock",
             "auto_applied": False,
@@ -515,6 +525,8 @@ class Orchestrator:
     def run(self) -> int:
         signal.signal(signal.SIGTERM, self.request_stop)
         signal.signal(signal.SIGINT, self.request_stop)
+        if self.config.get("evolve_only"):
+            return self._run_evolution_daemon()
         max_cycles = self.config.get("max_cycles")
         while not self.stop_requested:
             if self.kill_switch_active():
@@ -541,12 +553,50 @@ class Orchestrator:
         print(json.dumps(stopped, ensure_ascii=False))
         return 0
 
+    def _run_evolution_daemon(self) -> int:
+        """Daemon ewolucji non-stop: LLM strategia → basal wybór → pasma → review → bramka.
+
+        Osobny proces od cykli procdev/misji; kill switch wspólne
+        (scratch/selfopt/KILL_SWITCH).
+        """
+        batch = 0
+        while not self.stop_requested:
+            if self.kill_switch_active():
+                self.state_dir.mkdir(parents=True, exist_ok=True)
+                (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "kill_switch", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
+                return 0
+            batch += 1
+            evolution = self._run_evolution(backlog=batch)
+            self.state_dir.mkdir(parents=True, exist_ok=True)
+            log_path = self.state_dir / "evolution_batches"
+            log_path.mkdir(parents=True, exist_ok=True)
+            (log_path / f"batch_{batch}.json").write_text(json.dumps(evolution, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+            summary = {
+                "batch": batch,
+                "mode": evolution.get("mode"),
+                "strategy_source": evolution.get("strategy_source"),
+                "executor": evolution.get("executor"),
+                "tasks": [
+                    {"title": t.get("title", "")[:60], "model_alias": t.get("model_alias"), "hermes_exit": t.get("hermes_exit_code"), "gate_ok": t.get("gate_ok"), "review_verdict": (t.get("review") or {}).get("verdict")}
+                    for t in evolution.get("tasks", [])
+                ],
+            }
+            print(json.dumps(summary, ensure_ascii=False), flush=True)
+            if self.stop_requested:
+                break
+            time.sleep(int(self.config.get("evolve_pause", 60)))
+        (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "signal", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
+        return 0
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Rezydentny agent-orkiestrator: darmowe modele AI rozwijają procesy repo (suggest-only)")
     parser.add_argument("--engine", choices=["mock", "free-api", "omniroute"], default="mock")
     parser.add_argument("--evolve", action="store_true", help="samoewolucja repo: artifacts → propozycje/patche → bramka → evolution_queue (PR-drafts)")
+    parser.add_argument("--evolve-only", action="store_true", help="daemon ewolucji: pętla non-stop (bez cykli procdev/misji)")
+    parser.add_argument("--evolve-pause", type=int, default=60, help="pauza między batchami ewolucji w trybie --evolve-only (sekundy)")
     parser.add_argument("--evolve-max-tasks", type=int, default=4)
+    parser.add_argument("--evolve-lanes", type=int, default=6, help="maks. równoległych pasm (różne darmowe modele naraz)")
     parser.add_argument("--subagent-mode", choices=["auto", "single", "wide", "deep"], default="auto", help="równoległość subagentów (basal decyduje w trybie auto)")
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_S, help="sekundy między cyklami")
     parser.add_argument("--max-cycles", type=int, default=None, help="limit cykli (brak = daemon)")
@@ -576,8 +626,11 @@ def main(argv: list[str] | None = None) -> int:
         "inbox_dir": args.inbox_dir,
         "confidence_floor": args.confidence_floor,
         "oze_window": args.oze_window,
-        "evolve": args.evolve,
+        "evolve": args.evolve or args.evolve_only,
+        "evolve_only": args.evolve_only,
+        "evolve_pause": args.evolve_pause,
         "evolve_max_tasks": args.evolve_max_tasks,
+        "evolve_lanes": args.evolve_lanes,
         "subagent_mode": args.subagent_mode,
         "quota_snapshot_path": args.quota_snapshot if args.engine in ("free-api",) else None,
     }

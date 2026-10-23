@@ -131,9 +131,10 @@ def build_chain_graph(chain: dict[str, Any], runner: "ChainRunner") -> Any:
 
 
 class ChainRunner:
-    def __init__(self, models: list[dict], engine_name: str, quota_snapshot: dict[str, Any] | None, tracer: TraceRecorder, spool: LoraSpool | None = None) -> None:
+    def __init__(self, models: list[dict], engine_name: str, quota_snapshot: dict[str, Any] | None, tracer: TraceRecorder, spool: LoraSpool | None = None, decision_core: Any | None = None) -> None:
         self.models = models
         self.engine_name = engine_name
+        self.decision_core = decision_core
         self.ledger = QuotaLedger(models)
         self.quota_snapshot = quota_snapshot
         self.tracer = tracer
@@ -168,11 +169,11 @@ class ChainRunner:
                 self.tracer.error(node["id"], f"routing blocked: {decision['blocked_reason']}")
                 result = {"ok": False, "output": "", "error": decision["blocked_reason"], "error_class": "routing_blocked"}
             else:
-                model_id = decision["chosen"]["model_id"]
+                model_id = self.decision_core.select_model(decision, node_type) if self.decision_core else decision["chosen"]["model_id"]
                 self.ledger.record(model_id)
                 result = self.engine.complete(task, model_id, prompt)
                 self.tracer.node_result(node["id"], result)
-                self.routing.append({**decision, "node": node["id"], "ok": result["ok"]})
+                self.routing.append({**decision, "node": node["id"], "ok": result["ok"], "model_selected_by_basal": model_id})
             outputs = {**state.get("outputs", {}), node["id"]: result}
             return {"outputs": outputs, "last_node": node["id"], "route": result.get("output", "")}
 
@@ -228,7 +229,7 @@ def render_proposals_md(run_id: str, insights: list[dict[str, Any]], gepa: dict[
     return "\n".join(lines)
 
 
-def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: Path, quota_snapshot_path: Path | None, spool_dir: Path | None) -> int:
+def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: Path, quota_snapshot_path: Path | None, spool_dir: Path | None, decision_core: Any | None = None) -> int:
     chain = json.loads(chain_path.read_text(encoding="utf-8"))
     errors = validate_chain(chain)
     if errors:
@@ -248,7 +249,7 @@ def run_chain(chain_path: Path, out_dir: Path, engine_name: str, registry_path: 
 
     has_dispatch = any((n.get("type") or n.get("kind")) == "dispatch" for n in chain["nodes"])
     spool = LoraSpool(effective_spool_dir) if has_dispatch else None
-    runner = ChainRunner(models, engine_name, quota_snapshot, tracer, spool)
+    runner = ChainRunner(models, engine_name, quota_snapshot, tracer, spool, decision_core=decision_core)
     tracer.run_start(chain.get("chain_id", chain_path.stem), engine_name)
 
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")

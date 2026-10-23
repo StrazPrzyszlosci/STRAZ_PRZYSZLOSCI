@@ -144,6 +144,29 @@ class BasalDecisionCore:
                 handle.write(json.dumps(decision, ensure_ascii=False) + "\n")
         return decision
 
+    def select_model(self, routing_decision: dict[str, Any], task_kind: str) -> str:
+        """basal wybiera LLM do zadania spośród kandydatów routera (dyrektywa operatora:
+        LLM tworzy strategię; basal wybiera decyzje i odpowiedni LLM).
+
+        Kandydaci w kolejności preferencji routera; score: wybór routera ma
+        najwyższy priorytet, alternatywy malejąco. Defer = pozostaje wybór
+        routera (basal nie zgadwa bez podstaw).
+        """
+        chosen = (routing_decision.get("chosen") or {}).get("model_id")
+        alternatives = [a.get("model_id") for a in routing_decision.get("alternatives", []) if a.get("model_id")]
+        options = [m for m in [chosen, *alternatives] if m]
+        if not options or chosen is None:
+            return chosen or ""
+        if len(options) == 1:
+            return options[0]
+        scores = {m: (2.0 if m == chosen else round(0.5 - 0.05 * i, 2)) for i, m in enumerate(options[1:], start=0)}
+        scores[chosen] = 2.0
+        decision = self.decide(
+            "model_selection", options, scores, default_option=chosen,
+            context={"task_kind": task_kind, "required_tier": routing_decision.get("required_tier"), "router_policy": routing_decision.get("policy")},
+        )
+        return decision["final"]
+
     def _remote_decide(self, question_type: str, options: list[str], scores: dict[str, float], context: dict[str, Any] | None) -> tuple[dict[str, float], float] | None:
         """Decyzja z prawdziwego basal-serve (/v1/systemone); None = fallback.
 
