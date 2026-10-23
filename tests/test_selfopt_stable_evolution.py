@@ -101,6 +101,8 @@ class TaskInputTests(unittest.TestCase):
     def test_model_selection_uses_characteristics_not_model_name(self):
         models = [{'model_id': 'named-fast-but-slow', 'quality_tier': 3, 'speed_class': 'slow'},
                   {'model_id': 'ordinary', 'quality_tier': 4, 'speed_class': 'fast'}]
+        for model in models:
+            model.update(cost_class='free_quota', privacy_class='public_only', capabilities=['text'], context_tokens=32768)
         with tempfile.TemporaryDirectory() as tmp, patch.dict('os.environ', {'SELFOPT_BASAL_URL': ''}):
             loop = EvolutionLoop(Path(tmp), ROOT / 'docs', ROOT, models=models,
                                  lane_models=[m['model_id'] for m in models], decision_core=BasalDecisionCore())

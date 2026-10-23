@@ -11,6 +11,14 @@ from selfopt_chain.hermes_worker import SecurityGate
 from selfopt_chain.omniroute import OmniRouteEngine
 from selfopt_chain.quota import BudgetedEngine
 
+PATCH_SCHEMA = {'type': 'object', 'additionalProperties': False,
+    'required': ['proposal', 'edits', 'new_files'], 'properties': {
+        'proposal': {'type': 'string'},
+        'edits': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
+            'required': ['path', 'old', 'new'], 'properties': {key: {'type': 'string'} for key in ['path', 'old', 'new']}}},
+        'new_files': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
+            'required': ['path', 'content'], 'properties': {key: {'type': 'string'} for key in ['path', 'content']}}}}}
+
 
 class DirectPatchWorker:
     executor_name = 'direct_patch'
@@ -32,6 +40,15 @@ class DirectPatchWorker:
         receipt = {'run_id': run_id, 'quarantine_dir': str(output), 'executed': False, 'exit_code': None,
                    'security_gate': {'ok': False}, 'validation': {'ok': False}, 'released_from_quarantine': False,
                    'producer': self.executor_name}
+        try:
+            max_tokens = int(os.environ.get('SELFOPT_CODE_MAX_TOKENS', '8192'))
+        except ValueError:
+            receipt['error'] = 'invalid_output_budget'
+            return receipt
+        if not 1024 <= max_tokens <= 16384:
+            receipt['error'] = 'invalid_output_budget'
+            return receipt
+        receipt['max_output_tokens'] = max_tokens
         bundle = input_bundle or {}
         if bundle.get('kind') != 'patch':
             receipt['error'] = 'direct_producer_requires_patch_contract'
@@ -39,7 +56,7 @@ class DirectPatchWorker:
         snapshot, commit = repository_snapshot(self.repo_root, self.state_dir)
         receipt['source_commit'] = commit
         focused_sources = {name: bundle.get('source_excerpts', {}).get(name, text[:16000]) for name, text in bundle['input_files'].items()}
-        contract = {key: bundle.get(key) for key in ['task_id','title','context','constraints','allowed_paths','acceptance','previous_feedback']}
+        contract = {key: bundle.get(key) for key in ['task_id','title','context','constraints','allowed_paths','acceptance','previous_feedback','hardware_context']}
         contract['sources'] = focused_sources
         instruction = '\n'.join([
             'Przygotuj minimalną poprawkę kodu. Nie masz narzędzi; wszystkie wejścia i warunki masz poniżej.',
@@ -50,8 +67,14 @@ class DirectPatchWorker:
         ])
         requested = model_alias
         used, attempts = set(), {}
+        receipt['attempt_results'] = []
         for _ in range(2):
-            result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id']}, requested, instruction)
+            result = self.engine.complete({'kind': 'code_draft', 'privacy': 'public', 'task_id': bundle['task_id'],
+                'max_tokens': max_tokens,
+                'system_prompt': 'You produce a complete JSON patch plan. No tools are available. All source code is included in the user message. Never request file reads or emit tool calls. Return proposal, edits and new_files conforming to the supplied schema.',
+                'response_format': {'type': 'json_schema', 'json_schema': {'name': 'patch_plan', 'strict': True, 'schema': PATCH_SCHEMA}}}, requested, instruction)
+            receipt['attempt_results'].append({key: result.get(key) for key in
+                ['requested_model_id', 'ok', 'error_class', 'latency_ms', 'response_diagnostic']})
             if result.get('attempt_recorded'):
                 mid = result['requested_model_id']
                 attempts[mid] = attempts.get(mid, 0) + 1
@@ -75,6 +98,8 @@ class DirectPatchWorker:
         try:
             start, end = raw.find('{'), raw.rfind('}')
             response = json.loads(raw[start:end + 1])
+            if not isinstance(response, dict) or set(response) != {'proposal', 'edits', 'new_files'}:
+                raise ValueError('invalid_producer_schema: expected proposal, edits, new_files; no tool calls')
             changed, originals = {}, {}
             edits, new_files = response.get('edits', []), response.get('new_files', [])
             if not isinstance(edits, list) or not isinstance(new_files, list) or len(edits) + len(new_files) > 12:

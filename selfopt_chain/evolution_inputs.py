@@ -104,6 +104,7 @@ def task_prompt(manifest):
         'Patch może zmieniać wyłącznie allowed_paths. Nie kopiuj całego repo. Nie instaluj pakietów i nie używaj sieci poza skonfigurowanym API.',
         'Testy uruchomi kontroler w izolowanej kopii. Zapoznaj się z acceptance w /input/task.json. Wynik stdout nie zastępuje plików.',
         'Runtime metadata: ' + json.dumps(manifest['runtime_metadata'], ensure_ascii=False),
+        'Aktualny sprzęt hosta (nie zmienia wersji zadania): ' + json.dumps(manifest.get('hardware_context', {}), ensure_ascii=False),
         'Niezależny warunek odbioru:\n' + (manifest.get('acceptance') or 'Nie dotyczy kodu; wymagany konkretny opis w PROPOSAL.md.'),
         'Poprzednia próba i uwagi do poprawy: ' + json.dumps(manifest['previous_feedback'], ensure_ascii=False),
         *snippets,

@@ -16,11 +16,13 @@ const value = (name, fallback) => args.includes(name) ? args[args.indexOf(name)+
 const allowDb = args.includes('--use-omniroute-db-key');
 const maxCalls = args.includes('--max-calls') ? Number(args[args.indexOf('--max-calls') + 1]) : 8;
 if (!Number.isInteger(maxCalls) || maxCalls < 1 || maxCalls > 256) throw Error('max-calls must be 1..256');
+const maxBatches = Number(value('--batches', '2'));
+if (!Number.isInteger(maxBatches) || maxBatches < 1 || maxBatches > 8) throw Error('batches must be 1..8');
 const state = resolve(value('--state-dir', resolve(root, 'scratch/selfopt', evolution ? 'stable-evolution' : real ? 'pilot-live' : 'pilot-offline')));
 await mkdir(state, { recursive: true });
 const env = { ...process.env, SELFOPT_NETWORK: real ? '1' : '0', SELFOPT_HERMES: real && evolution ? '1' : '0', SELFOPT_REQUEST_TIMEOUT: process.env.SELFOPT_REQUEST_TIMEOUT || '60' };
 const options = ['selfopt_chain/orchestrator.py', '--state-dir', state, '--kill-switch', join(state, 'KILL_SWITCH'),
-                 '--max-cycles', '2', '--interval', '3', '--max-jobs', '1', '--max-calls', String(maxCalls), '--max-seconds', '300'];
+                 '--max-cycles', String(maxBatches), '--interval', '3', '--max-jobs', '1', '--max-calls', String(maxCalls), '--max-seconds', '300'];
 
 if (real) {
   const gateway = new URL(env.SELFOPT_OMNIROUTE_URL || 'http://127.0.0.1:20128/v1');
@@ -68,14 +70,21 @@ if (real) {
     if (!response.ok) throw Error('Gateway catalog HTTP ' + response.status);
     const catalog = (await response.json()).data || [];
     // Only explicit :free model IDs. Provider names and aliases do not authorize use.
-    const preference = ['cohere/north-mini-code:free', 'nvidia/nemotron-3.5-lightning:free', 'liquid/lfm-2.5-2.6b:free'];
-    const candidates = preference.map(id => catalog.find(m => m.owned_by === 'kilocode' && m.id === 'kilocode/' + id)).filter(Boolean);
-    if (candidates.length < 1) throw Error('No explicit supported :free model in authenticated catalog');
-    const models = candidates.slice(0, 2).map(m => ({ model_id: m.id, provider: 'kilocode_free', role: 'bounded_pilot',
-      quality_tier: 4, speed_class: 'fast', capabilities: ['text', 'json', 'code', 'reasoning'], privacy_class: 'public_only',
-      cost_class: 'free_quota', context_tokens: 32768, rpm_seed: 8, rpd_seed: maxCalls, limits_verified: false,
-      api: { style: 'openai_chat', base_url: base, secret_env: 'SELFOPT_OMNIROUTE_KEY', response_model_id: m.id.slice('kilocode/'.length) },
-      notes: 'Explicit :free catalog ID; tier heuristic. Limits are conservative operator pilot caps; upstream quota unverified.' }));
+    const profiles = JSON.parse(await readFile(join(root,'selfopt_chain/runtime_model_profiles.json'),'utf8')).profiles;
+    const canonical = [...new Map(catalog.filter(m => m.owned_by === 'kilocode' && m.id.startsWith('kilocode/') &&
+      m.id.endsWith(':free') && m.id.slice('kilocode/'.length).includes('/')).map(m=>[m.id,m])).values()];
+    await writeFile(join(state,'discovered_models.json'),JSON.stringify({checked_at:new Date().toISOString(),models:canonical.map(m=>({
+      model_id:m.id, context_tokens:m.context_length, max_output_tokens:m.max_output_tokens, capabilities:m.capabilities,
+      status:profiles[m.id]?'profiled_operator_trial':'discovered_needs_role_qualification',cost_provenance:'explicit_free_catalog_id',
+      quality_verified:false}))},null,2));
+    const candidates = canonical.filter(m=>profiles[m.id] && Number.isInteger(m.context_length) && m.context_length>0);
+    if (candidates.length < 1) throw Error('No profiled explicit :free model in authenticated catalog');
+    const models = candidates.map(m => ({ model_id: m.id, provider: 'kilocode_free', role: profiles[m.id].routing_roles.join(','),
+      ...profiles[m.id], privacy_class:'public_only', supports_tools:m.capabilities?.tool_calling===true,
+      tool_calling_source:'gateway_catalog_unverified', cost_class:'free_quota', context_tokens:m.context_length,
+      rpm_seed:8, rpd_seed:maxCalls, limits_verified:false,
+      api:{style:'openai_chat',base_url:base,secret_env:'SELFOPT_OMNIROUTE_KEY',response_model_id:m.id.slice('kilocode/'.length),max_output_tokens:m.max_output_tokens},
+      notes:profiles[m.id].basis+'; operator quota cap only; upstream quota unverified.' }));
     const registry = join(state, 'armed_registry.json');
     await writeFile(registry, JSON.stringify({ models }, null, 2));
     const snapshot = join(state, 'quota_snapshot.json');
@@ -94,6 +103,10 @@ for (const name of await readdir(join(root, 'selfopt_chain'))) {
   if (name.endsWith('.py')) sources[name] = createHash('sha256').update(await readFile(join(root, 'selfopt_chain', name))).digest('hex');
 }
 await writeFile(join(state, 'source_manifest_' + new Date().toISOString().replaceAll(':', '-') + '.json'), JSON.stringify({sources, started: new Date().toISOString(), max_calls: maxCalls}, null, 2));
+if (args.includes('--inventory-only')) {
+  console.log(JSON.stringify({inventory_only:true,state_dir:state,inference_calls:0}));
+  process.exit(0);
+}
 const child = spawn('python3', options, { cwd: root, env, stdio: 'inherit' });
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => child.kill(signal));
 child.on('error', () => { console.error('Cannot start orchestrator'); process.exitCode = 1; });

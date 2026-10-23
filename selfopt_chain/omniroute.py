@@ -2,10 +2,10 @@
 """OmniRoute jako warstwa wykonawcza darmowych LLM (selfopt_chain, T52).
 
 Podział odpowiedzialności zgodny z architekturą operatora (2026-10-22):
-- basal (mały model decyzyjny) wybiera zadania, strategie, tryb równoległości
-  i wymagany poziom jakości — NIE wybiera konkretnego modelu;
-- OmniRoute (gateway) dobiera model i dostawcę spośród podłączonych darmowych
-  pul (wirtualne aliasy `auto`, `auto/fast`, `auto/smart`...);
+- lokalny basal wybiera zadania, tryb równoległości i konkretny model
+  z krótkiej listy dopuszczonej przez filtry ról, możliwości i limitów;
+- OmniRoute (gateway) wykonuje żądanie do jawnie wskazanego darmowego
+  modelu; nie może zastąpić go płatnym lub nieznanym modelem;
 - niniejszy adapter egzekwuje politykę FREE-ONLY (STRICT_ZERO_COST) po stronie
   roju: walidacja aliasu PRZED wywołaniem oraz realnego modelu PO odpowiedzi.
 
@@ -62,6 +62,28 @@ def omniroute_url() -> str | None:
     return os.environ.get(OMNIROUTE_URL_ENV) or None
 
 
+def response_diagnostic(payload: dict[str, Any]) -> dict[str, Any]:
+    """Shape and counts only: never persist response text, reasoning or headers."""
+    choices = payload.get('choices')
+    choice = choices[0] if isinstance(choices, list) and choices and isinstance(choices[0], dict) else {}
+    message = choice.get('message')
+    message = message if isinstance(message, dict) else {}
+    finish = choice.get('finish_reason')
+    usage = payload.get('usage')
+    usage = usage if isinstance(usage, dict) else {}
+    numeric_usage = {key: value for key, value in usage.items()
+                     if key in {'prompt_tokens', 'completion_tokens', 'total_tokens'} and type(value) is int and value >= 0}
+    details = usage.get('completion_tokens_details')
+    if isinstance(details, dict) and type(details.get('reasoning_tokens')) is int:
+        numeric_usage['reasoning_tokens'] = details['reasoning_tokens']
+    return {'choice_count': len(choices) if isinstance(choices, list) else 0,
+            'finish_reason': finish if isinstance(finish, str) and finish in {'stop', 'length', 'tool_calls', 'content_filter', 'function_call'} else 'other',
+            'message_fields': sorted(set(message) & {'content', 'reasoning', 'reasoning_content', 'tool_calls', 'refusal'}),
+            'content_chars': len(message['content']) if isinstance(message.get('content'), str) else 0,
+            'reasoning_chars': sum(len(message[key]) for key in ['reasoning', 'reasoning_content'] if isinstance(message.get(key), str)),
+            'usage': numeric_usage}
+
+
 class OmniRouteAdapter:
     """Klient OpenAI-compatible do bramki OmniRoute z egzekwowaniem FREE-ONLY."""
 
@@ -81,10 +103,9 @@ class OmniRouteAdapter:
         return headers
 
     def load_free_catalog(self) -> int:
-        """Katalog /v1/models: modele free providerów dokładane do allowlisty.
+        """Odczyt /v1/models bez rozszerzania allowlisty operatora.
 
-        Allowlista pozostaje ścisła: owned_by musi być znanym darmowym
-        providerem albo model musi być w naszym rejestrze/kończyć się ':free'.
+        Odkrycie modelu nie kwalifikuje go automatycznie do roli w roju.
         """
         try:
             req = urllib.request.Request(f"{self.base_url}/models", headers=self._headers())
@@ -122,12 +143,18 @@ class OmniRouteAdapter:
             return result
         result["requested_alias"] = model_alias
         url = f"{self.base_url}/chat/completions"
-        body = json.dumps({
+        messages = [{"role": "user", "content": prompt}]
+        if task.get('system_prompt'):
+            messages.insert(0, {'role': 'system', 'content': task['system_prompt']})
+        request_body = {
             "model": model_alias,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages,
             "stream": False,
             "max_tokens": int(task.get("max_tokens", 4096)),
-        }).encode("utf-8")
+        }
+        if task.get('response_format'):
+            request_body['response_format'] = task['response_format']
+        body = json.dumps(request_body).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=self._headers())
         started = time.monotonic()
         try:
@@ -139,7 +166,14 @@ class OmniRouteAdapter:
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             result.update(error=f"blad polaczenia z OmniRoute ({type(exc).__name__})", error_class="connection_error", latency_ms=int((time.monotonic() - started) * 1000))
             return result
+        except (ValueError, TypeError):
+            result.update(error="invalid JSON response", error_class="bad_response", latency_ms=int((time.monotonic() - started) * 1000))
+            return result
         latency_ms = int((time.monotonic() - started) * 1000)
+        result['latency_ms'] = latency_ms
+        if not isinstance(payload, dict):
+            result.update(error="unexpected response type", error_class="bad_response")
+            return result
         actual_model = str(payload.get("model", ""))
         if not self.policy.actual_allowed(actual_model) or actual_model not in {model_alias, self.policy.response_ids.get(model_alias)}:
             result.update(
@@ -148,6 +182,7 @@ class OmniRouteAdapter:
                 model_id=actual_model,
             )
             return result
+        result['response_diagnostic'] = response_diagnostic(payload)
         try:
             output = payload["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
@@ -164,9 +199,8 @@ class OmniRouteAdapter:
 class OmniRouteEngine:
     """Silnik łańcuchów roju na bramce OmniRoute (interfejs jak MockEngine).
 
-    Router nadal wybiera z rejestru (budżety RPM/RPD), ale wywołanie idzie
-    przez gateway z aliasem modelu; model spoza katalogu → fallback 'auto'.
-    Katalog free dokładany raz na instancję (load_free_catalog).
+    Basal wybiera z przefiltrowanego rejestru; wywołanie idzie przez gateway
+    z jawnym ID. Model spoza rejestru jest odrzucany przed żądaniem.
     """
 
     def __init__(self, models: list[dict], base_url: str | None = None, api_key: str | None = None, timeout_s: int = DEFAULT_TIMEOUT_S) -> None:

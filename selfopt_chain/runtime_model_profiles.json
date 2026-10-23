@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "unprofiled_policy": "discovery_only_until_role_qualification",
+  "profiles": {
+    "kilocode/cohere/north-mini-code:free": {
+      "quality_tier": 4,
+      "quality_verified": false,
+      "speed_class": "slow",
+      "routing_roles": ["code_draft", "draft", "classify", "extract", "summarize", "format", "translate", "triage", "reason"],
+      "capabilities": ["text", "json", "code", "reasoning"],
+      "basis": "operator prior; JSON planning and a technically validated code proposal observed; semantic quality not certified"
+    },
+    "kilocode/nvidia/nemotron-3.5-lightning:free": {
+      "quality_tier": 4,
+      "quality_verified": false,
+      "speed_class": "slow",
+      "routing_roles": ["reason", "review"],
+      "capabilities": ["text", "json", "reasoning"],
+      "basis": "reasoning/review trial only; repeated timeouts and reasoning-only replies exclude production code drafting pending requalification"
+    }
+  }
+}
