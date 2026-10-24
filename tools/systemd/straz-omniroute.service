@@ -1,0 +1,14 @@
+[Unit]
+Description=STRAZ: OmniRoute (gateway darmowych LLM, izolowany 127.0.0.1)
+After=network.target
+
+[Service]
+Environment=OMNIROUTE_SERVER_HOST=127.0.0.1
+Environment=OMNIROUTE_READY_TIMEOUT_MS=180000
+ExecStartPre=/bin/sh -c '! test -e /home/krzysiek/.local/share/straz/KILL_OMNIROUTE'
+ExecStart=/home/krzysiek/.nvm/versions/node/v24.22.1/bin/omniroute
+Restart=on-failure
+RestartSec=20
+
+[Install]
+WantedBy=default.target

@@ -11,6 +11,9 @@ from pathlib import Path
 
 class EvolutionStore:
     TERMINAL = {'ready', 'published', 'accepted', 'rejected', 'simulated'}
+    # Błędy infrastruktury walidacji (crash harnessu, puste checks) — NIE są
+    # porażką treści producenta i nie zużywają limitu prób poprawy (T60/T62).
+    VALIDATION_INFRA_ERRORS = {'CalledProcessError', 'OSError', 'TimeoutExpired'}
 
     def __init__(self, root, *, clock=time.time, max_attempts=3, retry_seconds=60, lease_seconds=1200):
         self.root = Path(root)
@@ -98,9 +101,15 @@ class EvolutionStore:
             stats['attempts'] += 1
             stats['ready'] += int(status == 'ready')
             stats['failures'] += int(status == 'needs_fixes')
+            feedback_error = str((receipt.get('feedback') or {}).get('error'))
+            is_content_failure = (
+                status == 'needs_fixes'
+                and feedback_error not in self.VALIDATION_INFRA_ERRORS
+                and feedback_error not in {'connection_error', 'http_error', 'bad_response', 'quota_exhausted'}
+            )
             data[key] = {**old, 'status': status, 'run_id': receipt.get('run_id'),
                          'finished': self.clock(), 'lease_until': 0, 'method_outcomes': methods,
-                         'content_attempts': old.get('content_attempts', 0) + int(status == 'needs_fixes'),
+                         'content_attempts': old.get('content_attempts', 0) + int(is_content_failure),
                          'retry_at': self.clock() + min(900, self.retry_seconds * 2 ** min(4, max(0, old['attempts'] - 1))),
                          'feedback': {'error': receipt.get('error'), 'review': receipt.get('review'),
                                       'validation': receipt.get('validation'), 'security_ok': receipt.get('security_ok')},

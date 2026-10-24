@@ -127,7 +127,10 @@ class ModelSelectionTests(unittest.TestCase):
         self.assertEqual(ledger.remaining_daily_calls(), 0)
 
     def test_executor_budget_filters_before_strategy_and_preserves_basal_choice(self):
-        for remaining, expected in [(5, 'direct_patch'), (3, 'waiting_budget')]:
+        # T60: admission CAŁEGO procesu (strategia+producent+review): direct_patch
+        # wymaga 6 wywołań, hermes(8 tur) 12. Przy 5 pozostałych ŻADEN executor
+        # nie wchodzi — strategia nie jest wysyłana (odbiór T60).
+        for remaining, expected in [(7, 'direct_patch'), (5, 'waiting_budget')]:
             with self.subTest(remaining=remaining), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 registry = root / 'models.json'
