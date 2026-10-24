@@ -1,0 +1,13 @@
+[Unit]
+Description=STRAZ: basal-serve (decydent roju, basal-omni-pico przez Ollama)
+Wants=straz-ollama.service
+After=straz-ollama.service
+
+[Service]
+ExecStartPre=/bin/sh -c '! test -e /home/krzysiek/.local/share/straz/KILL_BASAL'
+ExecStart=/home/krzysiek/basal-env/bin/basal-serve --model /home/krzysiek/.cache/huggingface/hub/models--Remek--basal-omni-pico-GGUF/snapshots/a9380832ca979d833bd68c2f369b3c13ee8c47a3 --mode ollama --ollama-model basal-omni-pico --ollama-url http://127.0.0.1:11434 --host 127.0.0.1 --port 8000 --max-len 2048 --calibration /home/krzysiek/basal_pico/CALIBRATION.gguf.json
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=default.target
