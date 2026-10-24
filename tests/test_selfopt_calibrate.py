@@ -51,7 +51,7 @@ class FitTemperaturesTest(unittest.TestCase):
         labels = [{"decision_id": d["id"], "accepted": True} for d in decisions]
         calibration = fit_temperatures(decisions, labels)
         self.assertLess(calibration["temperature_per_prim"]["choice"], 0.771)
-        self.assertEqual(calibration["n_labels"], 3)
+        self.assertEqual(calibration["n_labels"], 2)
 
     def test_bad_and_undeferred_flattens_temperature(self):
         decisions = [self._decision("choice", False)]

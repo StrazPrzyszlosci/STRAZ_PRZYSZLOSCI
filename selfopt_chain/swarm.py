@@ -25,8 +25,8 @@ Wszystko suggest-only: plan roju to artefakt do review, nie aktuation.
 from __future__ import annotations
 
 import json
-import math
 import re
+import math
 import time
 import uuid
 from pathlib import Path
@@ -113,6 +113,9 @@ class BasalDecisionCore:
                 remote_note = "basal-serve nieosiagalny/nieparsowalny; decyzja wbudowana"
         if probabilities is None:
             probabilities, confidence = softmax_confidence(scores, question_type, self.temperatures)
+        if not probabilities or set(probabilities) != set(options) or not math.isfinite(confidence) or not 0 <= confidence <= 1 or any(not math.isfinite(v) or not 0 <= v <= 1 for v in probabilities.values()):
+            probabilities, confidence = softmax_confidence(scores, question_type, self.temperatures)
+            engine, remote_note = "builtin", "invalid remote candidates"
         ranking = sorted(probabilities.items(), key=lambda kv: -kv[1])
         chosen = ranking[0][0]
         default_option = default_option or options[0]
@@ -304,13 +307,9 @@ REMOTE_INSTRUCTIONS: dict[str, str] = {
         "presja limitow darmowych API, zadania krytyczne, okno OZE. Wybierz strategie, ktora "
         "maksymalizuje liczbe zweryfikowanych ulepszen przy dostepnych zasobach."
     ),
-    "job_selection": (
-        "Decyzja: selekcja i kolejnosc zadan do wykonania w tym cyklu (limity budzetow darmowych API). "
-        "Priorytet wyzej = wazniejsze zadanie."
-    ),
     "allocation": (
         "Decyzja: przydzial zasobu (sprzet/model) do zapotrzebowania misyjnego. Zasoby: telefony, "
-        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wezly selfhost, darmowe modele API. "
+        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wczely selfhost, darmowe modele API. "
         "Wybierz zasob najlepiej pokrywajacy wymagania zapotrzebowania."
     ),
     "exec_mode": (
@@ -318,20 +317,7 @@ REMOTE_INSTRUCTIONS: dict[str, str] = {
         "on_device_model = maly model decyzyjny na wezle; cloud_chain = lancuch LLM w hubie na "
         "darmowych API. Priorytet: lokalnie i tanszej, jesli wystarcza."
     ),
-    "model_selection": (
-        "Decyzja: wybor modelu LLM do zadania sposrod kandydatow rotera (kolejnosc wg polityki "
-        "jakosc/szybkosc/budzet). Score 2.0 = wybor rotera; alternatywy malejaco. "
-        "Ocen dopasowanie modelu do rodzaju zadania."
-    ),
 }
-
-LETTER_CLASS = r"A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9"
-
-
-def _stem_pattern(stem: str) -> re.Pattern[str]:
-    """Wzorzec rdzenia na GRANICY słowa (koniec false positives typu
-    'wytwarzanie'~'twarz', 'bronowanie'~'bron')."""
-    return re.compile(rf"(?<![{LETTER_CLASS}]){re.escape(stem)}")
 
 
 def load_charter(path: Path = CHARTER_PATH) -> dict[str, Any]:
@@ -352,8 +338,8 @@ def charter_check(mission_demands: list[Demand], charter: dict[str, Any]) -> dic
     allowed = set(charter["allowed_mission_classes"])
     forbidden = [kw.lower() for kw in charter["forbidden_keywords"]]
     for demand in mission_demands:
-        text = f"{demand.label} {' '.join(sorted(demand.required))}".lower()
-        hit = next((kw for kw in forbidden if _stem_pattern(kw.lower()).search(text)), None)
+        text = (f"{demand.label} {' '.join(sorted(demand.required))} " + json.dumps(demand.payload or {}, ensure_ascii=False)).lower()
+        hit = next((kw for kw in forbidden if re.search(r"(?<!\w)" + re.escape(kw) + (r"(?!\w)" if kw == "bron" else ""), text)), None)
         if hit:
             violations.append({"demand_id": demand.demand_id, "rule": "forbidden_keywords", "detail": hit})
             continue
@@ -582,7 +568,7 @@ class SwarmPlanner:
 
         mission_allocations: list[dict[str, Any]] = []
         charter = load_charter()
-        charter_result = charter_check(mission_demands, charter)
+        charter_result = charter_check(mission_demands + procdev_demands, charter)
         blocked_ids = {v["demand_id"] for v in charter_result["violations"]}
         for demand in mission_demands:
             if demand.demand_id in blocked_ids:
@@ -613,7 +599,7 @@ class SwarmPlanner:
                 "reason": "ok",
             })
 
-        execution = self.decide_job_selection(procdev_demands, max_jobs)
+        execution = self.decide_job_selection([d for d in procdev_demands if d.demand_id not in blocked_ids], max_jobs)
         execution_order = execution["final"][:max_jobs]
 
         return {

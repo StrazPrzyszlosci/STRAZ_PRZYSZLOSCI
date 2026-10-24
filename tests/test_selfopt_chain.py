@@ -97,7 +97,7 @@ class RouterTest(unittest.TestCase):
     def test_all_quota_exhausted_blocks(self):
         ledger = QuotaLedger(self.models)
         for m in self.models:
-            for _ in range(max(m["rpm_seed"], m["rpd_seed"])):
+            while ledger.can_use(m["model_id"]):
                 ledger.record(m["model_id"])
         decision = route_task(_task("classify"), self.models, ledger)
         self.assertTrue(decision["blocked"])

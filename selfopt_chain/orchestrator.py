@@ -27,6 +27,8 @@ import argparse
 import hashlib
 import json
 import os
+import re
+import threading
 import signal
 import sys
 import time
@@ -49,6 +51,7 @@ from selfopt_chain.calibrate import (
 from selfopt_chain.evolver import EvolutionLoop, decide_parallel_mode
 from selfopt_chain.hermes_worker import HermesWorker
 from selfopt_chain.registry import DEFAULT_REGISTRY, load_registry
+from selfopt_chain.quota import QuotaLedger, BudgetedEngine
 from selfopt_chain.run_loop import run_chain
 from selfopt_chain.swarm import (
     BasalDecisionCore,
@@ -103,7 +106,7 @@ def match_capability(resource_class: str, capability_map: dict[str, Any]) -> dic
 
 def quota_gate(engine_name: str, snapshot_path: Path | None) -> dict[str, Any]:
     """Bramka „no_agent_chain_without_ok_snapshot" dla realnych wywołań API."""
-    if engine_name not in {"free-api", "omniroute"}:
+    if engine_name == "mock":
         return {"allowed": True, "reason": "mock_engine_bez_bramki_quota"}
     if snapshot_path is None or not snapshot_path.exists():
         return {"allowed": False, "reason": "quota_snapshot_blocked:missing_snapshot"}
@@ -141,10 +144,10 @@ class OrchestratorState:
     def mark_processed(self, fp: str, job_id: str) -> None:
         self.data["processed"][fp] = {"job_id": job_id, "ts": _now_iso()}
 
-    def record_calls(self, usage: dict[str, int]) -> None:
-        """Accounting PER WYWOŁANIE (audyt §5.4): usage = {model_id: liczba wywołań}."""
-        for mid, n in usage.items():
-            self.data["daily_calls"][mid] = self.data["daily_calls"].get(mid, 0) + int(n)
+    def record_calls(self, usage) -> None:
+        counts = dict(usage) if isinstance(usage, dict) else dict(__import__("collections").Counter(usage))
+        for mid, count in counts.items():
+            self.data["daily_calls"][mid] = self.data["daily_calls"].get(mid, 0) + count
 
     def budgeted_models(self, models: list[dict]) -> list[dict]:
         """Widok rejestru z odjętym dobowym zużyciem; modele z wyczerpanym
@@ -172,10 +175,10 @@ def collect_feedback(inbox_dir: Path | None) -> list[dict[str, Any]]:
     for msg_path in sorted(inbox_dir.glob("*.json")):
         msg = json.loads(msg_path.read_text(encoding="utf-8"))
         feedback = msg.get("feedback")
-        if isinstance(feedback, dict) and feedback.get("decision_id"):
+        if isinstance(feedback, dict) and feedback.get("decision_id") and isinstance(feedback.get("accepted"), bool):
             feedbacks.append({
                 "decision_id": feedback["decision_id"],
-                "accepted": bool(feedback.get("accepted")),
+                "accepted": feedback.get("accepted"),
                 "note": str(feedback.get("note", "")),
                 "source": "field",
                 "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -185,13 +188,10 @@ def collect_feedback(inbox_dir: Path | None) -> list[dict[str, Any]]:
 
 class Job:
     def __init__(self, job_id: str, source: str, record: dict[str, Any]) -> None:
-        self.job_id = job_id
+        self.job_id = job_id if re.fullmatch(r"[A-Za-z0-9_-]+", job_id) else "job_" + fingerprint({"id": job_id})
         self.source = source
         self.record = record
         self.fingerprint = fingerprint(record)
-        # Privacy end-to-end (audyt §5.6): dane z pola/LoRa = private (fail-closed
-        # bez lokalnego engine); publiczne oferty zasobów = public.
-        self.privacy = "private" if source == "lora_inbox" else "public"
 
 
 def collect_jobs(records_paths: list[Path], inbox_dir: Path | None) -> list[Job]:
@@ -205,7 +205,10 @@ def collect_jobs(records_paths: list[Path], inbox_dir: Path | None) -> list[Job]
     if inbox_dir is not None and inbox_dir.exists():
         for msg_path in sorted(inbox_dir.glob("*.json")):
             msg = json.loads(msg_path.read_text(encoding="utf-8"))
+            if "feedback" in msg:
+                continue
             record = {
+                "privacy": msg.get("privacy", "private"),
                 "id": f"inbox_{msg_path.stem}",
                 "source": {"type": "lora_inbox", "url_or_note": msg.get("payload_text", "")},
                 "location": {"country": "PL", "region": "field", "pickup_radius_km": 0},
@@ -222,17 +225,18 @@ def collect_jobs(records_paths: list[Path], inbox_dir: Path | None) -> list[Job]
 
 
 def build_chain_def(job: Job) -> dict[str, Any]:
+    privacy = "public" if job.record.get("privacy", "public" if job.source != "lora_inbox" else "private") == "public" else "private"
     prompt_context = json.dumps(job.record, ensure_ascii=False)
     return {
         "chain_id": f"procdev_{job.job_id}",
         "nodes": [
-            {"id": "classify", "kind": "classify", "privacy": job.privacy, "complexity": "light", "requires": ["text"],
+            {"id": "classify", "kind": "classify", "privacy": privacy, "complexity": "light", "requires": ["text"],
              "prompt": f"Ocen klase zasobu i pilnosci dla misji Strazy Przyszlosci. Rekord:\n{prompt_context}"},
-            {"id": "extract", "kind": "extract", "privacy": job.privacy, "complexity": "medium", "requires": ["text", "json"],
+            {"id": "extract", "kind": "extract", "privacy": privacy, "complexity": "medium", "requires": ["text", "json"],
              "prompt": f"Wyciagnij kluczowe parametry zasobu (klasa, lokalizacja, koszt, ryzyka, evidence, energia/logistyka):\n{prompt_context}"},
-            {"id": "draft", "kind": "draft", "privacy": job.privacy, "complexity": "medium", "requires": ["text", "json"],
+            {"id": "draft", "kind": "draft", "privacy": privacy, "complexity": "medium", "requires": ["text", "json"],
              "prompt": f"Zredaguj krotki draft dossier potencjalu: co z tego zasobu moze sluzyc ludziom, jaki produkt, dla kogo:\n{prompt_context}"},
-            {"id": "review", "kind": "review", "privacy": job.privacy, "complexity": "light", "requires": ["text"],
+            {"id": "review", "kind": "review", "privacy": privacy, "complexity": "light", "requires": ["text"],
              "prompt": f"Zweryfikuj draft wzgledem ryzyk i brakujacej evidencji; co musi potwierdzic czlowiek:\n{prompt_context}"},
         ],
         "pipeline": ["classify", "extract", "draft", "review"],
@@ -295,10 +299,25 @@ class Orchestrator:
         self.state.load()
         self.capability_map = load_capability_map(Path(config.get("capability_map_path", CAPABILITY_MAP_PATH)))
         self.registry_path = Path(config.get("registry_path", DEFAULT_REGISTRY))
+        self.deadline = time.monotonic() + config.get("max_seconds", 3600)
+        self.had_failures = False
         self.stop_requested = False
+        self.stop_event = threading.Event()
+        self.ledger = QuotaLedger(load_registry(self.registry_path), self.state_dir / "quota_ledger.json",
+                                  max_calls=config.get("max_calls"), should_stop=self.should_stop,
+                                  seed_daily=self.state.data.get("daily_calls", {}))
 
     def request_stop(self, *_args: Any) -> None:
         self.stop_requested = True
+        self.stop_event.set()
+
+    def should_stop(self) -> bool:
+        return self.stop_requested or self.kill_switch_active() or time.monotonic() >= self.deadline
+
+    def wait_interval(self, seconds):
+        end = time.monotonic() + seconds
+        while time.monotonic() < end and not self.should_stop():
+            self.stop_event.wait(min(0.25, max(0, end - time.monotonic())))
 
     def kill_switch_active(self) -> bool:
         return Path(self.config["kill_switch"]).exists()
@@ -309,6 +328,8 @@ class Orchestrator:
             return 0
         labels_path = self.state_dir / "labels.jsonl"
         existing: set[tuple] = set()
+        known = {d["id"] for d in load_decisions(self.state_dir)}
+        feedbacks = [f for f in feedbacks if f["decision_id"] in known]
         for label in load_labels(self.state_dir):
             existing.add((label.get("decision_id"), label.get("accepted"), label.get("note")))
         appended = 0
@@ -324,15 +345,10 @@ class Orchestrator:
         return appended
 
     def _auto_calibrate(self) -> dict[str, Any] | None:
-        """Samokalibracja roju: decisions.jsonl + labels.jsonl → CALIBRATION.selfopt.json.
-
-        Kumulatywnie: fit startuje od poprzedniej kalibracji (audyt §5.2),
-        nie od stałego seeda."""
+        """Samokalibracja roju: decisions.jsonl + labels.jsonl → CALIBRATION.selfopt.json."""
         decisions = load_decisions(self.state_dir)
         labels = load_labels(self.state_dir)
-        previous = load_calibration(self.state_dir)
-        base = previous.get("temperature_per_prim") if previous else None
-        calibration = fit_temperatures(decisions, labels, base=base)
+        calibration = fit_temperatures(decisions, labels) or load_calibration(self.state_dir)
         if calibration is not None:
             write_calibration(self.state_dir, calibration)
         return calibration
@@ -342,7 +358,7 @@ class Orchestrator:
         feedbacks = collect_feedback(self.config.get("inbox_dir"))
         new_labels = self._ingest_feedback_labels(feedbacks)
         calibration = self._auto_calibrate()
-        receipt["field_feedback"] = {"received": len(feedbacks), "new_labels": new_labels}
+        receipt.setdefault("field_feedback", {"received": len(feedbacks), "new_labels": new_labels})
         receipt["calibration"] = (
             {"n_labels": calibration["n_labels"], "temperatures": calibration["temperature_per_prim"], "applied": True}
             if calibration else {"applied": False, "reason": "brak etykiet"}
@@ -354,11 +370,11 @@ class Orchestrator:
                 needs_records.extend(json.loads(p.read_text(encoding="utf-8")).get("records", []))
         mission_demands = [demand_from_need(r) for r in needs_records]
         procdev_demands = [
-            Demand(j.job_id, f"procdev {j.job_id}", ["text", "json"], j.source, priority=1)
+            Demand(j.job_id, f"procdev {j.job_id} {j.record.get('payload_text', '')}", ["text", "json"], j.source, priority=1, payload=j.record)
             for j in pending
         ]
         hardware_resources = resources_from_records([j.record for j in jobs])
-        model_resources = resources_from_models(load_registry(self.registry_path), self.state.data.get("daily_calls", {}))
+        model_resources = resources_from_models(load_registry(self.registry_path), self.ledger.rpd_used)
         scarce = sum(1 for m in model_resources if m.headroom <= 0.2)
         cycle_signals = {
             "backlog": len(pending),
@@ -425,12 +441,23 @@ class Orchestrator:
             receipt["jobs_status"] = "skipped_quota_gate"
             return receipt
 
+        feedbacks = collect_feedback(self.config.get("inbox_dir"))
+        receipt["field_feedback"] = {"received": len(feedbacks), "new_labels": self._ingest_feedback_labels(feedbacks)}
+        calibration = self._auto_calibrate()
+        receipt["calibration"] = {"applied": bool(calibration), **({"n_labels": calibration["n_labels"], "temperatures": calibration["temperature_per_prim"]} if calibration else {})}
         jobs = collect_jobs(self.config["records_paths"], self.config.get("inbox_dir"))
         pending = [j for j in jobs if not self.state.already_processed(j.fingerprint)]
         receipt["jobs_skipped_processed"] = len(jobs) - len(pending)
         if not pending:
             if not jobs:
-                pending = [Job(BOOTSTRAP_RECORD["id"], "bootstrap_demo", BOOTSTRAP_RECORD)]
+                bootstrap = Job(BOOTSTRAP_RECORD["id"], "bootstrap_demo", BOOTSTRAP_RECORD)
+                if self.state.already_processed(bootstrap.fingerprint):
+                    receipt["jobs_status"] = "no_new_jobs"
+                    if self.config.get("evolve"):
+                        receipt["evolution"] = self._run_evolution(0)
+                    receipt["finished"] = _now_iso()
+                    return receipt
+                pending = [bootstrap]
                 receipt["jobs_status"] = "bootstrap_demo"
             else:
                 receipt["jobs_status"] = "no_new_jobs"
@@ -439,7 +466,8 @@ class Orchestrator:
                 receipt["finished"] = _now_iso()
                 return receipt
 
-        budgeted = self.state.budgeted_models(load_registry(self.registry_path))
+        self.state.data["daily_calls"] = self.ledger.rpd_used
+        budgeted = [m for m in load_registry(self.registry_path) if self.ledger.can_use(m["model_id"])]
         if not budgeted:
             receipt["jobs_status"] = "daily_budget_exhausted"
             receipt["finished"] = _now_iso()
@@ -455,15 +483,14 @@ class Orchestrator:
         selected_jobs = [j for j in pending if j.job_id in procdev_order]
         selected_jobs.sort(key=lambda j: procdev_order[j.job_id])
         for job in selected_jobs[: self.config["max_jobs"]]:
-            budgeted = self.state.budgeted_models(load_registry(self.registry_path))
-            if not budgeted:
-                receipt["jobs_status"] = "daily_budget_exhausted"
-                receipt["finished"] = _now_iso()
-                return receipt
-            budget_registry_path = self.state_dir / f"registry_view_cycle_{cycle_no}_{job.job_id}.json"
-            budget_registry_path.parent.mkdir(parents=True, exist_ok=True)
-            budget_registry_path.write_text(json.dumps({"models": budgeted}, ensure_ascii=False, indent=2), encoding="utf-8")
-            run_dir = self.state_dir / "runs" / f"cycle_{cycle_no}_{job.job_id}"
+            if self.config.get("max_calls") is not None and self.config["max_calls"] - sum(self.ledger.rpd_used.values()) < 4:
+                receipt["jobs_status"] = "insufficient_budget"
+                break
+            if self.should_stop():
+                receipt["jobs_status"] = "stopped"
+                break
+            safe_id = fingerprint({"job_id": job.job_id})
+            run_dir = self.state_dir / "runs" / f"cycle_{cycle_no}_{job.job_id if job.job_id.replace('_', '').replace('-', '').isalnum() else safe_id}"
             chain_path = run_dir / "chain.json"
             chain_path.parent.mkdir(parents=True, exist_ok=True)
             chain_path.write_text(json.dumps(build_chain_def(job), ensure_ascii=False, indent=2), encoding="utf-8")
@@ -474,6 +501,8 @@ class Orchestrator:
                 registry_path=budget_registry_path,
                 quota_snapshot_path=self.config.get("quota_snapshot_path"),
                 spool_dir=None,
+                decision_core=getattr(self, "_cycle_core", None),
+                ledger=self.ledger, should_stop=self.should_stop,
             )
             models_used: list[str] = []
             outputs: dict[str, Any] = {}
@@ -491,8 +520,12 @@ class Orchestrator:
             procdev_dir.mkdir(parents=True, exist_ok=True)
             draft_path = procdev_dir / f"{job.job_id}.md"
             draft_path.write_text(draft, encoding="utf-8")
-            self.state.record_calls(quota_usage)
-            self.state.mark_processed(job.fingerprint, job.job_id)
+            self.state.data["daily_calls"] = self.ledger.rpd_used
+            if rc == 0:
+                self.state.mark_processed(job.fingerprint, job.job_id)
+            else:
+                receipt["jobs_status"] = "degraded"
+            self.state.save()
             receipt["jobs_run"].append({
                 "job_id": job.job_id,
                 "source": job.source,
@@ -502,7 +535,7 @@ class Orchestrator:
                 "capability": capability["capability"],
             })
 
-        if self.config.get("evolve"):
+        if self.config.get("evolve") and not self.should_stop():
             evolution = self._run_evolution(len(pending))
             receipt["evolution"] = evolution
         receipt["finished"] = _now_iso()
@@ -511,10 +544,16 @@ class Orchestrator:
     def _run_evolution(self, backlog: int) -> dict[str, Any]:
         """Samoewolucja repo wg dyrektywy operatora: LLM tworzy STRATEGIĘ,
         basal wybiera decyzje i odpowiednie LLM, Hermes wykonuje headless."""
-        core = getattr(self, "_cycle_core", None) or BasalDecisionCore(
+        self._ingest_feedback_labels(collect_feedback(self.config.get("inbox_dir")))
+        calibration = self._auto_calibrate()
+        core = BasalDecisionCore(
             decision_log=self.state_dir / "decisions.jsonl",
             confidence_floor=float(self.config.get("confidence_floor", 0.55)),
+            temperatures=calibration["temperature_per_prim"] if calibration else None,
         )
+        gate = quota_gate(self.config["engine"], self.config.get("quota_snapshot_path"))
+        if not gate["allowed"] or self.should_stop():
+            return {"mode": "blocked", "tasks": [], "quota_gate": gate, "auto_applied": False}
         mode = self.config.get("subagent_mode", "auto")
         if mode == "auto":
             mode = decide_parallel_mode(core, backlog=backlog, critical=1 if backlog > 3 else 0)
@@ -524,23 +563,14 @@ class Orchestrator:
         if self.config.get("engine") == "omniroute":
             from selfopt_chain.omniroute import OmniRouteEngine
 
-            strategy_engine = OmniRouteEngine(load_registry(self.registry_path))
-            lane_models = sorted(strategy_engine.adapter.policy.free_model_ids)
-            # Priorytet pasm: sprawdzony szybki combo free -> ddwg -> nvidia
-            # (dziala, ale powolny — cierpliwie) -> mistral -> reszta.
-
-            def lane_priority(mid: str) -> tuple:
-                if mid.startswith("auto") and mid.endswith(":free"):
-                    return (0, mid)
-                prefix = mid.split("/", 1)[0]
-                rank = {"ddgw": 1, "nvidia": 2, "mistral": 3}.get(prefix, 9)
-                return (rank, mid)
-
-            lane_models.sort(key=lane_priority)
+            strategy_engine = BudgetedEngine(OmniRouteEngine(load_registry(self.registry_path)), load_registry(self.registry_path), self.ledger, self.should_stop)
+            lane_models = [m["model_id"] for m in load_registry(self.registry_path) if m.get("privacy_class") != "local_private" and self.ledger.can_use(m["model_id"])]
             if HermesWorker.enabled():
-                worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"))
-        loop = EvolutionLoop(self.state_dir, ROOT / "docs", ROOT, worker=worker, lane_models=lane_models, decision_core=core, strategy_engine=strategy_engine, max_lanes=int(self.config.get("evolve_lanes", 6)))
+                worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"), ledger=self.ledger, should_stop=self.should_stop, repo_root=ROOT, models=load_registry(self.registry_path))
+        loop = EvolutionLoop(self.state_dir, ROOT / "docs", ROOT, worker=worker, lane_models=lane_models, decision_core=core, strategy_engine=strategy_engine, max_lanes=int(self.config.get("evolve_lanes", 6)), should_stop=self.should_stop)
         receipts = loop.run(max_tasks=int(self.config.get("evolve_max_tasks", 4)), parallel_mode=mode)
+        self.state.data["daily_calls"] = self.ledger.rpd_used
+        self.state.save()
         return {
             "mode": mode,
             "strategy_source": loop.strategy.get("source", "n/a"),
@@ -557,7 +587,8 @@ class Orchestrator:
         if self.config.get("evolve_only"):
             return self._run_evolution_daemon()
         max_cycles = self.config.get("max_cycles")
-        while not self.stop_requested:
+        cycles_this_run = 0
+        while not self.should_stop():
             if self.kill_switch_active():
                 self.state_dir.mkdir(parents=True, exist_ok=True)
                 stopped = {"stopped": True, "reason": "kill_switch", "ts": _now_iso(), "cycles_done": self.state.data["cycle"]}
@@ -565,19 +596,21 @@ class Orchestrator:
                 print(json.dumps(stopped, ensure_ascii=False))
                 return 0
             receipt = self.run_cycle()
+            self.had_failures |= receipt["jobs_status"] == "degraded"
+            cycles_this_run += 1
             self.state.data["cycle"] = receipt["cycle"]
             self.state.save()
             cycles_dir = self.state_dir / "cycles"
             cycles_dir.mkdir(parents=True, exist_ok=True)
             (cycles_dir / f"cycle_{receipt['cycle']}.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
             print(json.dumps({k: receipt[k] for k in ("cycle", "jobs_status", "jobs_run", "quota_gate") if k in receipt}, ensure_ascii=False), flush=True)
-            if max_cycles is not None and self.state.data["cycle"] >= max_cycles:
-                return 0
+            if max_cycles is not None and cycles_this_run >= max_cycles:
+                return 1 if self.had_failures else 0
             if self.stop_requested:
                 break
-            time.sleep(self.config.get("interval_s", DEFAULT_INTERVAL_S))
+            self.wait_interval(self.config.get("interval_s", DEFAULT_INTERVAL_S))
         self.state_dir.mkdir(parents=True, exist_ok=True)
-        stopped = {"stopped": True, "reason": "signal", "ts": _now_iso(), "cycles_done": self.state.data["cycle"]}
+        stopped = {"stopped": True, "reason": "kill_switch" if self.kill_switch_active() else "deadline" if time.monotonic() >= self.deadline else "signal", "ts": _now_iso(), "cycles_done": self.state.data["cycle"]}
         (self.state_dir / "stopped.json").write_text(json.dumps(stopped, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(stopped, ensure_ascii=False))
         return 0
@@ -589,13 +622,13 @@ class Orchestrator:
         (scratch/selfopt/KILL_SWITCH).
         """
         batch = 0
-        while not self.stop_requested:
+        while not self.should_stop():
             if self.kill_switch_active():
                 self.state_dir.mkdir(parents=True, exist_ok=True)
                 (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "kill_switch", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
                 return 0
             batch += 1
-            evolution = self._run_evolution(backlog=batch)
+            evolution = self._run_evolution(backlog=0)
             self.state_dir.mkdir(parents=True, exist_ok=True)
             log_path = self.state_dir / "evolution_batches"
             log_path.mkdir(parents=True, exist_ok=True)
@@ -613,8 +646,10 @@ class Orchestrator:
             print(json.dumps(summary, ensure_ascii=False), flush=True)
             if self.stop_requested:
                 break
-            time.sleep(int(self.config.get("evolve_pause", 60)))
-        (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "signal", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
+            if self.config.get("max_cycles") is not None and batch >= self.config["max_cycles"]:
+                return 0
+            self.wait_interval(int(self.config.get("evolve_pause", 60)))
+        (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "kill_switch" if self.kill_switch_active() else "deadline" if time.monotonic() >= self.deadline else "signal", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
         return 0
 
 
@@ -630,6 +665,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_S, help="sekundy między cyklami")
     parser.add_argument("--max-cycles", type=int, default=None, help="limit cykli (brak = daemon)")
     parser.add_argument("--once", action="store_true", help="jeden cykl i wyjście")
+    parser.add_argument("--max-seconds", type=int, default=3600)
+    parser.add_argument("--max-calls", type=int, default=100, help="twardy dobowy limit prób wszystkich silników")
     parser.add_argument("--max-jobs", type=int, default=DEFAULT_MAX_JOBS)
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
     parser.add_argument("--kill-switch", type=Path, default=DEFAULT_KILL_SWITCH)
@@ -642,11 +679,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quota-snapshot", type=Path, default=ROOT / "agent_runtime_plans" / "hermes_pilot" / "quota_snapshot.json")
     args = parser.parse_args(argv if argv is not None else None)
 
+    if min(args.max_calls, args.max_seconds, args.max_jobs, args.evolve_max_tasks, args.evolve_lanes) < 1 or min(args.interval, args.evolve_pause) < 0:
+        parser.error("limity muszą być dodatnie, przerwy nieujemne")
     config: dict[str, Any] = {
         "engine": args.engine,
         "interval_s": 0 if args.once else args.interval,
         "max_cycles": 1 if args.once else args.max_cycles,
         "max_jobs": args.max_jobs,
+        "max_calls": args.max_calls,
+        "max_seconds": args.max_seconds,
         "state_dir": args.state_dir,
         "kill_switch": args.kill_switch,
         "registry_path": args.registry,
@@ -661,7 +702,7 @@ def main(argv: list[str] | None = None) -> int:
         "evolve_max_tasks": args.evolve_max_tasks,
         "evolve_lanes": args.evolve_lanes,
         "subagent_mode": args.subagent_mode,
-        "quota_snapshot_path": args.quota_snapshot if args.engine in ("free-api",) else None,
+        "quota_snapshot_path": args.quota_snapshot if args.engine != "mock" else None,
     }
     return Orchestrator(config).run()
 

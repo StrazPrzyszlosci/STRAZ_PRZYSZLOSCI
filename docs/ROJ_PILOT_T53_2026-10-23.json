@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-23",
+  "base_commit": "68594803acff91bdfa61f7b3703e192ff96d00a6",
+  "scope": "bounded pilot on public sample records; not physical activation or proof of learning",
+  "tests": {
+    "python": 494,
+    "javascript": 378,
+    "manifest_count": 12,
+    "seed_approvals": 2
+  },
+  "live": {
+    "attempts_in_node_traces": 16,
+    "attempts_in_daily_ledger": 16,
+    "successful_calls": 10,
+    "failed_calls": 6,
+    "runs": 4,
+    "successful_runs": 2,
+    "false_successes": 0,
+    "human_accepted_artifacts": 0,
+    "human_acceptance_rate": null,
+    "useful_artifacts_per_100_attempts": 0.0,
+    "feedback_coverage": 0.0,
+    "policy": "suggest-only",
+    "auto_applied": false
+  },
+  "last_live_run": {
+    "cycle": 5,
+    "status": "ok",
+    "attempts": 4,
+    "successful_calls": 4
+  },
+  "processed_jobs": 2,
+  "limits": {
+    "total_attempts": 16,
+    "per_request_timeout_seconds": 60,
+    "upstream_quota_verified": false
+  },
+  "policy": "suggest-only",
+  "auto_applied": false,
+  "artifacts": [
+    {
+      "path": "scratch/selfopt/pilot-live/runs/cycle_1_ewaste_phone_batch_local_001/run_receipt.json",
+      "sha256": "84f68024d2828b85d8e495f15597ed524e09394bc8cc7656734b3680a9d84541",
+      "status": "ok",
+      "attempts": 7
+    },
+    {
+      "path": "scratch/selfopt/pilot-live/runs/cycle_2_selfhost_compute_node_recovered_001/run_receipt.json",
+      "sha256": "406f2af7c60b61eaf805b0917c857be23623e68ba63741ee7f10130dbbc26eb7",
+      "status": "failed",
+      "attempts": 1
+    },
+    {
+      "path": "scratch/selfopt/pilot-live/runs/cycle_3_selfhost_compute_node_recovered_001/run_receipt.json",
+      "sha256": "424c53db9d10aaade269e2e63c51e64427154d786a2bf217922ac51b40adb522",
+      "status": "degraded",
+      "attempts": 4
+    },
+    {
+      "path": "scratch/selfopt/pilot-live/runs/cycle_5_selfhost_compute_node_recovered_001/run_receipt.json",
+      "sha256": "054ecd77f26842bfc71800276d5fea98011c28f2c458c52db6f9b8a87b635803",
+      "status": "ok",
+      "attempts": 4
+    }
+  ],
+  "source_manifest": "scratch/selfopt/pilot-live/source_manifest_2026-10-23T02-18-43.954Z.json"
+}

@@ -70,6 +70,8 @@ def load_labels(state_dir: Path) -> list[dict[str, Any]]:
 
 def append_label(state_dir: Path, decision_id: str, accepted: bool, note: str = "", source: str = "operator") -> dict[str, Any]:
     """Etykieta decyzji (wzór router.py annotate z basala; źródło: operator/field)."""
+    if not isinstance(accepted, bool) or decision_id not in {d["id"] for d in load_decisions(state_dir)}:
+        raise ValueError("unknown_decision_or_non_boolean_label")
     label = {
         "decision_id": decision_id,
         "accepted": bool(accepted),
@@ -89,13 +91,9 @@ def _seed_temperature(question_type: str) -> float:
     return temps.get("default", 0.771)
 
 
-def fit_temperatures(decisions: list[dict[str, Any]], labels: list[dict[str, Any]], base: dict[str, float] | None = None) -> dict[str, Any] | None:
-    """Dopasowanie temperatur per typ pytania wg etykiet; None gdy brak etykiet.
-
-    Kumulacja (audyt §5.2): gdy `base` (poprzednia kalibracja) jest podane,
-    fit startuje od niej — kolejne fity poruszają się po skali, nie wracają
-    do stałego seeda.
-    """
+def fit_temperatures(decisions: list[dict[str, Any]], labels: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Dopasowanie temperatur per typ pytania wg etykiet; None gdy brak etykiet."""
+    labels = list({label["decision_id"]: label for label in labels if isinstance(label.get("accepted"), bool)}.values())
     by_id = {d["id"]: d for d in decisions}
     labeled = [(label, by_id[label["decision_id"]]) for label in labels if label["decision_id"] in by_id]
     if not labeled:
@@ -112,7 +110,7 @@ def fit_temperatures(decisions: list[dict[str, Any]], labels: list[dict[str, Any
         stats["n"] += 1
     temperature_per_prim: dict[str, float] = {}
     for question_type, stats in per_type.items():
-        seed = (base or {}).get(question_type, _seed_temperature(question_type))
+        seed = _seed_temperature(question_type)
         direction = stats["bad_undeferred"] - stats["good_deferred"]
         step = FIT_STEP * abs(direction) / max(1, stats["n"])
         fitted = min(TEMP_MAX, max(TEMP_MIN, seed + (step if direction > 0 else -step if direction < 0 else 0.0)))

@@ -25,10 +25,8 @@ NETWORK_ENV_FLAG = "SELFOPT_NETWORK"
 OMNIROUTE_URL_ENV = "SELFOPT_OMNIROUTE_URL"
 OMNIROUTE_KEY_ENV = "SELFOPT_OMNIROUTE_KEY"
 DEFAULT_OMNIROUTE_URL = "http://127.0.0.1:20128/v1"
-DEFAULT_MODEL_ALIAS = os.environ.get("SELFOPT_OMNIROUTE_MODEL", "auto/coding:free")
-DEFAULT_TIMEOUT_S = 600
-RETRYABLE_ERROR_CLASSES = {"http_error", "connection_error", "free_only_violation"}
-RETRY_BACKOFF_S = 30
+DEFAULT_MODEL_ALIAS = "auto"
+DEFAULT_TIMEOUT_S = 180
 
 FREE_ALIAS_PREFIX = "auto"
 FREE_PROVIDER_IDS = {
@@ -42,26 +40,22 @@ class FreeOnlyPolicy:
     """Twarda polityka darmowości: allowlista z rejestru free_models.json."""
 
     def __init__(self, models: list[dict]) -> None:
-        self.free_model_ids = {m["model_id"] for m in models}
+        self.free_model_ids = {m["model_id"] for m in models if m.get("cost_class") == "free_quota" and m.get("privacy_class") != "local_private"}
+        self.default_model = next((m["model_id"] for m in models if m["model_id"] in self.free_model_ids), "")
         self.free_providers = {m.get("provider") for m in models}
+        self.response_ids = {m["model_id"]: m.get("api", {}).get("response_model_id", m["model_id"]) for m in models if m["model_id"] in self.free_model_ids}
 
     def alias_allowed(self, model_alias: str) -> bool:
         if not model_alias:
             return False
-        if model_alias.startswith(FREE_ALIAS_PREFIX):
+        if model_alias in {"auto", "auto/fast", "auto/smart", "auto/best-fast", "auto/best-reasoning", "auto/best-coding"}:
             return True
-        if model_alias in self.free_model_ids:
-            return True
-        return model_alias.split("/")[0] in FREE_PROVIDER_IDS or model_alias.split("/")[0] == "ddgw"
+        return model_alias in self.free_model_ids
 
     def actual_allowed(self, actual_model: str, provider: str | None = None) -> bool:
-        if actual_model in self.free_model_ids:
+        if actual_model in self.free_model_ids or actual_model in self.response_ids.values():
             return True
-        if provider and provider in self.free_providers:
-            return True
-        # OmniRoute stripuje prefiksy w odpowiedzi (np. 'ddgw/x' -> 'x'):
-        # akceptujemy dopasowanie sufiksowe do katalogu free.
-        return any(str(cat_id).split("/", 1)[-1] == actual_model for cat_id in self.free_model_ids)
+        return False
 
 
 def omniroute_url() -> str | None:
@@ -76,7 +70,7 @@ class OmniRouteAdapter:
 
         self.policy = policy
         self.base_url = (base_url or omniroute_url() or DEFAULT_OMNIROUTE_URL).rstrip("/")
-        self.timeout_s = timeout_s
+        self.timeout_s = min(timeout_s, int(os.environ.get("SELFOPT_REQUEST_TIMEOUT", "30")))
         self.api_key = api_key or os.environ.get(OMNIROUTE_KEY_ENV) or ""
         self._catalog_loaded = False
 
@@ -98,24 +92,9 @@ class OmniRouteAdapter:
                 payload = json.loads(resp.read().decode("utf-8"))
         except Exception:
             return 0
-        entries = payload.get("data", []) if isinstance(payload, dict) else payload
-        added = 0
-        for entry in entries:
-            if not isinstance(entry, dict):
-                continue
-            model_id = str(entry.get("id", ""))
-            owned_by = str(entry.get("owned_by", ""))
-            if not model_id:
-                continue
-            if owned_by in FREE_PROVIDER_IDS or model_id.endswith(":free") or model_id in self.policy.free_model_ids:
-                before = len(self.policy.free_model_ids)
-                self.policy.free_model_ids.add(model_id)
-                if owned_by and owned_by not in self.policy.free_providers and owned_by in FREE_PROVIDER_IDS:
-                    self.policy.free_providers.add(owned_by)
-                if len(self.policy.free_model_ids) > before:
-                    added += 1
+        # Discovery is informational: it cannot expand the operator's allowlist.
         self._catalog_loaded = True
-        return added
+        return 0
 
     @staticmethod
     def network_enabled() -> bool:
@@ -136,6 +115,12 @@ class OmniRouteAdapter:
         if not self.policy.alias_allowed(model_alias):
             result.update(error=f"alias '{model_alias}' poza polityka free-only", error_class="free_only_violation")
             return result
+        if model_alias.startswith("auto"):
+            model_alias = self.policy.default_model
+        if model_alias not in self.policy.free_model_ids:
+            result.update(error="FREE-ONLY: unknown model", error_class="free_only_violation")
+            return result
+        result["requested_alias"] = model_alias
         url = f"{self.base_url}/chat/completions"
         body = json.dumps({
             "model": model_alias,
@@ -144,28 +129,18 @@ class OmniRouteAdapter:
         }).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers=self._headers())
         started = time.monotonic()
-        payload = None
-        last_error: dict[str, Any] | None = None
-        for attempt in (1, 2):
-            try:
-                with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
-                    payload = json.loads(resp.read().decode("utf-8"))
-                last_error = None
-                break
-            except urllib.error.HTTPError as exc:
-                last_error = {"error": f"HTTP {exc.code} od OmniRoute", "error_class": "http_error"}
-            except (urllib.error.URLError, TimeoutError, OSError) as exc:
-                last_error = {"error": f"blad polaczenia z OmniRoute ({type(exc).__name__})", "error_class": "connection_error"}
-            if attempt == 1 and last_error and last_error["error_class"] in RETRYABLE_ERROR_CLASSES:
-                time.sleep(RETRY_BACKOFF_S)
-                req = urllib.request.Request(url, data=body, headers=self._headers())
-                continue
-        if last_error is not None or payload is None:
-            result.update(last_error or {"error": "brak odpowiedzi", "error_class": "connection_error"})
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            result.update(error=f"HTTP {exc.code} od OmniRoute", error_class="http_error", latency_ms=int((time.monotonic() - started) * 1000))
+            return result
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            result.update(error=f"blad polaczenia z OmniRoute ({type(exc).__name__})", error_class="connection_error", latency_ms=int((time.monotonic() - started) * 1000))
             return result
         latency_ms = int((time.monotonic() - started) * 1000)
         actual_model = str(payload.get("model", ""))
-        if not self.policy.actual_allowed(actual_model):
+        if not self.policy.actual_allowed(actual_model) or actual_model not in {model_alias, self.policy.response_ids.get(model_alias)}:
             result.update(
                 error=f"FREE-ONLY naruszone: OmniRoute zwrocil '{actual_model}', ktorego nie ma w rejestrze darmowych modeli",
                 error_class="free_only_violation",
@@ -176,6 +151,9 @@ class OmniRouteAdapter:
             output = payload["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
             result.update(error="nieoczekiwany format odpowiedzi OmniRoute", error_class="bad_response")
+            return result
+        if not isinstance(output, str) or not output.strip():
+            result.update(error="empty response", error_class="bad_response")
             return result
         tokens = len(prompt.encode("utf-8")) // 4 + len(output.encode("utf-8")) // 4 + 32
         result.update(ok=True, output=output, model_id=actual_model, latency_ms=latency_ms, tokens_est=tokens)
@@ -192,10 +170,12 @@ class OmniRouteEngine:
 
     def __init__(self, models: list[dict], base_url: str | None = None, api_key: str | None = None, timeout_s: int = DEFAULT_TIMEOUT_S) -> None:
         self.adapter = OmniRouteAdapter(FreeOnlyPolicy(models), base_url=base_url, timeout_s=timeout_s, api_key=api_key)
-        self.adapter.load_free_catalog()
+        # No network access during construction or implicit model discovery.
 
     def complete(self, task: dict[str, Any], model_id: str, prompt: str) -> dict[str, Any]:
-        alias = model_id if self.adapter.policy.alias_allowed(model_id) else DEFAULT_MODEL_ALIAS
+        if model_id not in self.adapter.policy.free_model_ids:
+            return {"ok": False, "output": "", "error": "explicit registered model required", "error_class": "free_only_violation"}
+        alias = model_id
         result = self.adapter.complete(task, prompt, model_alias=alias)
         if result.get("requested_alias") == alias:
             result["model_id"] = result.get("model_id") or model_id

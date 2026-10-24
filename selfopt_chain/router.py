@@ -50,25 +50,7 @@ def required_tier_for_kind(kind: str, table: dict[str, int] | None = None) -> in
     return t.get(kind, DEFAULT_REQUIRED_TIER_FOR_UNKNOWN_KIND)
 
 
-class QuotaLedger:
-    """Budżet darmowych limitów RPM/RPD w obrębie jednego runu łańcucha."""
-
-    def __init__(self, models: list[dict]) -> None:
-        self.limits = {m["model_id"]: (m.get("rpm_seed", 0), m.get("rpd_seed", 0)) for m in models}
-        self.rpm_used: dict[str, int] = {}
-        self.rpd_used: dict[str, int] = {}
-
-    def can_use(self, model_id: str) -> bool:
-        rpm_limit, rpd_limit = self.limits.get(model_id, (0, 0))
-        return self.rpm_used.get(model_id, 0) < rpm_limit and self.rpd_used.get(model_id, 0) < rpd_limit
-
-    def record(self, model_id: str) -> None:
-        self.rpm_used[model_id] = self.rpm_used.get(model_id, 0) + 1
-        self.rpd_used[model_id] = self.rpd_used.get(model_id, 0) + 1
-
-    def rpd_headroom(self, model_id: str) -> int:
-        rpm_limit, rpd_limit = self.limits.get(model_id, (0, 0))
-        return rpd_limit - self.rpd_used.get(model_id, 0)
+from selfopt_chain.quota import QuotaLedger, QuotaExceeded
 
 
 def _provider_blocked_by_snapshot(provider: str, quota_snapshot: dict[str, Any] | None) -> bool:
