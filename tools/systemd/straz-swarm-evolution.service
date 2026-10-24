@@ -1,0 +1,22 @@
+[Unit]
+Description=STRAZ: swarm evolution daemon (non-stop; LLM strategia -> basal -> direct_patch/hermes -> walidacja -> review -> PR-drafty)
+Wants=straz-basal.service straz-omniroute.service straz-ollama.service
+After=straz-basal.service straz-omniroute.service straz-ollama.service
+
+[Service]
+WorkingDirectory=/home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/.kilo/worktrees/glm53-swarm
+# Kill switch: jesli plik istnieje, jednostka nie startuje (czysty stop operatora)
+ExecStartPre=/bin/sh -c '! test -e /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/.kilo/worktrees/glm53-swarm/scratch/selfopt/continuous-live/KILL_SWITCH'
+Environment=PATH=/home/krzysiek/.nvm/versions/node/v24.22.1/bin:/home/krzysiek/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOME=/home/krzysiek
+# Bounded run (max-seconds 3600) + Restart=always = watchdog: kazda porcja uruchomiona
+# na odebranym commicie, stan/ledger trwale, wznowienie po rotacji.
+ExecStart=/bin/bash -lc 'SELFOPT_REQUEST_TIMEOUT=150 node tools/run_swarm_pilot.mjs --real --evolve --continuous --state-dir scratch/selfopt/continuous-live --quota-ledger /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/.kilo/worktrees/codex-swarm-recommendations/scratch/selfopt/pilot-live/quota_ledger.json --runtime /home/krzysiek/Dokumenty/INFO_GROUP/STRAZ_POLSKIEGO_Ai/.kilo/worktrees/codex-stable-evolution/scratch/selfopt/hermes_runtimes/493208879a3248c6a4b844981d2c31c78ae00929 --max-seconds 3000 --pause 120 --turns 16 --use-omniroute-db-key'
+Restart=always
+RestartSec=60
+# Ograniczony restart (backoff): max 5 prob na 10 minut
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Install]
+WantedBy=default.target

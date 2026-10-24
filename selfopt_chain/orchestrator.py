@@ -590,15 +590,17 @@ class Orchestrator:
             return {"mode": mode, "backlog": 0, "blocked": loop.blocked,
                     "tasks": [], "auto_applied": False}
         remaining = self.ledger.remaining_daily_calls()
-        # Strategy + bounded producer attempts/turns + an independent review.
-        # This admission estimate does not reserve calls against other processes.
+        # Admission CAŁEGO procesu (T60): strategia (1) + producent + niezależny review (1).
+        # Przy 5 pozostałych wywołaniach ośmioturowy Hermes (8+2) NIE wejdzie w viable.
         executor_calls = {'direct_patch': 4, 'hermes': int(self.config.get('hermes_max_turns', 12)) + 2}
+        process_overhead = 2
+        required = {name: calls + process_overhead for name, calls in executor_calls.items()}
         executor = self.config.get("evolution_executor", "auto")
-        viable = [name for name, calls in executor_calls.items() if calls <= remaining
+        viable = [name for name, calls in required.items() if calls <= remaining
                   and (name != 'direct_patch' or any(t.kind == 'patch' for t in tasks))]
         if worker and (not viable or executor != 'auto' and executor not in viable):
             return {'mode': 'waiting_budget', 'tasks': [], 'remaining_daily_calls': remaining,
-                    'executor_calls': executor_calls, 'auto_applied': False}
+                    'executor_calls': executor_calls, 'required_process': required, 'auto_applied': False}
         mode = self.config.get("subagent_mode", "auto")
         if mode == "auto":
             mode = decide_parallel_mode(core, backlog, sum(t.priority >= 100 for t in tasks))
@@ -617,13 +619,26 @@ class Orchestrator:
         if worker and executor == "direct_patch":
             from selfopt_chain.direct_patch_worker import DirectPatchWorker
             loop.worker = DirectPatchWorker(models, self.ledger, ROOT, self.state_dir, self.should_stop)
-        receipts = loop.run(max_tasks=int(self.config.get("evolve_max_tasks", 1)), parallel_mode=mode, tasks=tasks)
+        # Rezerwacja atomowa na cały proces (T60): admission innych procesów
+        # (także współbieżnych pasm) widzi budżet objęty przez ten batch.
+        holder = f"evolution:{uuid.uuid4().hex[:10]}"
+        lanes = min(int(self.config.get("evolve_lanes", 2)), len(tasks)) if mode == "wide" else 1
+        reservation_ok = self.ledger.reserve(holder, required[executor] * max(1, lanes))
+        if worker and not reservation_ok:
+            return {'mode': 'waiting_budget', 'tasks': [], 'remaining_daily_calls': remaining,
+                    'executor_calls': executor_calls, 'required_process': required,
+                    'reservation': 'lost_race', 'auto_applied': False}
+        try:
+            receipts = loop.run(max_tasks=int(self.config.get("evolve_max_tasks", 1)), parallel_mode=mode, tasks=tasks)
+        finally:
+            self.ledger.release(holder)
         self.state.data["daily_calls"] = self.ledger.rpd_used
         self.state.save()
         return {"mode": mode, "backlog": backlog, "blocked": loop.blocked,
                 "hardware_context": hardware,
                 "strategy_source": loop.strategy.get("source", "n/a"), "strategy_brief": loop.strategy.get("brief", ""),
-                "lane_models": lane_models, "tasks": receipts, "executor": executor if worker else "mock", "auto_applied": False}
+                "lane_models": lane_models, "tasks": receipts, "executor": executor if worker else "mock",
+                "reserved_calls": required[executor] * max(1, lanes), "auto_applied": False}
 
     def run(self) -> int:
         signal.signal(signal.SIGTERM, self.request_stop)
@@ -668,14 +683,20 @@ class Orchestrator:
         existing = self.state_dir / "evolution_batches"
         batch = max([int(p.stem.split("_")[-1]) for p in existing.glob("batch_*.json")] or [0])
         batches_this_run = 0
+        had_failures = False
         while not self.should_stop():
             if self.kill_switch_active():
                 self.state_dir.mkdir(parents=True, exist_ok=True)
                 (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "kill_switch", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
-                return 0
+                return 1 if had_failures else 0
             batch += 1
             batches_this_run += 1
             evolution = self._run_evolution(backlog=0)
+            # T60: porażka WYKONANIA (nie czekanie) => had_failures; exit != 0.
+            for task in evolution.get("tasks", []):
+                hermes_exit = task.get("hermes_exit_code")
+                if (hermes_exit is not None and hermes_exit != 0) or task.get("gate_ok") is False:
+                    had_failures = True
             self.state_dir.mkdir(parents=True, exist_ok=True)
             log_path = self.state_dir / "evolution_batches"
             log_path.mkdir(parents=True, exist_ok=True)
@@ -694,10 +715,10 @@ class Orchestrator:
             if self.stop_requested:
                 break
             if self.config.get("max_cycles") is not None and batches_this_run >= self.config["max_cycles"]:
-                return 0
+                return 1 if had_failures else 0
             self.wait_interval(int(self.config.get("evolve_pause", 60)))
         (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "kill_switch" if self.kill_switch_active() else "deadline" if time.monotonic() >= self.deadline else "signal", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
-        return 0
+        return 1 if had_failures else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -712,12 +733,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--evolve-max-tasks", type=int, default=4)
     parser.add_argument("--evolve-lanes", type=int, default=6, help="maks. równoległych pasm (różne darmowe modele naraz)")
     parser.add_argument("--subagent-mode", choices=["auto", "single", "wide", "deep"], default="auto", help="równoległość subagentów (basal decyduje w trybie auto)")
+    parser.add_argument("--evolve-executor", choices=["auto", "direct_patch", "hermes"], default="auto", help="executor ewolucji: basal wybiera w auto; jawna wartość = override operatora (wciąż w granicach admission)")
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_S, help="sekundy między cyklami")
     parser.add_argument("--max-cycles", type=int, default=None, help="limit cykli (brak = daemon)")
     parser.add_argument("--once", action="store_true", help="jeden cykl i wyjście")
     parser.add_argument("--quota-ledger", type=Path, default=None)
     parser.add_argument("--max-seconds", type=int, default=3600)
-    parser.add_argument("--max-calls", type=int, default=100, help="twardy dobowy limit prób wszystkich silników")
+    parser.add_argument("--max-calls", type=int, default=None, help="opcjonalny twardy dobowy limit prób (BRAK domyślnie — operator zdjął wirtualny cap 2026-10-23; jawna wartość = świadomy limit)")
     parser.add_argument("--max-jobs", type=int, default=DEFAULT_MAX_JOBS)
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
     parser.add_argument("--kill-switch", type=Path, default=DEFAULT_KILL_SWITCH)
@@ -730,7 +752,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quota-snapshot", type=Path, default=ROOT / "agent_runtime_plans" / "hermes_pilot" / "quota_snapshot.json")
     args = parser.parse_args(argv if argv is not None else None)
 
-    if min(args.max_calls, args.max_seconds, args.max_jobs, args.evolve_max_tasks, args.evolve_lanes) < 1 or min(args.interval, args.evolve_pause) < 0:
+    bounds = [args.max_seconds, args.max_jobs, args.evolve_max_tasks, args.evolve_lanes]
+    if args.max_calls is not None:
+        bounds.append(args.max_calls)
+    if min(bounds) < 1 or min(args.interval, args.evolve_pause) < 0:
         parser.error("limity muszą być dodatnie, przerwy nieujemne")
     config: dict[str, Any] = {
         "engine": args.engine,
@@ -756,6 +781,7 @@ def main(argv: list[str] | None = None) -> int:
         "hermes_run_seconds": args.hermes_run_seconds,
         "evolve_retry_seconds": args.evolve_retry_seconds,
         "evolve_lanes": args.evolve_lanes,
+        "evolution_executor": args.evolve_executor,
         "subagent_mode": args.subagent_mode,
         "quota_snapshot_path": args.quota_snapshot if args.engine != "mock" else None,
     }

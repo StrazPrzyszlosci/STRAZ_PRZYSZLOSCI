@@ -132,6 +132,10 @@ class DirectPatchWorker:
                 raise ValueError('empty_production')
             patch = ''.join(''.join(difflib.unified_diff(originals[name].splitlines(True), content.splitlines(True),
                             fromfile='a/' + name if originals[name] else '/dev/null', tofile='b/' + name)) for name, content in changed.items())
+            # Normalizacja końca pliku: git apply wymaga '\n' po ostatniej linii
+            # hunka (bez niego 'corrupt patch'); treść producenta bez zmian.
+            if patch and not patch.endswith("\n"):
+                patch += "\n"
             (output / 'changes.patch').write_text(patch)
             (output / 'PROPOSAL.md').write_text(response['proposal'])
             gate = SecurityGate().inspect_code(patch + '\n' + response['proposal'])

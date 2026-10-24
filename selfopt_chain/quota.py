@@ -128,18 +128,44 @@ class QuotaLedger:
     def rpd_headroom(self, model_id):
         return self.limits.get(model_id, (0, 0))[1] - self.rpd_used.get(model_id, 0)
 
-    def remaining_daily_calls(self, model_id=None):
-        """Admission estimate, including shared provider pools and the global cap.
+    def _remaining_pools(self, data):
+        pools = {pool: max(0, limits[1] - sum(data['daily'].get(mid, 0)
+                 for mid, group in self.pools.items() if group == pool))
+                 for pool, limits in self.pool_limits.items()}
+        remaining = sum(pools.values())
+        if self.max_calls is not None:
+            remaining = min(remaining, max(0, self.max_calls - sum(data['daily'].values())))
+        # Rezerwacje procesów (holderzy) odejmowane od każdego admissionu,
+        # także współbieżnych — record() nadal egzekwuje per-model.
+        remaining -= sum(data.get('reserved', {}).values())
+        return max(0, remaining), pools
 
-        This is a snapshot, not a reservation; record() still enforces every attempt.
+    def reserve(self, holder: str, n: int) -> bool:
+        """Atomowe objęcie n wywołań na cały proces (strategia+producent+review).
+
+        True = hold przyznany i widoczny dla pozostałych admissionów; release()
+        zdejmuje hold po zakończeniu procesu. Nie zwalnia per-model limitów.
         """
         with self.transaction() as data:
-            pools = {pool: max(0, limits[1] - sum(data['daily'].get(mid, 0)
-                     for mid, group in self.pools.items() if group == pool))
-                     for pool, limits in self.pool_limits.items()}
-            remaining = sum(pools.values())
-            if self.max_calls is not None:
-                remaining = min(remaining, max(0, self.max_calls - sum(data['daily'].values())))
+            remaining, _ = self._remaining_pools(data)
+            if n > remaining:
+                return False
+            reserved = data.setdefault('reserved', {})
+            reserved[holder] = reserved.get(holder, 0) + n
+            return True
+
+    def release(self, holder: str) -> None:
+        with self.transaction() as data:
+            data.get('reserved', {}).pop(holder, None)
+
+    def remaining_daily_calls(self, model_id=None):
+        """Admission estimate, including shared pools, reservations and the optional cap.
+
+        This is a snapshot; record() still enforces every attempt, and reserve()
+        holds budget atomically for the duration of a whole process.
+        """
+        with self.transaction() as data:
+            remaining, pools = self._remaining_pools(data)
             if model_id is not None:
                 if model_id not in self.limits:
                     return 0
@@ -171,7 +197,9 @@ class BudgetedEngine:
                 selection = shortlist_models(eligible, kind=task.get('kind', ''), ledger=self.ledger,
                     requires=task.get('requires', []) or [],
                     minimum_context_tokens=len(prompt.encode()) // 2 + int(task.get('max_tokens', 4096)))
-                options = selection['candidates']
+                # T60: basal dostaje TYLKO wykonalne opcje — modele w cooldown,
+                # minute-limit lub daily-limit nie wchodzą na listę.
+                options = [o for o in selection['candidates'] if self.ledger.can_use(o)]
                 if not options:
                     return {'ok': False, 'output': '', 'error_class': 'no_eligible_model'}
                 default = model_id if model_id in options else options[0]
@@ -181,12 +209,38 @@ class BudgetedEngine:
                 model_id = chosen['final'] if chosen.get('final') in options else default
         elif not any(m['model_id'] == model_id for m in eligible):
             model_id = ''
+        # T60: jawna przyczyna odmowy (provider_cooldown/minute_limit/daily_limit)
+        # zamiast uogólnionego quota_exhausted — przed rezerwacją.
+        availability = self.ledger.availability(model_id)
+        if not availability.get('allowed'):
+            return {'ok': False, 'output': '', 'error_class': availability.get('reason', 'unavailable'),
+                    'error_origin': 'local', 'requested_model_id': model_id}
         try:
             self.ledger.record(model_id)
         except QuotaExceeded:
-            return {'ok': False, 'output': '', 'error_class': 'quota_exhausted'}
+            return {'ok': False, 'output': '', 'error_class': 'quota_exhausted', 'error_origin': 'local'}
         result = self.engine.complete(task, model_id, prompt)
-        self.ledger.record_outcome(model_id, result)
+        # T60/cold-start (dyrektywa operatora 2026-10-24): NIM zawsze wolno
+        # startuje model za PIERWSZYM razem — pierwsza sonda modelu bez żadnego
+        # sukcesu to ładowanie, nie porażka jakości. Nie wywala cooldownu;
+        # natychmiastowa ponowa na rozgrzanym modelzie (rozliczona w ledgerze).
+        observations = self.ledger.model_observations(model_id)
+        cold_start = (not result.get('ok')
+                      and result.get('error_class') in {'connection_error', 'http_error', 'bad_response'}
+                      and observations.get('successes', 0) == 0)
+        if result.get('ok') or not cold_start:
+            self.ledger.record_outcome(model_id, result)
+        else:
+            self.ledger.record_outcome(model_id, {**result, 'error_class': 'cold_start_probe'})
+            if not self.should_stop() and self.ledger.can_use(model_id):
+                try:
+                    self.ledger.record(model_id)
+                    retry = self.engine.complete(task, model_id, prompt)
+                    self.ledger.record_outcome(model_id, retry)
+                    retry['cold_start_retried'] = True
+                    result = retry
+                except QuotaExceeded:
+                    pass
         result["attempt_recorded"] = True
         result["requested_model_id"] = model_id
         return result

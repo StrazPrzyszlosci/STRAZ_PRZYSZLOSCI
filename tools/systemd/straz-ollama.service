@@ -1,0 +1,11 @@
+[Unit]
+Description=STRAZ: Ollama (inferencja lokalna basal-omni-pico)
+After=network.target
+
+[Service]
+ExecStart=/home/krzysiek/.local/bin/ollama serve
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
