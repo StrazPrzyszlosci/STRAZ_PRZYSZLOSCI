@@ -438,6 +438,39 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   linki; (c) timeout_killed przy checkach linków (A sprawdzała linki tuż przed limitem) — plik był
   kompletny, ale wzorzec „check_run_*.py + wc -l" przed decyzją o przyjęciu jest obowiązkowy.
 
+### Noc 2026-10-24 (NOC-4, start 04:31 — kontynuacja po NOC-1; NOC-2/NOC-3 bez śladu)
+
+- Kontekst: NOC-1 (02:03) domknął pełny bieg (commit 5bea4eb) i zostawił 3 propozycje; NOC-2/NOC-3
+  nie zostawiły śladu w state.json ani git logu — NOC-4 wykonał je w całości.
+- Readiness: probe Muse „NIE DZIAŁA" (trwały stan) → ręczny probe `nvidia/z-ai/glm-5.3-flash`
+  (wzorzec probe_glm_noc1_20261023.py) → PROBE_OK. Binarka v2.1.3, repo czyste. Sync z remote:
+  `git log HEAD..origin/main` puste (klon aktualny; ruszyła tylko gałąź boczna codex/T60).
+- **3 instancje równolegle** (run `20261024-043157`), wszystkie `done`: A-marketing-zakres-25-36
+  (16,0 min; MARKETING §9 — tytuł i zdanie z listą do „25–36", 5 zakresów „25–35"→„25–36",
+  „(pliki 26–35)"→„(pliki 26–36)" po weryfikacji stopki 36, pozycja 36 na liście, dopisek w pkt 7),
+  B-contributing-wzorzec-36 (16,8 min; nagłówek „32–35"→„32–36" + dokładnie jeden akapit o 36
+  między ¶ o 35 a „Wniosek dla współtwórcy pozostaje wzorcotwórczy…"), C-ankieta-sciezka-d-36
+  (10,0 min; ŚCIEŻKA D += punkt 6 o wspólnej analizie porównawczej (36) + jeden punkt mapujący
+  „lubisz zestawiać dane i szukać wzorców między różnymi węzłami…").
+- Weryfikacja: `verify_noc4.py` (folding OBU stron) — 14 igieł: 11 OK od razu; 3 „BRAK" rozstrzygnięte
+  greppami jako grounded (fleksja igieł, lekcja NOC-23c): „piątego pilotażu poprzecznego" = 36 l.9
+  exact; opis „wspólna analiza porównawcza przypadków między węzłami różnych osi" = ROADMAPA ¶
+  „Piąty z nich…" + 36 l.103/110/125; „po kuracji wracają do wspólnej bazy wiedzy" = 36 l.41
+  (dokładnie stamtąd B wziął pętlę nauki: „decyzja człowieka i jej skutek tworzą kolejne
+  udokumentowane przypadki…"). Linki: 72 / 0 martwych (3 zmienione pliki). Zakresy po grepie:
+  „25–35" i „32–35" zero trafień; „przy pilotażu 35" w ankiecie = istniejący, poprawny punkt 5.
+  Zero halucynacji do usunięcia.
+- Korekty nadzorcy (1, minimalny diff): MARKETING pkt 7 — instancja dokleiła 36 PO „oraz [35]…",
+  więc „oraz" wprowadzało 35, a 36 wisiało za przecinkiem; przestawione na „…, [35] — wspólna baza
+  wiedzy i snapshoty, oraz [36] — wspólna analiza porównawcza…". Po korekcie checki powtórzone
+  (bez zmian).
+- README: bez integracji — bieg nie tworzył nowych plików-pilotaży (README ma 32–36 komplet od
+  NOC-24, lista l.86–90). Commit i push na main przez nadzorcę (instancje mają zakaz git).
+- Lekcje: (a) dopisując na KONIEC wyliczenia, przenieść „oraz" na ostatni element — check: grep
+  „oraz [" i sprawdzić, co wprowadza; (b) krótkie opisy w wyliczeniach czerpać z H1+Opis pliku
+  i ¶ ROADMAPA, nie z sąsiednich opisów (36 zeszło bez korekty: H1 + ROADMAPA wystarczyły);
+  (c) kompaktowy status biegu czytać skryptem ze state.json (`status_noc4.py`) — `--status`
+  z log_tail jest zbyt gadatliwy do pollingu co 5 min.
 
 ## Wzorzec promptu instancji (szablon dla nadzorcy)
 
@@ -597,39 +630,44 @@ zanim trafią do commita i push na main.
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-Stan po NOC-24 (2026-10-24): pilotaże 25–36 (36 = piąty pilotaż poprzeczny — wspólna analiza
+Stan po NOC-4 (2026-10-24): pilotaże 25–36 (36 = piąty pilotaż poprzeczny — wspólna analiza
 porównawcza węzłów, spięcie 01+30+34+35); ROADMAPA „Kolejne spięcia osi" dokumentuje 30/31 oraz
-poprzeczne 32–36 (¶ „Piąty z nich…"); README: oś 4 *Inspiracje* += 36, lista pilotaży += 36;
-MARKETING §9 (25–35) z punktem 7 o pilotażach wspólnej warstwy (33–35); ankieta: ŚCIEŻKA C
-z punktem 5 (zalążki kodu bazy wiedzy z 35), ŚCIEŻKA D z punktem 5 (kuracja) i punktem mapującym;
-CONTRIBUTING §7 „Wzorzec w praktyce: pilotaże poprzeczne 32–35"; AI-PROCESS ma wzorzec promptu,
-wzorzec weryfikacji nadzorcy i wzorzec integracji README.
+poprzeczne 32–36 (¶ „Piąty z nich…"); README: oś 4 *Inspiracje* zawiera 33–36, lista pilotaży
+32–36 kompletna (l.86–90); MARKETING §9 (25–36) z punktem 7 o pilotażach wspólnej warstwy
+(33–36); ankieta: ŚCIEŻKA C z punktem 5 (zalążki kodu bazy wiedzy z 35), ŚCIEŻKA D z punktami
+5 (kuracja, 35) i 6 (analiza porównawcza, 36) oraz dwoma punktami mapującymi ŚCIEŻKI D;
+CONTRIBUTING §7 „Wzorzec w praktyce: pilotaże poprzeczne 32–36" (akapity o 32–36); AI-PROCESS
+ma wzorzec promptu, wzorzec weryfikacji nadzorcy i wzorzec integracji README. ŚCIEŻKI A i B
+ankiety mają dziś zero odwołań do pilotaży 32–36 (grep: 0).
 
-1. **MARKETING §9 — sekcja i lista do zakresu 25–36 (36 = warstwa analizy porównawczej)**: sekcja
-   „## 9. Jak opowiadać o pilotażach (25–35)" ma dziś tytuł i listę linków zamykające się na 35;
-   dopisać pozycję 36 do listy (konwencja sąsiednich: numer, tytuł, link, krótki opis w duchu
-   32–35) oraz rozszerzyć tytuł do „(25–36)" (wzorzec korekty zakresu z NOC-22: stary zakres
-   „25–34" był pułapką — wyłapać WSZYSTKIE wystąpienia „25–35" w sekcji 9 greppem przed edycją);
-   rozważyć krótkie rozszerzenie punktu 7 o 36 (pilotaż analizy porównawczej również jest
-   „wspólną warstwą", nie węzłem) — nadal wyłącznie przez tytuły i sekcje, którymi plik sam się
-   przedstawia; inspiracje (verify ls-em): MARKETING.md §9, PROJEKTY/36. BEZ liczb i dat.
-2. **CONTRIBUTING §7 — nagłówek „Wzorzec w praktyce: pilotaże poprzeczne 32–35" → „32–36" + jeden
-   akapit o 36**: akapit między ¶ o 35 a „Wniosek dla współtwórcy pozostaje wzorcotwórczy także
-   po stronie poprzecznej…" (który zostaje bez zmian), w konwencji ¶ o 34/35: motywacja u źródła
-   (34 l.59 — diagnoza o porównywaniu przypadków; 01 l.153 — zdanie o wspólnym modelu wiedzy;
-   35 l.90 — oś czwarta jako klient bazy), zasada decyzji człowieka (pomiar, rekomendacja, decyzja),
-   kolejność względna, odwołania do istniejących plików; inspiracje (verify ls-em): CONTRIBUTING §7,
-   PROJEKTY/36, PROJEKTY/35, ROADMAPA (¶ „Piąty z nich…"). BEZ liczb i dat.
-3. **REKRUTACJA_ANKIETA — ŚCIEŻKA D (DANE I ANALIZA) += punkt 6 o wspólnej analizie porównawczej
-   (36)**: dopisek (edycja wyłącznie dodająca; punktów 1–5 NIE zmieniasz) wskazujący
-   `PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md` (piąty pilotaż poprzeczny) jako nowe pole
-   dla osób z tej ścieżki: definiowanie pytań porównawczych,
-   zestawianie udokumentowanych przypadków między węzłami różnych osi i praca nad raportami
-   porównawczymi — z zasadą, że rekomendacja AI jest zawsze wejściem do decyzji człowieka, a wyniki
-   po kuracji wracają do wspólnej bazy wiedzy; rozważyć jeden punkt mapujący w liście „Nie wiesz,
-   którą wybrać?" (tagi pasji zweryfikować greppem w sekcji 1); inspiracje (verify ls-em): ankieta
-   ŚCIEŻKA D + lista mapująca, PROJEKTY/36, PROJEKTY/35. BEZ liczb i dat.
+1. **REKRUTACJA_ANKIETA — ŚCIEŻKA A (TREŚCI I DOKUMENTY) += pole przy pilotażach poprzecznych**:
+   ŚCIEŻKA A ma dziś zero odwołań do pilotaży 32–36 — dopisać jeden punkt (edycja wyłącznie
+   dodająca; istniejących punktów NIE zmieniać — najpierw grep aktualnych punktów ścieżki)
+   o dokumentowaniu i opracowywaniu udokumentowanych przypadków porównawczych według
+   [36. Koncepcyjnego Pilotażu Wspólnej Analizy Porównawczej Węzłów](PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md)
+   — w konwencji punktów 5/6 ŚCIEŻKI D (emoji, link, zasada „rekomendacja jest zawsze wejściem
+   do decyzji człowieka", *Intelekt wyprzedza Kapitał* na końcówce); rozważyć jeden punkt
+   mapujący w liście „Nie wiesz, którą wybrać?" (forma „* lubisz…" — bez nowych tagów);
+   inspiracje (verify ls-em): ankieta ŚCIEŻKA A + lista mapująca, PROJEKTY/36, PROJEKTY/33.
+   BEZ liczb i dat.
+2. **REKRUTACJA_ANKIETA — ŚCIEŻKA B (MARKETING) += punkt o opowiadaniu o pilotażach poprzecznych**:
+   ŚCIEŻKA B ma dziś zero odwołań do 32–36 — dopisać jeden punkt wskazujący MARKETING.md §9
+   (punkty 6–7: „Pierwszy pilotaż poprzeczny opowiadamy tymi samymi zasadami…" i „Kolejne
+   pilotaże poprzeczne — wspólne warstwy…") jako gotowy wzorzec opowiadania: wyłącznie tytuły
+   i sekcje, którymi pliki same się przedstawiają, zero dopisywania od siebie; link do
+   MARKETING.md §9 i do pilotaży 32/36 w konwencji punktów ścieżki; istniejące punkty ŚCIEŻKI B
+   NIE zmieniane; inspiracje (verify ls-em): ankieta ŚCIEŻKA B, MARKETING §9, PROJEKTY/32.
+   BEZ liczb i dat.
+3. **AI-PROCESS — dopisek do „Wzorca weryfikacji nadzorcy" (lekcje NOC-4)**: (a) dopisując na
+   koniec wyliczenia, przenosić „oraz" na ostatni element (korekta z NOC-4: „oraz [35]…" z 36
+   za przecinkiem); (b) krótkie opisy w wyliczeniach czerpać z H1+Opis pliku i ¶ ROADMAPA, nie
+   z sąsiednich opisów; (c) igły z fleksją (nominativ igły vs deklinacja źródła) rozstrzygać
+   greppem formy źródłowej, zanim frazę oznaczy się jako wymyśloną — rozszerzenie lekcji o
+   diakrytykach. Edycja wyłącznie dodająca w istniejących sekcjach AI-PROCESS.md; PLIK DOCLOWY:
+   AI-PROCESS.md (nadzorca i tak wpisuje tam loga — kolejność: najpierw instancja, potem wpis
+   nadzorcy).
    (Model: `nvidia/z-ai/glm-5.3-flash`; readiness „NIE DZIAŁA" na Muse ID = oczekiwane, robić
    ręczny probe GLM (wzorzec `probe_glm_noc1_20261023.py`) przed decyzją o biegu. Plan.json =
-   płaska tablica; absolutna ścieżka repo; instancje mają zakaz git; fetch+rebase PRZED startem;
+   płaska tablica (wzorzec `gen_plan_noc4_20261024.py`); absolutna ścieżka repo; instancje mają
+   zakaz git; fetch+rebase PRZED startem; statusy kompaktowo ze state.json (`status_noc4.py`);
    weryfikacja wg „## Wzorzec weryfikacji nadzorcy", integracja wg „## Wzorzec integracji README".)

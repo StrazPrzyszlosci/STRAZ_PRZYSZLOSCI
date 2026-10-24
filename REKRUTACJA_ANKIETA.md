@@ -102,6 +102,7 @@ Opisz poniżej swój najbardziej szalony, "garażowy" projekt (nawet jeśli wybu
 3. ✍️ Przygotuj widoczne dokonanie z danych: inwentaryzację, analizę, profil wiedzy lub dokument w markdown według konwencji repozytorium — w duchu pilotaży 29 i 30, gdzie do repozytorium wraca wyłącznie wiedza opracowana: snapshoty oraz otwarte, wspólne profile w formatach JSON/YAML.
 4. 🚀 Wyślij Pull Request według instrukcji **CONTRIBUTING.md (sekcja 2: Fork & Pull Request)** — to Twoje widoczne dokonanie: kolejna cegła w fundamencie WSPÓLNEGO DOBRA. Dbaj potem o ciągłość obszaru: prowadź bieżącą dyskusję o danych w Issues i wspieraj kolejne osoby, które dołączą do Twojego pola działania.
 5. 🗂️ Dołącz do kuracji wspólnej bazy wiedzy według [35. Koncepcyjnego Pilotażu Wspólnej Bazy Wiedzy i Snapshotów](PROJEKTY/35_pilot_wspolnej_bazy_wiedzy.md): przeglądaj kandydatów w kolejce kuracji, rozwijaj otwarte profile wiedzy w formatach JSON/YAML oraz snapshoty i raporty zbiorcze wielu węzłów — pamiętając, że propozycja przygotowana przez AI jest zawsze wejściem do decyzji człowieka-kuratora, nigdy jej zamiennikiem, a do bazy trafia wyłącznie wiedza opracowana. To bezcenny wkład intelektualny — *Intelekt wyprzedza Kapitał*.
+6. 🔍 Dołącz do wspólnej analizy porównawczej według [36. Koncepcyjnego Pilotażu Wspólnej Analizy Porównawczej Węzłów](PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md): definiuj pytania porównawcze, zestawiaj udokumentowane przypadki między węzłami różnych osi oraz pracuj nad raportami porównawczymi wielu węzłów — pamiętając, że rekomendacja wypracowana przez AI jest zawsze wejściem do decyzji człowieka, nigdy jej zamiennikiem, a wyniki analiz po kuracji wracają do wspólnej bazy wiedzy. Każde porównanie zasilające decyzję o wspólnym zasobie to krok, w którym *Intelekt wyprzedza Kapitał*.
 
 **Nie wiesz, którą wybrać?** Dopasuj ścieżkę do tagów pasji z sekcji 1 tej ankiety:
 * `#KOD` → śmiało w ŚCIEŻKĘ C,
@@ -109,5 +110,6 @@ Opisz poniżej swój najbardziej szalony, "garażowy" projekt (nawet jeśli wybu
 * masz żyłkę komunikatora i budowniczego społeczności → ŚCIEŻKA B czeka właśnie na Ciebie.
 * lubisz pracę na danych, analizach i mapach → ŚCIEŻKA D czeka właśnie na Ciebie.
 * lubisz porządkować, opisywać i kurujeć wiedzę innych → ŚCIEŻKA D ma dla Ciebie nowe pole przy pilotażu 35 — kuracja wspólnej bazy wiedzy w służbie WSPÓLNEGO DOBRA.
+* lubisz zestawiać dane i szukać wzorców między różnymi węzłami → ŚCIEŻKA D ma dla Ciebie nowe pole przy pilotażu 36 — wspólna analiza porównawcza przypadków między węzłami w służbie WSPÓLNEGO DOBRA.
 
 **Nie wybieraj długo — każda ze ścieżek prowadzi do tego samego: realnego dokonania na rzecz NARODOWEGO WYSIŁKU INTELEKTUALNEGO. Zacznij DZISIAJ, pokaż ślad w Issues i Pull Requestach. Intelekt wyprzedza Kapitał!**
