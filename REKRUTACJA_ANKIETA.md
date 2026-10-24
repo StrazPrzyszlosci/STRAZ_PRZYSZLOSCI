@@ -92,6 +92,7 @@ Opisz poniżej swój najbardziej szalony, "garażowy" projekt (nawet jeśli wybu
 2. 🧩 Wybierz małe zadanie na start: mały skrypt, poprawkę albo szybki PoC do udokumentowania.
 3. 🌿 Zrób Fork i stwórz gałąź z jasną nazwą dla kodu, np. `dodanie-skryptu-analizy-rynku` (wzorce nazewnictwa: **CONTRIBUTING.md, sekcje 3 i 5**).
 4. 🚀 Wykonaj zmianę i wyślij Pull Request zgodnie z **CONTRIBUTING.md (sekcja 2)** — mały zakres, jeden cel, czytelny opis.
+5. 🌱 Dołącz kodem do zalążków wspólnej bazy wiedzy z [35. Koncepcyjnego Pilotażu Wspólnej Bazy Wiedzy i Snapshotów](PROJEKTY/35_pilot_wspolnej_bazy_wiedzy.md): rozwijaj generator eksportu [pipelines/export_knowledge_snapshot.py](pipelines/export_knowledge_snapshot.py), który wyprowadza z bazy operacyjnej podsumowanie obserwacji, zdarzeń i rekomendacji — bez pełnego dumpa surowych danych providerów — oraz katalog [reports/README.md](reports/README.md), przeznaczony na raporty zbiorcze, anonimizowane wnioski i snapshoty wiedzy; pamiętaj, że do bazy trafia wyłącznie wiedza opracowana, a decyzję o kuracji podejmuje człowiek-kurator, z propozycją AI jako wejściem do decyzji. To kod, który buduje wspólną pamięć inicjatywy — *Intelekt wyprzedza Kapitał*.
 
 ### 📊 ŚCIEŻKA D: DANE I ANALIZA
 *Dla tych, którzy myślą danymi: analiza, inwentaryzacja zasobów, geoprzestrzenne planowanie — pełnoprawny wkład w Zasób Wiedzy NSI.*
