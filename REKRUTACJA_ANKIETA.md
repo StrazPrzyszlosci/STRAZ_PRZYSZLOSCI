@@ -75,6 +75,7 @@ Opisz poniżej swój najbardziej szalony, "garażowy" projekt (nawet jeśli wybu
 2. 🌿 Stwórz gałąź, której nazwa mówi wszystko — dla treści niesoftware'owych według **CONTRIBUTING.md (sekcja 5)**, np. `artykul-automatyzacja-produkcji-zywnosci` lub `dokument-instrukcja-fork-i-pull-request`.
 3. ✍️ Napisz lub rozbuduj dokument: najpierw research, w kolejnym etapie poprawka w markdown — konkret, który zostaje w repozytorium.
 4. 🚀 Wyślij Pull Request według instrukcji **CONTRIBUTING.md (sekcja 2: Fork & Pull Request)**.
+5. 📝 Dołącz do dokumentowania i opracowywania udokumentowanych przypadków porównawczych według [36. Koncepcyjnego Pilotażu Wspólnej Analizy Porównawczej Węzłów](PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md): definiuj pytania porównawcze, zestawiaj udokumentowane przypadki między węzłami różnych osi oraz pracuj nad raportami porównawczymi wielu węzłów, z których wiedza po decyzjach wraca do wspólnej bazy wiedzy — pamiętając, że rekomendacja wypracowana przez AI jest zawsze wejściem do decyzji człowieka, nigdy jej zamiennikiem. Twój research, analiza i dokument to pełnoprawny wkład w Zasób Wiedzy NSI — *Intelekt wyprzedza Kapitał*.
 
 ### 📣 ŚCIEŻKA B: MARKETING
 *Dla tych, którzy potrafią opowiedzieć o misji tak, by słychać ją było głośno i trafiła do serc.*
@@ -84,6 +85,7 @@ Opisz poniżej swój najbardziej szalony, "garażowy" projekt (nawet jeśli wybu
 3. 🧭 Realizuj zadanie zgodnie z własną koncepcją, pamiętając o sekwencji z **MARKETING.md (sekcja 6)**: najpierw treści i jakość samego repozytorium, w kolejnym etapie media relations i social media, na końcu współpraca zewnętrzna.
 4. 🏆 Efekty pokazuj w Issues i Pull Requestach — odpowiedzialność za obszar to pierwszy krok na drodze do nobilitacji Opiekuna Projektu.
 5. 🤝 Dbaj o ciągłość obszaru: prowadź bieżącą dyskusję w Issues i wspieraj kolejne osoby, które dołączą do Twojego pola działania.
+6. 📖 Opowiadaj o pilotażach poprzecznych według gotowego wzorca z **MARKETING.md (sekcja 9)** — zwłaszcza jej punktów 6 i 7: [32. Koncepcyjny Pilotaż Węzła Zintegrowanego](PROJEKTY/32_pilot_wezla_zintegrowanego.md) oraz [36. Koncepcyjny Pilotaż Wspólnej Analizy Porównawczej Węzłów](PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md) przedstawiaj wyłącznie tym, co te pliki same zapisują — tytułami i sekcjami, którymi się przedstawiają, bez dopisywania od siebie — bo opowieść oparta na udokumentowanym dokonaniu to kolejny dowód, że *Intelekt wyprzedza Kapitał*.
 
 ### 💻 ŚCIEŻKA C: KOD I PROOF OF CONCEPT
 *Dla tych, którzy myślą kodem i chcą szybko udokumentować działający PoC na tym, co mają w szufladzie.*
@@ -92,6 +94,7 @@ Opisz poniżej swój najbardziej szalony, "garażowy" projekt (nawet jeśli wybu
 2. 🧩 Wybierz małe zadanie na start: mały skrypt, poprawkę albo szybki PoC do udokumentowania.
 3. 🌿 Zrób Fork i stwórz gałąź z jasną nazwą dla kodu, np. `dodanie-skryptu-analizy-rynku` (wzorce nazewnictwa: **CONTRIBUTING.md, sekcje 3 i 5**).
 4. 🚀 Wykonaj zmianę i wyślij Pull Request zgodnie z **CONTRIBUTING.md (sekcja 2)** — mały zakres, jeden cel, czytelny opis.
+5. 🌱 Dołącz kodem do zalążków wspólnej bazy wiedzy z [35. Koncepcyjnego Pilotażu Wspólnej Bazy Wiedzy i Snapshotów](PROJEKTY/35_pilot_wspolnej_bazy_wiedzy.md): rozwijaj generator eksportu [pipelines/export_knowledge_snapshot.py](pipelines/export_knowledge_snapshot.py), który wyprowadza z bazy operacyjnej podsumowanie obserwacji, zdarzeń i rekomendacji — bez pełnego dumpa surowych danych providerów — oraz katalog [reports/README.md](reports/README.md), przeznaczony na raporty zbiorcze, anonimizowane wnioski i snapshoty wiedzy; pamiętaj, że do bazy trafia wyłącznie wiedza opracowana, a decyzję o kuracji podejmuje człowiek-kurator, z propozycją AI jako wejściem do decyzji. To kod, który buduje wspólną pamięć inicjatywy — *Intelekt wyprzedza Kapitał*.
 
 ### 📊 ŚCIEŻKA D: DANE I ANALIZA
 *Dla tych, którzy myślą danymi: analiza, inwentaryzacja zasobów, geoprzestrzenne planowanie — pełnoprawny wkład w Zasób Wiedzy NSI.*
@@ -100,11 +103,16 @@ Opisz poniżej swój najbardziej szalony, "garażowy" projekt (nawet jeśli wybu
 2. 🌿 Stwórz gałąź według **CONTRIBUTING.md (sekcja 5)** — nazewnictwo dla treści niesoftware'owych, np. `analiza-inwentaryzacja-bazy-przedmiotow` lub `dokument-geoportal-potencjalu-rozwoju`.
 3. ✍️ Przygotuj widoczne dokonanie z danych: inwentaryzację, analizę, profil wiedzy lub dokument w markdown według konwencji repozytorium — w duchu pilotaży 29 i 30, gdzie do repozytorium wraca wyłącznie wiedza opracowana: snapshoty oraz otwarte, wspólne profile w formatach JSON/YAML.
 4. 🚀 Wyślij Pull Request według instrukcji **CONTRIBUTING.md (sekcja 2: Fork & Pull Request)** — to Twoje widoczne dokonanie: kolejna cegła w fundamencie WSPÓLNEGO DOBRA. Dbaj potem o ciągłość obszaru: prowadź bieżącą dyskusję o danych w Issues i wspieraj kolejne osoby, które dołączą do Twojego pola działania.
+5. 🗂️ Dołącz do kuracji wspólnej bazy wiedzy według [35. Koncepcyjnego Pilotażu Wspólnej Bazy Wiedzy i Snapshotów](PROJEKTY/35_pilot_wspolnej_bazy_wiedzy.md): przeglądaj kandydatów w kolejce kuracji, rozwijaj otwarte profile wiedzy w formatach JSON/YAML oraz snapshoty i raporty zbiorcze wielu węzłów — pamiętając, że propozycja przygotowana przez AI jest zawsze wejściem do decyzji człowieka-kuratora, nigdy jej zamiennikiem, a do bazy trafia wyłącznie wiedza opracowana. To bezcenny wkład intelektualny — *Intelekt wyprzedza Kapitał*.
+6. 🔍 Dołącz do wspólnej analizy porównawczej według [36. Koncepcyjnego Pilotażu Wspólnej Analizy Porównawczej Węzłów](PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md): definiuj pytania porównawcze, zestawiaj udokumentowane przypadki między węzłami różnych osi oraz pracuj nad raportami porównawczymi wielu węzłów — pamiętając, że rekomendacja wypracowana przez AI jest zawsze wejściem do decyzji człowieka, nigdy jej zamiennikiem, a wyniki analiz po kuracji wracają do wspólnej bazy wiedzy. Każde porównanie zasilające decyzję o wspólnym zasobie to krok, w którym *Intelekt wyprzedza Kapitał*.
 
 **Nie wiesz, którą wybrać?** Dopasuj ścieżkę do tagów pasji z sekcji 1 tej ankiety:
 * `#KOD` → śmiało w ŚCIEŻKĘ C,
 * `#HARDWARE`, `#CAD`, `#MESH`, `#RECYKLING`, `#AGRO_AI`, `#OZE` → zacznij od ŚCIEŻKI A (dokumentujesz swój warsztat i pomysł),
 * masz żyłkę komunikatora i budowniczego społeczności → ŚCIEŻKA B czeka właśnie na Ciebie.
 * lubisz pracę na danych, analizach i mapach → ŚCIEŻKA D czeka właśnie na Ciebie.
+* lubisz porządkować, opisywać i kurujeć wiedzę innych → ŚCIEŻKA D ma dla Ciebie nowe pole przy pilotażu 35 — kuracja wspólnej bazy wiedzy w służbie WSPÓLNEGO DOBRA.
+* lubisz zestawiać dane i szukać wzorców między różnymi węzłami → ŚCIEŻKA D ma dla Ciebie nowe pole przy pilotażu 36 — wspólna analiza porównawcza przypadków między węzłami w służbie WSPÓLNEGO DOBRA.
+* lubisz pisać, porządkować i opracowywać dokumentację → ŚCIEŻKA A ma dla Ciebie nowe pole przy pilotażu 36 — dokumentowanie wspólnych analiz porównawczych węzłów w służbie WSPÓLNEGO DOBRA.
 
 **Nie wybieraj długo — każda ze ścieżek prowadzi do tego samego: realnego dokonania na rzecz NARODOWEGO WYSIŁKU INTELEKTUALNEGO. Zacznij DZISIAJ, pokaż ślad w Issues i Pull Requestach. Intelekt wyprzedza Kapitał!**

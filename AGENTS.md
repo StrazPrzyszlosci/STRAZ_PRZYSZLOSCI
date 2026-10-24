@@ -29,9 +29,9 @@ T1–T39 DONE (zweryfikowane w `cloudflare/src/worker.js`). T24 (fizyczny operat
 
 | Zadanie | Status | Właściciel obszaru plików (TYLKO te pliki) |
 |---|---|---|
-| T40 wizualizacja diff kalibracji (stare→nowe pasmo, tekst/MD do review PR) | DONE | NOWE: `cloudflare/src/agri_calibration_view.js`, `tests/agri_calibration_view_test.mjs`; ODCZYT: `cloudflare/src/agri_calibration.js` |
-| T41 trendy plonów (`GET /v1/agri/harvest/trends`, serie sezonowe + regresja per crop_profile) | DONE | NOWE: `cloudflare/src/agri_harvest_trends.js`, `tests/agri_harvest_trends_test.mjs`; ODCZYT: `cloudflare/src/harvest_ledger.js` |
-| T42 draft-PR z kalibracją (`!calibration apply`, flow B5/T23, `no_auto_merge`) | DONE | `cloudflare/src/execution_pack_initiator.js`, komendy w `discord_api_handler.js` / `telegram_issues.js`, NOWY test `tests/execution_pack_calibration_test.mjs` |
+| T40 wizualizacja diff kalibracji (stare→nowe pasmo, tekst/MD do review PR) | DONE (PR #16, claim done; odświeżono 2026-10-23 wg audytu) | NOWE: `cloudflare/src/agri_calibration_view.js`, `tests/agri_calibration_view_test.mjs`; ODCZYT: `cloudflare/src/agri_calibration.js` |
+| T41 trendy plonów (`GET /v1/agri/harvest/trends`, serie sezonowe + regresja per crop_profile) | DONE (claim done; odświeżono 2026-10-23 wg audytu) | NOWE: `cloudflare/src/agri_harvest_trends.js`, `tests/agri_harvest_trends_test.mjs`; ODCZYT: `cloudflare/src/harvest_ledger.js` |
+| T42 draft-PR z kalibracją (`!calibration apply`, flow B5/T23, `no_auto_merge`) | DONE (PR #14, claim done; odświeżono 2026-10-23 wg audytu) | `cloudflare/src/execution_pack_initiator.js`, komendy w `discord_api_handler.js` / `telegram_issues.js`, NOWY test `tests/execution_pack_calibration_test.mjs` |
 | API/worker hardening (rate-limity tła, floating-IP healthcheck, secret-rotation runbook) | OPEN | NOWE pliki w `cloudflare/src/` + `docs/`; bez ruszania logiki agri |
 
 ## 3. Pliki współdzielone (worker.js, handlery bota) — reguła bloków
@@ -63,7 +63,3 @@ Trzej agenci (T40/T41/T42) mogą musieć dodać routy w `cloudflare/src/worker.j
 - Podejrzenie kolizji (ten sam plik w dwóch claimach `in_progress`): nie koduj, dopisz sekcję do swojego handoffu i czekaj na decyzję operatora.
 - Lekcja z 2026-10-02 (edit-war T40 w jednym drzewie): dwóch agentów w TYM SAMYM worktree bez claimów kończy nadpisywaniem sobie plików. Dlatego: (a) claim-first bez wyjątków, (b) NIGDY nie edytuj cudzego pliku claimu (nawet statusu), (c) nie nadpisuj cudzego modułu "lepszą wersją" — spór o API rozstrzyga operator w handoffie, kod z testami na dysku zostaje.
 - Seed approvals wygasają — przed turą uruchom `python3 human_approval/validate_record.py`; przy expiry <30 dni dopisz ostrzeżenie do handoffu (lekcja z T21).
-
-## 7. Weryfikacja rezerwacji między worktree (T53)
-
-Przed pracą uruchom `python3 tools/agent_claims.py check --all-worktrees`. Nowe rezerwacje twórz poleceniem `reserve`, które korzysta ze wspólnej blokady Git i zapisuje claim przed kodem. Przejęcie wymaga jawnej decyzji operatora zapisanej we własnym claimie; cudzych claimów nie edytuj. Statusy starsze niż 7 dni wymagają odświeżenia przez właściciela; sam wiek nie oznacza abandoned. Jeden agent ma domyślnie jedno aktywne zadanie implementacyjne; kolejne zakresy muszą być rozłączne.

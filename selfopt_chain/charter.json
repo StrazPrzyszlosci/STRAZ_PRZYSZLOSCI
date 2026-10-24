@@ -18,7 +18,7 @@
   ],
   "forbidden_keywords": [
     "broń",
-    "bron",
+    "uzbrojen",
     "weapon",
     "amunicj",
     "surveillance",
@@ -29,7 +29,7 @@
     "facial recognition",
     "dane osobowe bez zgody"
   ],
-  "matching_note": "Dopasowanie rdzeni od granicy słowa; bron bez diakrytyków jako pełne słowo, aby dopuścić bronowanie; lista pozostaje konserwatywna — przydział zablokowany słowem kluczowym może odzyskać człowiek przez review.",
+  "matching_note": "Dopasowanie rdzeni na GRANICY słowa (regex z lookbehind) — tolerancja polskich odmian bez false positives ('wytwarzanie' nie pasuje do 'twarz', 'bronowanie' nie pasuje do 'broń'). Lista celowo nadmiernie blokująca; odzyskanie zapotrzebowania wymaga review człowieka.",
   "rules": [
     {
       "rule": "human_rights_first",
