@@ -472,6 +472,49 @@ zawiera ciągłość: co zrobiono, co odrzucono, co zaproponowano na kolejną no
   (c) kompaktowy status biegu czytać skryptem ze state.json (`status_noc4.py`) — `--status`
   z log_tail jest zbyt gadatliwy do pollingu co 5 min.
 
+### Noc 2026-10-24 (NOC-5, start 05:45 — kontynuacja po NOC-1 i NOC-4)
+
+- Kontekst: NOC-1 i NOC-4 domknięte w całości (commity 5bea4eb, ec3845b); NOC-5 wykonał
+  w całości 3 propozycje NOC-4. UWAGA: propozycje 1 i 2 (ŚCIEŻKA A i ŚCIEŻKA B ankiety)
+  celowały w TEN SAM plik REKRUTACJA_ANKIETA.md — scalone w JEDNĄ instancję (edycja
+  dodająca dwóch ścieżek naraz), zgodnie z zasadą jeden plik = jedna instancja równoległa;
+  bieg 2-instancyjny zamiast 3.
+- Readiness: probe Muse nadal „NIE DZIAŁA" (trwały stan) → ręczny probe
+  `nvidia/z-ai/glm-5.3-flash` (probe_glm_noc1_20261023.py) → PROBE_OK (05:52). Binarka
+  v2.1.3, repo czyste. Sync z remote: `git log HEAD..origin/main` puste (klon aktualny;
+  ruszyła tylko gałąź boczna codex/T60-glm53-swarm).
+- Godzina: plan, skrypty i kotwice przygotowane PRZED ostatnim checkiem godziny (wzorzec
+  z NOC-5 22/23), ale komenda startu farmy weszła 06:01:36 — ok. 1,5 min po zamknięciu
+  okna. Bieg dokończony (ubijanie zostawiłoby półzapisane pliki).
+- **2 instancje równolegle** (run `20261024-060136`), obie `done`: A-ankieta-sciezki-a-b-36
+  (16,8 min; ŚCIEŻKA A += punkt 5 o dokumentowaniu i opracowywaniu udokumentowanych
+  przypadków porównawczych według 36, ŚCIEŻKA B += punkt 6 o wzorcu opowiadania z
+  MARKETING §9 pkt 6–7 z linkami 32+36, lista mapująca += punkt o ŚCIEŻCE A),
+  B-ai-process-weryfikacja-lekcje (11,5 min; lekcje NOC-4: punkt 9 „igły z fleksją" w
+  Wzorca weryfikacji nadzorcy + punkty 8–9 w Wzorca integracji README).
+- Weryfikacja: 13 igieł (folding OBU stron) — 7 OK od razu; 6 „BRAK" rozstrzygnięte
+  greppami jako WSZYSTKIE grounded: zasada decyzji człowieka = 36 l.39 exact
+  („Rekomendacja jest zawsze wejściem do decyzji człowieka, nigdy jej zamiennikiem";
+  wariant w A5 zbieżny z punktem 6 ŚCIEŻKI D), „pytania porównawcze" i „raportami
+  porównawczymi" = 36 l.125 („definiowanie pytań porównawczych i form raportów
+  porównawczych" — fleksja igieł, lekcja NOC-4c), „tytułami i sekcjami, którymi się
+  przedstawiają" = MARKETING l.111 (źródło w mianowniku: „przez tytuły i sekcje, którymi
+  te pliki same się przedstawiają" — fleksja igły), „bez dopisywania od siebie" =
+  MARKETING l.105/110/111 (parafraza „nie dopisujemy od siebie faktów, liczb ani
+  terminów" / „łatwiej niż zwykle o dopisanie od siebie"), „pełnoprawny wkład w Zasób
+  Wiedzy NSI" = nagłówek ŚCIEŻKI A ankiety (konwencja wewnętrzna pliku). Linki
+  wewnętrzne: 15 / 0 martwych (ankieta + AI-PROCESS). Korekty nadzorcy: 0. Zero
+  halucynacji do usunięcia.
+- README: bez integracji — bieg nie tworzył nowych plików-pilotaży (linki 32/36 już żyją
+  w MARKETING §9 i README; ankieta jest docierana z CONTRIBUTING §4). Commit i push na
+  main przez nadzorcę (instancje mają zakaz git).
+- Lekcje: (a) propozycje celujące w ten sam plik docelowy — scalać w jedną instancję,
+  nigdy dwie równoległe na jednym pliku; (b) `runtime_min` w state.json pozostaje 0.0
+  dopóki instancja biegnie — pole nie jest wskaźnikiem zawieszenia, statusy czytać po
+  zakończeniu runu; (c) mimo przygotowań przed ostatnim checkiem godziny start komendy
+  wypadł ok. 1,5 min po zamknięciu okna — biegi startujące po 05:40 prowadzić od razu
+  planem zminimalizowanym (gotowy plan + jeden start), licząc z narzutem narzędzi.
+
 ## Wzorzec promptu instancji (szablon dla nadzorcy)
 
 Destylat skutecznych promptów instancji z nocnych biegów 2026-10-20/21 (NOC-1, NOC-5, NOC-22).
@@ -585,6 +628,9 @@ wyłącznie nadzorca (instancje mają zakaz git).
    instancji `--status` pokazuje `active_run: null` i pustą listę (nadzorca sprząta stan) —
    „pusto” nie znaczy, że nic nie zrobiono. Końcowe statusy i czasy czytać ze state.json
    (wzorzec: `nsip-farm/check_run_noc1.py`).
+9. **Igły checku z fleksją rozstrzygać greppem formy źródłowej.** Mianownik igły a deklinacja
+   w źródle — zanim frazę oznaczy się jako wymyśloną, sprawdzić w źródle formę odmienioną
+   (rozszerzenie lekcji o diakrytykach z punktu 3 na odmianę przez przypadki).
 
 Nadzorcę obowiązuje tu ta sama dyscyplina, co instancje („Zasady jakości” poniżej): rzetelna
 weryfikacja u źródeł jest częścią NARODOWEGO WYSIŁKU INTELEKTUALNEGO — praca instancji staje się
@@ -618,6 +664,14 @@ zanim trafią do commita i push na main.
    pliku, nie tytuł.
 7. **Po integracji: przegląd diffu README wzrokiem oraz automatyczny check linków wewnętrznych.**
    Zero martwych linków to warunek dopuszczenia do commita.
+8. **Dopisując na KONIEC wyliczenia, przenieść „oraz” na ostatni element.** Po każdym dopisku
+   sprawdzić, co wprowadza „oraz” — dopisana pozycja doklejona za istniejącym „oraz” wisi za
+   przecinkiem, zamiast być ostatnim członem wyliczenia (lekcja z korekty, w której „oraz”
+   wprowadzało przedostatnią pozycję wyliczenia, a nowa pozycja wisiała za przecinkiem).
+9. **Krótkie opisy w wyliczeniach czerpać z danego pliku, nie z opisów sąsiednich pozycji.**
+   Źródłem opisu są tytuł (H1) i „Opis Projektu” danego pliku oraz akapit ROADMAPA o tym
+   pilotażu — opis sąsiada opisuje sąsiada (lekcja z biegu, w którym opis skopiowany od
+   sąsiada wymagał korekty).
 
 ## Zasady jakości (obowiązują każdą instancję)
 
@@ -630,44 +684,49 @@ zanim trafią do commita i push na main.
 
 ## Propozycje na kolejną noc (3 instancje, gdy pojemność pozwoli)
 
-Stan po NOC-4 (2026-10-24): pilotaże 25–36 (36 = piąty pilotaż poprzeczny — wspólna analiza
-porównawcza węzłów, spięcie 01+30+34+35); ROADMAPA „Kolejne spięcia osi" dokumentuje 30/31 oraz
-poprzeczne 32–36 (¶ „Piąty z nich…"); README: oś 4 *Inspiracje* zawiera 33–36, lista pilotaży
-32–36 kompletna (l.86–90); MARKETING §9 (25–36) z punktem 7 o pilotażach wspólnej warstwy
-(33–36); ankieta: ŚCIEŻKA C z punktem 5 (zalążki kodu bazy wiedzy z 35), ŚCIEŻKA D z punktami
-5 (kuracja, 35) i 6 (analiza porównawcza, 36) oraz dwoma punktami mapującymi ŚCIEŻKI D;
-CONTRIBUTING §7 „Wzorzec w praktyce: pilotaże poprzeczne 32–36" (akapity o 32–36); AI-PROCESS
-ma wzorzec promptu, wzorzec weryfikacji nadzorcy i wzorzec integracji README. ŚCIEŻKI A i B
-ankiety mają dziś zero odwołań do pilotaży 32–36 (grep: 0).
+Stan po NOC-5 (2026-10-24): pilotaże 25–36; ROADMAPA „Kolejne spięcia osi" dokumentuje 30/31
+oraz poprzeczne 32–36 (¶ „Piąty z nich…"); README: oś 4 *Inspiracje* zawiera 33–36, lista
+pilotaży 32–36 kompletna; MARKETING §9 (25–36) z punktami 6–7 o pilotażach poprzecznych;
+ankieta: ŚCIEŻKA A z punktem 5 (dokumentowanie przypadków porównawczych, 36) i punktem
+mapującym o ŚCIEŻCE A, ŚCIEŻKA B z punktem 6 (wzorzec opowiadania z MARKETING §9, 32+36),
+ŚCIEŻKA C z punktem 5 (zalążki kodu bazy wiedzy z 35), ŚCIEŻKA D z punktami 5 (kuracja, 35)
+i 6 (analiza porównawcza, 36) oraz trzema punktami mapującymi (35/36/ŚCIEŻKA A); CONTRIBUTING
+§7 „Wzorzec w praktyce: pilotaże poprzeczne 32–36"; AI-PROCESS ma wzorce promptu, weryfikacji
+nadzorcy i integracji README z lekcjami NOC-4 i NOC-5. ŚCIEŻKA C ankiety ma jedno odwołanie
+do poprzecznych (35); ROADMAPA nie ma jeszcze akapitu podsumowującego komplet 32–36.
 
-1. **REKRUTACJA_ANKIETA — ŚCIEŻKA A (TREŚCI I DOKUMENTY) += pole przy pilotażach poprzecznych**:
-   ŚCIEŻKA A ma dziś zero odwołań do pilotaży 32–36 — dopisać jeden punkt (edycja wyłącznie
-   dodająca; istniejących punktów NIE zmieniać — najpierw grep aktualnych punktów ścieżki)
-   o dokumentowaniu i opracowywaniu udokumentowanych przypadków porównawczych według
-   [36. Koncepcyjnego Pilotażu Wspólnej Analizy Porównawczej Węzłów](PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md)
-   — w konwencji punktów 5/6 ŚCIEŻKI D (emoji, link, zasada „rekomendacja jest zawsze wejściem
-   do decyzji człowieka", *Intelekt wyprzedza Kapitał* na końcówce); rozważyć jeden punkt
-   mapujący w liście „Nie wiesz, którą wybrać?" (forma „* lubisz…" — bez nowych tagów);
-   inspiracje (verify ls-em): ankieta ŚCIEŻKA A + lista mapująca, PROJEKTY/36, PROJEKTY/33.
-   BEZ liczb i dat.
-2. **REKRUTACJA_ANKIETA — ŚCIEŻKA B (MARKETING) += punkt o opowiadaniu o pilotażach poprzecznych**:
-   ŚCIEŻKA B ma dziś zero odwołań do 32–36 — dopisać jeden punkt wskazujący MARKETING.md §9
-   (punkty 6–7: „Pierwszy pilotaż poprzeczny opowiadamy tymi samymi zasadami…" i „Kolejne
-   pilotaże poprzeczne — wspólne warstwy…") jako gotowy wzorzec opowiadania: wyłącznie tytuły
-   i sekcje, którymi pliki same się przedstawiają, zero dopisywania od siebie; link do
-   MARKETING.md §9 i do pilotaży 32/36 w konwencji punktów ścieżki; istniejące punkty ŚCIEŻKI B
-   NIE zmieniane; inspiracje (verify ls-em): ankieta ŚCIEŻKA B, MARKETING §9, PROJEKTY/32.
-   BEZ liczb i dat.
-3. **AI-PROCESS — dopisek do „Wzorca weryfikacji nadzorcy" (lekcje NOC-4)**: (a) dopisując na
-   koniec wyliczenia, przenosić „oraz" na ostatni element (korekta z NOC-4: „oraz [35]…" z 36
-   za przecinkiem); (b) krótkie opisy w wyliczeniach czerpać z H1+Opis pliku i ¶ ROADMAPA, nie
-   z sąsiednich opisów; (c) igły z fleksją (nominativ igły vs deklinacja źródła) rozstrzygać
-   greppem formy źródłowej, zanim frazę oznaczy się jako wymyśloną — rozszerzenie lekcji o
-   diakrytykach. Edycja wyłącznie dodająca w istniejących sekcjach AI-PROCESS.md; PLIK DOCLOWY:
-   AI-PROCESS.md (nadzorca i tak wpisuje tam loga — kolejność: najpierw instancja, potem wpis
-   nadzorcy).
-   (Model: `nvidia/z-ai/glm-5.3-flash`; readiness „NIE DZIAŁA" na Muse ID = oczekiwane, robić
-   ręczny probe GLM (wzorzec `probe_glm_noc1_20261023.py`) przed decyzją o biegu. Plan.json =
-   płaska tablica (wzorzec `gen_plan_noc4_20261024.py`); absolutna ścieżka repo; instancje mają
-   zakaz git; fetch+rebase PRZED startem; statusy kompaktowo ze state.json (`status_noc4.py`);
-   weryfikacja wg „## Wzorzec weryfikacji nadzorcy", integracja wg „## Wzorzec integracji README".)
+1. **REKRUTACJA_ANKIETA — ŚCIEŻKA C (KOD I PROOF OF CONCEPT) += punkt o kodzie wspólnej
+   warstwy analizy (36)**: ŚCIEŻKA C ma dziś jedno odwołanie do poprzecznych (pkt 5 o
+   zalążkach kodu bazy wiedzy z 35) — dopisać punkt 6 (edycja wyłącznie dodająca; punktów
+   1–5 NIE zmieniać) o rozwijaniu otwartych narzędzi wspólnej analizy porównawczej według
+   [36. Koncepcyjnego Pilotażu Wspólnej Analizy Porównawczej Węzłów](PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md):
+   narzędzia analityczne i modele wspierające decyzje o
+   alokacji zasobów między węzłami (kierunek Fazy 1 Mapy drogowej przywołany w pliku 36),
+   eksporty i raporty porównawcze na zalążkach ścieżki eksportu (pipelines/
+   export_knowledge_snapshot.py, reports/README.md — jak w pkt 5); zasada: wyniki analiz
+   trafiają do kolejki kuracji i wracają do bazy po decyzji człowieka-kuratora; konwencja
+   pkt 5 ŚCIEŻKI C (numer, emoji, link, *Intelekt wyprzedza Kapitał* na końcówce);
+   inspiracje (verify ls-em): ankieta ŚCIEŻKA C, PROJEKTY/36 (Moduł 4 oraz „Jak społeczność
+   może rozwinąć ten projekt"), PROJEKTY/35. BEZ liczb i dat.
+2. **ROADMAPA — „Synergie osi": akapit domykający komplet pilotaży poprzecznych 32–36**: po
+   ¶ o 36 (a przed zdaniem zamykającym sekcję — wzorzec NOC-24: „zamykające zawsze na
+   końcu") jeden akapit streszczający komplet pięciu pilotaży poprzecznych jako ciąg
+   wspólnych warstw węzłów: budowa węzła zintegrowanego (32) → utrzymanie węzłów w ruchu
+   (33) → łączność i wspólna telemetria (34) → wspólna baza wiedzy i snapshoty (35) →
+   wspólna analiza porównawcza (36); wyłącznie z H1 i Opisów Projektu plików 32–36 oraz
+   istniejących ¶ sekcji — zero nowych twierdzeń, zero liczb i dat; edycja wyłącznie
+   dodająca. Inspiracje (verify ls-em): ROADMAPA sekcja „### Kolejne spięcia osi…",
+   PROJEKTY/32–36 (H1 + Opis Projektu).
+3. **AI-PROCESS — dopisek lekcji NOC-5 do „Zasad skuteczności" i „Stanu infrastruktury"**:
+   (a) nowy punkt 8 w „### Zasadach skuteczności": propozycje celujące w ten sam plik
+   docelowy — scalać w jedną instancję (edycja dodająca dwóch ścieżek naraz), nigdy dwie
+   instancje równolegle na jednym pliku (lekcja NOC-5a); (b) zdanie w „## Stanie
+   infrastruktury" o `runtime_min` (0.0 dopóki instancja biegnie — statusy czytać po
+   zakończeniu runu, lekcja NOC-5b). Edycja wyłącznie dodająca; PLIK DOCLOWY:
+   AI-PROCESS.md (kolejność: najpierw instancja, potem wpis nadzorcy).
+   (Model: `nvidia/z-ai/glm-5.3-flash`; readiness „NIE DZIAŁA" na Muse ID = oczekiwane,
+   robić ręczny probe GLM (wzorzec `probe_glm_noc1_20261023.py`) przed decyzją o biegu.
+   Plan.json = płaska tablica (wzorzec `gen_plan_noc5_20261024.py`); absolutna ścieżka repo;
+   instancje mają zakaz git; fetch+rebase PRZED startem; statusy kompaktowo ze state.json
+   (`status_noc4.py <run_id>`); weryfikacja wg „## Wzorzec weryfikacji nadzorcy",
+   integracja wg „## Wzorzec integracji README".)
