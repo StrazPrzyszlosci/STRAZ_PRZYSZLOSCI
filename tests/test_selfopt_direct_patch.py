@@ -22,13 +22,13 @@ class ExactEditTests(unittest.TestCase):
             return result
 
     def test_exact_edit_builds_a_patch(self):
-        result = self.run_response({'proposal': 'Fix answer', 'edits': [{'path': 'sample.py', 'old': '    return 1\n', 'new': '    return 2\n'}]})
+        result = self.run_response({'proposal': 'Fix answer', 'edits': [{'path': 'sample.py', 'old': '    return 1\n', 'new': '    return 2\n'}], 'new_files': []})
         self.assertEqual(result['exit_code'], 0)
         self.assertIn('+    return 2', result['patch_text'])
 
     def test_no_fuzzy_edits_or_scope_escape(self):
-        bad = self.run_response({'proposal': 'Fix', 'edits': [{'path': 'sample.py', 'old': 'missing', 'new': 'value'}]})
+        bad = self.run_response({'proposal': 'Fix', 'edits': [{'path': 'sample.py', 'old': 'missing', 'new': 'value'}], 'new_files': []})
         self.assertEqual(bad['exit_code'], 1)
         self.assertIn('old_fragment_not_unique', bad['error'])
-        bad = self.run_response({'proposal': 'Fix', 'edits': [{'path': '../escape.py', 'old': 'x', 'new': 'y'}]})
+        bad = self.run_response({'proposal': 'Fix', 'edits': [{'path': '../escape.py', 'old': 'x', 'new': 'y'}], 'new_files': []})
         self.assertEqual(bad['exit_code'], 1)

@@ -65,7 +65,9 @@ def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engin
         "Oceń: (1) czy produkcja spełnia zadanie, (2) błędy/braki, (3) co poprawić.",
         'Odpowiedz WYŁĄCZNIE JSON: {"verdict": "pass"|"needs_fixes"|"fail", "notes": "2-4 zdania"}',
     ])
-    result = review_engine.complete({"kind": "review", "privacy": "public", "task_id": f"review_{task.task_id}"}, review_alias, prompt)
+    result = review_engine.complete({"kind": "review", "privacy": "public", "task_id": f"review_{task.task_id}",
+        "max_tokens": 8192, "response_format": {"type": "json_object"},
+        "system_prompt": "Return only a JSON object with verdict and notes. No tools are available; review the supplied material."}, review_alias, prompt)
     if not result.get("ok"):
         return {"reviewer": "none", "verdict": "unreviewed", "notes": f"review engine niedostepny: {result.get('error_class', '?')}"}
     raw = str(result.get("output", "")).strip()
@@ -195,7 +197,7 @@ def build_task_query(task: EvolutionTask, repo_root: Path) -> str:
     ])
 
 
-def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | None) -> tuple[dict[str, Any], list[EvolutionTask]]:
+def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | None, hardware_context=None) -> tuple[dict[str, Any], list[EvolutionTask]]:
     """KROK 1 (dyrektywa operatora): STRATEGIE tworzy LLM na darmowych modelach.
 
     LLM dostaje surowe zadania z backlogu i produkuje 'strategy brief':
@@ -224,6 +226,7 @@ def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | Non
         "",
         "Zadania:",
         listing,
+        'Aktualny sprzęt i ograniczenia hosta: ' + json.dumps(hardware_context or {}, ensure_ascii=False),
     ])
     result = strategy_engine.complete({"kind": "reason", "privacy": "public", "task_id": "evolution_strategy"}, "auto", prompt)
     if not result.get("ok"):
@@ -313,6 +316,9 @@ class EvolutionLoop:
     def index(self):
         return self.store.transaction()
 
+    def _worker_enabled(self):
+        return self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)()
+
     def pending(self):
         from selfopt_chain.evolution_inputs import prepare_inputs, InputUnavailable
         from selfopt_chain.swarm import Demand, charter_check, load_charter
@@ -334,7 +340,15 @@ class EvolutionLoop:
                 self.store.block(fp, str(error))
                 self.blocked.append({"task_id": task.task_id, "reason": str(error)})
                 continue
-            if self.store.eligible(fp, bundle["input_hash"]):
+            if self._worker_enabled() and self.models and self.lane_models:
+                from selfopt_chain.model_selection import shortlist_models
+                selection = shortlist_models([self.models[mid] for mid in self.lane_models if mid in self.models],
+                    kind='code_draft' if task.kind == 'patch' else 'reason',
+                    ledger=getattr(self.worker, 'ledger', None), requires_tools=task.kind != 'patch')
+                if not selection['candidates']:
+                    self.blocked.append({'task_id': task.task_id, 'reason': 'no_eligible_profile', 'kind': 'models'})
+                    continue
+            if self.store.eligible(fp, bundle["input_hash"], promote_simulated=self._worker_enabled()):
                 self.inputs[fp] = bundle
                 result.append(task)
         return result
@@ -345,7 +359,8 @@ class EvolutionLoop:
         tasks = self.pending() if tasks is None else tasks
         if not tasks:
             return []
-        self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine)
+        self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine,
+                                                       getattr(self.decision_core, 'hardware_context', {}))
         # A decomposition is a proposal; only a complete task contract may execute.
         self.strategy["proposed_subtasks"] = [{"title": t.title, "parent_source": t.source} for t in subtasks]
         order = {task_id: i for i, task_id in enumerate(self.strategy.get("priorities", []))}
@@ -353,7 +368,7 @@ class EvolutionLoop:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         (self.state_dir / "last_evolution_plan.json").write_text(json.dumps({"strategy": self.strategy,
              "selected": [t.task_id for t in tasks], "blocked": self.blocked}, ensure_ascii=False, indent=2))
-        armed = self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)()
+        armed = self._worker_enabled()
         if armed and parallel_mode == "wide" and len(tasks) > 1:
             from concurrent.futures import ThreadPoolExecutor
             # Patches with overlapping declared scope must stay sequential.
@@ -369,17 +384,26 @@ class EvolutionLoop:
     def _lane_model(self, lane_index, task=None):
         if not self.lane_models:
             return None
+        from selfopt_chain.model_selection import shortlist_models
         hint = (self.strategy.get("model_hints") or {}).get(task.task_id, "") if task else ""
-        scores, details = {}, {}
-        for mid in self.lane_models:
-            model = self.models.get(mid, {})
-            speed = {"fast": 1.0, "medium": 0.6, "slow": 0.2}.get(model.get("speed_class"), 0.5)
-            quality = model.get("quality_tier", 3) / 5
-            scores[mid] = (2 * quality + speed / 4) if hint == "smart" else speed + quality / 2
-            details[mid] = {"quality_tier": model.get("quality_tier"), "speed_class": model.get("speed_class"), "capabilities": model.get("capabilities", [])}
+        ledger = getattr(self.worker, 'ledger', None)
+        bundle = self.inputs.get(self.fingerprint(task), {}) if task else {}
+        sources = bundle.get('source_excerpts') or bundle.get('input_files', {})
+        estimated_context = (sum(len(v.encode()) for v in sources.values()) + len((bundle.get('acceptance') or '').encode())) // 2
+        if sources and task and task.kind == 'patch':
+            estimated_context += 8192
+        selection = shortlist_models([self.models[mid] for mid in self.lane_models if mid in self.models],
+            kind='code_draft' if task and task.kind == 'patch' else 'reason', ledger=ledger, hint=hint,
+            minimum_context_tokens=estimated_context,
+            requires_tools=self._worker_enabled() and getattr(self.worker, 'executor_name', 'hermes') == 'hermes')
+        candidates, scores, details = selection['candidates'], selection['scores'], selection['details']
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        (self.state_dir / 'last_model_shortlist.json').write_text(json.dumps(selection, ensure_ascii=False, indent=2))
+        if not candidates:
+            return None
         default = max(scores, key=scores.get)
         if self.decision_core and task:
-            decision = self.decision_core.decide("model_selection", self.lane_models, scores, default_option=default,
+            decision = self.decision_core.decide("model_selection", candidates, scores, default_option=default,
                        context={"task_id": task.task_id, "strategy_hint": hint, "model_characteristics": details})
             return decision["final"] if decision["final"] in scores else default
         return default
@@ -387,16 +411,18 @@ class EvolutionLoop:
     def _run_task(self, task, parallel_mode, model_alias):
         from selfopt_chain.evolution_inputs import task_prompt
         fp = self.fingerprint(task)
-        bundle = self.inputs[fp]
+        bundle = {**self.inputs[fp], 'hardware_context': getattr(self.decision_core, 'hardware_context', {})}
         prior = self.store.snapshot().get(fp, {})
         prior_path = prior.get("receipt_path")
         if prior_path and prior.get("input_hash") == bundle["input_hash"] and Path(prior_path).is_file():
             previous = json.loads(Path(prior_path).read_text())
             if previous.get("validation_ok") and previous.get("review", {}).get("verdict") == "unreviewed":
                 return self.revalidate(prior_path)
-        if self.worker is not None and getattr(self.worker, "ledger", None) is not None and (model_alias is None or not self.worker.ledger.can_use(model_alias)):
+        if self.worker is not None and getattr(self.worker, "ledger", None) is not None and model_alias is None:
+            return {"task_id": task.task_id, "status": "waiting_models", "error": "no_eligible_profile", "auto_applied": False}
+        if self.worker is not None and getattr(self.worker, "ledger", None) is not None and not self.worker.ledger.can_use(model_alias):
             return {"task_id": task.task_id, "status": "waiting_budget", "auto_applied": False}
-        lease = self.store.acquire(fp, task.task_id, bundle["input_hash"])
+        lease = self.store.acquire(fp, task.task_id, bundle["input_hash"], promote_simulated=self._worker_enabled())
         if not lease:
             return {"task_id": task.task_id, "status": "duplicate_or_waiting", "auto_applied": False}
         run_id = f"task_{fp[:16]}_{lease[:8]}"
@@ -408,7 +434,7 @@ class EvolutionLoop:
                    "fingerprint": fp, "input_hash": bundle["input_hash"], "proposal_path": None,
                    "auto_applied": False, "receipt_path": str(out_dir / "evolution_receipt.json")}
         try:
-            if self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)():
+            if self._worker_enabled():
                 receipt["executor"] = getattr(self.worker, "executor_name", "hermes")
                 produced = self.worker.run_isolated(task_prompt(bundle), model_alias=model_alias, input_bundle=bundle)
                 (out_dir / "hermes_receipt.json").write_text(json.dumps(produced, ensure_ascii=False, indent=2))

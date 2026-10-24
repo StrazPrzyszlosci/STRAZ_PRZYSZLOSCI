@@ -88,10 +88,13 @@ def route_task(
     }
 
     candidates: list[tuple[tuple, dict]] = []
-    rejected: dict[str, list[str]] = {"privacy": [], "tier": [], "capabilities": [], "quota": [], "snapshot": []}
+    rejected: dict[str, list[str]] = {"privacy": [], "tier": [], "capabilities": [], "quota": [], "snapshot": [], "role": []}
 
     for idx, m in enumerate(models):
         mid = m["model_id"]
+        if kind not in m.get('routing_roles', [kind]):
+            rejected['role'].append(mid)
+            continue
         if privacy == "private" and m.get("privacy_class") != "local_private":
             rejected["privacy"].append(mid)
             continue
@@ -114,9 +117,9 @@ def route_task(
 
     if not candidates:
         decision["blocked"] = True
-        if rejected["privacy"] and not rejected["tier"] + rejected["capabilities"] + rejected["quota"] + rejected["snapshot"]:
+        if rejected["privacy"] and not rejected["tier"] + rejected["capabilities"] + rejected["quota"] + rejected["snapshot"] + rejected['role']:
             decision["blocked_reason"] = "privacy_conflict"
-        elif rejected["quota"] and not rejected["tier"] + rejected["capabilities"]:
+        elif rejected["quota"] and not rejected["tier"] + rejected["capabilities"] + rejected['role']:
             decision["blocked_reason"] = "quota_exhausted"
         elif rejected["snapshot"]:
             decision["blocked_reason"] = "provider_blocked_by_snapshot"
@@ -124,6 +127,8 @@ def route_task(
             decision["blocked_reason"] = "no_capability_match"
         elif rejected["tier"]:
             decision["blocked_reason"] = "no_tier_match"
+        elif rejected['role']:
+            decision['blocked_reason'] = 'no_role_match'
         else:
             decision["blocked_reason"] = "empty_registry"
         decision["rejected"] = rejected

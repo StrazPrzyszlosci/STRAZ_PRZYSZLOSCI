@@ -79,10 +79,11 @@ class BasalDecisionCore:
     zgodnym z decisions.jsonl basala (pole group/question_type + context).
     """
 
-    def __init__(self, decision_log: Path | None = None, confidence_floor: float = DEFAULT_CONFIDENCE_FLOOR, temperatures: dict[str, float] | None = None) -> None:
+    def __init__(self, decision_log: Path | None = None, confidence_floor: float = DEFAULT_CONFIDENCE_FLOOR, temperatures: dict[str, float] | None = None, hardware_context: dict | None = None) -> None:
         self.decision_log = decision_log
         self.confidence_floor = confidence_floor
         self.temperatures = temperatures
+        self.hardware_context = hardware_context or {}
         self.decisions: list[dict[str, Any]] = []
         self.remote_url: str | None = None
         import os
@@ -101,10 +102,15 @@ class BasalDecisionCore:
         missing = [o for o in options if o not in scores]
         if missing:
             raise ValueError(f"decide: brak score dla opcji {missing}")
+        context = dict(context or {})
+        if self.hardware_context:
+            context['hardware_context'] = self.hardware_context
         engine = "builtin"
         probabilities, confidence = None, None
         remote_note = None
-        if self.remote_url:
+        if self.remote_url and len(options) == 1:
+            remote_note = "single candidate; no remote request needed"
+        if self.remote_url and len(options) > 1:
             remote = self._remote_decide(question_type, options, scores, context)
             if remote is not None:
                 probabilities, confidence = remote
@@ -217,9 +223,15 @@ class BasalDecisionCore:
             return None
         probabilities = answer.get("probabilities")
         confidence = answer.get("confidence")
-        if not isinstance(probabilities, dict) or not all(k in scores for k in probabilities) or not isinstance(confidence, (int, float)):
+        if (not isinstance(probabilities, dict) or set(probabilities) != set(options)
+                or type(confidence) not in (int, float) or not math.isfinite(confidence) or not 0 <= confidence <= 1
+                or any(type(v) not in (int, float) or not math.isfinite(v) or not 0 <= v <= 1 for v in probabilities.values())):
             return None
-        return {k: float(v) for k, v in probabilities.items()}, round(float(confidence), 4)
+        total = sum(probabilities.values())
+        if not math.isclose(total, 1.0, abs_tol=0.002) or not math.isclose(confidence, max(probabilities.values()), abs_tol=0.002):
+            return None
+        probabilities = {k: float(v) / total for k, v in probabilities.items()}
+        return probabilities, max(probabilities.values())
 
 
 class SwarmResource:
@@ -298,6 +310,12 @@ HARDWARE_KINDS = {
 CHARTER_PATH = Path(__file__).with_name("charter.json")
 
 REMOTE_INSTRUCTIONS: dict[str, str] = {
+    "model_selection": (
+        "Wybierz konkretny model pasujacy do zadania, roli, wymaganych zdolnosci i limitow API. "
+        "Dla execution_location=remote_api rozmiar modelu nie jest ograniczony RAM ani GPU hosta. "
+        "Kontekst sprzetowy hosta ogranicza dopiero wybor modelu uruchamianego lokalnie. "
+        "Obecnie lokalny jest tylko Basal; modele wykonujace zadania sa w OmniRoute."
+    ),
     "default": (
         "Wybierz najlepsza opcje dla roju Strazy Przyszlosci na podstawie stanu i kryteriow. "
         "Uwzglednij heurystyczny score roju jako dowod, ale ocen tez dopasowanie opisu opcji do sytuacji."
@@ -307,15 +325,24 @@ REMOTE_INSTRUCTIONS: dict[str, str] = {
         "presja limitow darmowych API, zadania krytyczne, okno OZE. Wybierz strategie, ktora "
         "maksymalizuje liczbe zweryfikowanych ulepszen przy dostepnych zasobach."
     ),
+    "job_selection": (
+        "Decyzja: selekcja i kolejnosc zadan do wykonania w tym cyklu (limity budzetow darmowych API). "
+        "Priorytet wyzej = wazniejsze zadanie."
+    ),
     "allocation": (
         "Decyzja: przydzial zasobu (sprzet/model) do zapotrzebowania misyjnego. Zasoby: telefony, "
-        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wczely selfhost, darmowe modele API. "
+        "czujniki z AGD, plytki ESP, drukarki 3D, ramiona robota, wezly selfhost, darmowe modele API. "
         "Wybierz zasob najlepiej pokrywajacy wymagania zapotrzebowania."
     ),
     "exec_mode": (
         "Decyzja: tryb wykonania zadania. device_profile = gotowy algorytm pisany pod sprzet; "
         "on_device_model = maly model decyzyjny na wezle; cloud_chain = lancuch LLM w hubie na "
         "darmowych API. Priorytet: lokalnie i tanszej, jesli wystarcza."
+    ),
+    "model_selection": (
+        "Decyzja: wybor modelu LLM do zadania sposrod kandydatow rotera (kolejnosc wg polityki "
+        "jakosc/szybkosc/budzet). Score 2.0 = wybor rotera; alternatywy malejaco. "
+        "Ocen dopasowanie modelu do rodzaju zadania."
     ),
 }
 

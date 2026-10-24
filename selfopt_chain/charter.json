@@ -27,7 +27,8 @@
     "monitoring osób",
     "twarz",
     "facial recognition",
-    "dane osobowe bez zgody"
+    "dane osobowe bez zgody",
+    "uzbrojen"
   ],
   "matching_note": "Dopasowanie rdzeni na GRANICY słowa (regex z lookbehind) — tolerancja polskich odmian bez false positives ('wytwarzanie' nie pasuje do 'twarz', 'bronowanie' nie pasuje do 'broń'). Lista celowo nadmiernie blokująca; odzyskanie zapotrzebowania wymaga review człowieka.",
   "rules": [
