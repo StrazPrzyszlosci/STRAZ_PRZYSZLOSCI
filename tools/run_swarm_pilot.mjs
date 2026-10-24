@@ -10,16 +10,34 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const real = args.includes('--real');
+const evolution = args.includes('--evolve');
+const continuous = args.includes('--continuous');
+const value = (name, fallback) => args.includes(name) ? args[args.indexOf(name)+1] : fallback;
 const allowDb = args.includes('--use-omniroute-db-key');
 const maxCalls = args.includes('--max-calls') ? Number(args[args.indexOf('--max-calls') + 1]) : 8;
-if (!Number.isInteger(maxCalls) || maxCalls < 1 || maxCalls > 32) throw Error('max-calls must be 1..32');
-const state = resolve(root, 'scratch/selfopt', real ? 'pilot-live' : 'pilot-offline');
+if (!Number.isInteger(maxCalls) || maxCalls < 1 || maxCalls > 256) throw Error('max-calls must be 1..256');
+const state = resolve(value('--state-dir', resolve(root, 'scratch/selfopt', evolution ? 'stable-evolution' : real ? 'pilot-live' : 'pilot-offline')));
 await mkdir(state, { recursive: true });
-const env = { ...process.env, SELFOPT_NETWORK: real ? '1' : '0', SELFOPT_HERMES: '0', SELFOPT_REQUEST_TIMEOUT: process.env.SELFOPT_REQUEST_TIMEOUT || '60' };
+const env = { ...process.env, SELFOPT_NETWORK: real ? '1' : '0', SELFOPT_HERMES: real && evolution ? '1' : '0', SELFOPT_REQUEST_TIMEOUT: process.env.SELFOPT_REQUEST_TIMEOUT || '60' };
 const options = ['selfopt_chain/orchestrator.py', '--state-dir', state, '--kill-switch', join(state, 'KILL_SWITCH'),
                  '--max-cycles', '2', '--interval', '3', '--max-jobs', '1', '--max-calls', String(maxCalls), '--max-seconds', '300'];
 
 if (real) {
+  const gateway = new URL(env.SELFOPT_OMNIROUTE_URL || 'http://127.0.0.1:20128/v1');
+  if (!['127.0.0.1','localhost','[::1]'].includes(gateway.hostname)) throw Error('Local gateway required');
+  if (evolution) {
+    if (!value('--quota-ledger', null)) throw Error('Evolution requires an explicit existing --quota-ledger; do not reset history');
+    env.SELFOPT_HERMES_RUNTIME = resolve(value('--runtime', env.SELFOPT_HERMES_RUNTIME || ''));
+    await readFile(join(env.SELFOPT_HERMES_RUNTIME,'READY.json'));
+    env.SELFOPT_BASAL_URL = env.SELFOPT_BASAL_URL || 'http://127.0.0.1:8000';
+    const basal = new URL(env.SELFOPT_BASAL_URL);
+    if (!['127.0.0.1','localhost','[::1]'].includes(basal.hostname)) throw Error('Local basal required');
+    const health = await fetch(env.SELFOPT_BASAL_URL+'/health',{signal:AbortSignal.timeout(5000)});
+    if(!health.ok) throw Error('Local basal unavailable');
+    options.push('--evolve-only','--evolve-max-tasks','1','--evolve-pause',value('--pause','60'),'--hermes-max-turns',value('--turns','12'),'--quota-ledger',resolve(value('--quota-ledger')));
+    const timeAt=options.indexOf('--max-seconds'); options[timeAt+1]=value('--max-seconds','1800');
+    if(continuous) options.splice(options.indexOf('--max-cycles'),2);
+  }
   let key = env.SELFOPT_OMNIROUTE_KEY;
   let db;
   try {

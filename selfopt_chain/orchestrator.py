@@ -303,7 +303,7 @@ class Orchestrator:
         self.had_failures = False
         self.stop_requested = False
         self.stop_event = threading.Event()
-        self.ledger = QuotaLedger(load_registry(self.registry_path), self.state_dir / "quota_ledger.json",
+        self.ledger = QuotaLedger(load_registry(self.registry_path), Path(config.get("quota_ledger_path") or self.state_dir / "quota_ledger.json"),
                                   max_calls=config.get("max_calls"), should_stop=self.should_stop,
                                   seed_daily=self.state.data.get("daily_calls", {}))
 
@@ -541,45 +541,60 @@ class Orchestrator:
         receipt["finished"] = _now_iso()
         return receipt
 
-    def _run_evolution(self, backlog: int) -> dict[str, Any]:
-        """Samoewolucja repo wg dyrektywy operatora: LLM tworzy STRATEGIĘ,
-        basal wybiera decyzje i odpowiednie LLM, Hermes wykonuje headless."""
+    def _run_evolution(self, backlog: int = 0):
         self._ingest_feedback_labels(collect_feedback(self.config.get("inbox_dir")))
         calibration = self._auto_calibrate()
-        core = BasalDecisionCore(
-            decision_log=self.state_dir / "decisions.jsonl",
-            confidence_floor=float(self.config.get("confidence_floor", 0.55)),
-            temperatures=calibration["temperature_per_prim"] if calibration else None,
-        )
+        core = BasalDecisionCore(decision_log=self.state_dir / "decisions.jsonl",
+                  confidence_floor=float(self.config.get("confidence_floor", 0.55)),
+                  temperatures=calibration["temperature_per_prim"] if calibration else None)
         gate = quota_gate(self.config["engine"], self.config.get("quota_snapshot_path"))
         if not gate["allowed"] or self.should_stop():
             return {"mode": "blocked", "tasks": [], "quota_gate": gate, "auto_applied": False}
+        models = load_registry(self.registry_path)
+        lane_models = [m["model_id"] for m in models if m.get("privacy_class") != "local_private" and self.ledger.can_use(m["model_id"])]
+        if self.config["engine"] != "mock" and not lane_models:
+            return {"mode": "waiting_budget", "tasks": [], "auto_applied": False}
+        worker, strategy_engine = None, None
+        if self.config["engine"] == "omniroute":
+            from selfopt_chain.omniroute import OmniRouteEngine
+            strategy_engine = BudgetedEngine(OmniRouteEngine(models), models, self.ledger, self.should_stop)
+            if HermesWorker.enabled():
+                worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"), ledger=self.ledger,
+                          should_stop=self.should_stop, repo_root=ROOT, models=models, state_dir=self.state_dir,
+                          max_turns=self.config.get("hermes_max_turns", 12), run_budget_s=self.config.get("hermes_run_seconds", 360))
+        loop = EvolutionLoop(self.state_dir, ROOT / "docs", ROOT, worker=worker, lane_models=lane_models,
+                 models=models, decision_core=core, strategy_engine=strategy_engine,
+                 max_lanes=int(self.config.get("evolve_lanes", 2)), should_stop=self.should_stop,
+                 retry_seconds=self.config.get("evolve_retry_seconds", 60))
+        tasks = loop.pending()
+        backlog = len(tasks)
+        if not tasks:
+            return {"mode": "waiting_inputs" if loop.blocked else "idle", "backlog": 0, "blocked": loop.blocked,
+                    "tasks": [], "auto_applied": False}
         mode = self.config.get("subagent_mode", "auto")
         if mode == "auto":
-            mode = decide_parallel_mode(core, backlog=backlog, critical=1 if backlog > 3 else 0)
-        worker = None
-        strategy_engine = None
-        lane_models: list[str] = []
-        if self.config.get("engine") == "omniroute":
-            from selfopt_chain.omniroute import OmniRouteEngine
-
-            strategy_engine = BudgetedEngine(OmniRouteEngine(load_registry(self.registry_path)), load_registry(self.registry_path), self.ledger, self.should_stop)
-            lane_models = [m["model_id"] for m in load_registry(self.registry_path) if m.get("privacy_class") != "local_private" and self.ledger.can_use(m["model_id"])]
-            if HermesWorker.enabled():
-                worker = HermesWorker(omniroute_base_url=os.environ.get("SELFOPT_OMNIROUTE_URL"), ledger=self.ledger, should_stop=self.should_stop, repo_root=ROOT, models=load_registry(self.registry_path))
-        loop = EvolutionLoop(self.state_dir, ROOT / "docs", ROOT, worker=worker, lane_models=lane_models, decision_core=core, strategy_engine=strategy_engine, max_lanes=int(self.config.get("evolve_lanes", 6)), should_stop=self.should_stop)
-        receipts = loop.run(max_tasks=int(self.config.get("evolve_max_tasks", 4)), parallel_mode=mode)
+            mode = decide_parallel_mode(core, backlog, sum(t.priority >= 100 for t in tasks))
+        executor = self.config.get("evolution_executor", "auto")
+        if worker and executor == "auto" and any(t.kind == "patch" for t in tasks):
+            history = loop.store.snapshot()
+            failed = sum(row.get("attempts", 1) for row in history.values() if row.get("status") == "needs_fixes")
+            selection = core.decide("evolution_executor", ["direct_patch", "hermes"],
+                {"direct_patch": 1.5 + failed, "hermes": 1.0 - min(failed, 2) * 0.25},
+                default_option="direct_patch",
+                context={"ready_patch_contracts": sum(t.kind == "patch" for t in tasks),
+                         "failed_attempts": failed, "methods": {"direct_patch": "model emits exact edits; independent sandbox tests", "hermes": "agent uses terminal tools in isolated workspace"}})
+            executor = selection["final"]
+        if executor == "auto":
+            executor = "hermes"
+        if worker and executor == "direct_patch":
+            from selfopt_chain.direct_patch_worker import DirectPatchWorker
+            loop.worker = DirectPatchWorker(models, self.ledger, ROOT, self.state_dir, self.should_stop)
+        receipts = loop.run(max_tasks=int(self.config.get("evolve_max_tasks", 1)), parallel_mode=mode, tasks=tasks)
         self.state.data["daily_calls"] = self.ledger.rpd_used
         self.state.save()
-        return {
-            "mode": mode,
-            "strategy_source": loop.strategy.get("source", "n/a"),
-            "strategy_brief": loop.strategy.get("brief", "")[:300],
-            "lane_models": lane_models[:6],
-            "tasks": receipts,
-            "executor": "hermes" if worker else "mock",
-            "auto_applied": False,
-        }
+        return {"mode": mode, "backlog": backlog, "blocked": loop.blocked,
+                "strategy_source": loop.strategy.get("source", "n/a"), "strategy_brief": loop.strategy.get("brief", ""),
+                "lane_models": lane_models, "tasks": receipts, "executor": executor if worker else "mock", "auto_applied": False}
 
     def run(self) -> int:
         signal.signal(signal.SIGTERM, self.request_stop)
@@ -621,13 +636,16 @@ class Orchestrator:
         Osobny proces od cykli procdev/misji; kill switch wspólne
         (scratch/selfopt/KILL_SWITCH).
         """
-        batch = 0
+        existing = self.state_dir / "evolution_batches"
+        batch = max([int(p.stem.split("_")[-1]) for p in existing.glob("batch_*.json")] or [0])
+        batches_this_run = 0
         while not self.should_stop():
             if self.kill_switch_active():
                 self.state_dir.mkdir(parents=True, exist_ok=True)
                 (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "kill_switch", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
                 return 0
             batch += 1
+            batches_this_run += 1
             evolution = self._run_evolution(backlog=0)
             self.state_dir.mkdir(parents=True, exist_ok=True)
             log_path = self.state_dir / "evolution_batches"
@@ -646,7 +664,7 @@ class Orchestrator:
             print(json.dumps(summary, ensure_ascii=False), flush=True)
             if self.stop_requested:
                 break
-            if self.config.get("max_cycles") is not None and batch >= self.config["max_cycles"]:
+            if self.config.get("max_cycles") is not None and batches_this_run >= self.config["max_cycles"]:
                 return 0
             self.wait_interval(int(self.config.get("evolve_pause", 60)))
         (self.state_dir / "stopped.json").write_text(json.dumps({"stopped": True, "reason": "kill_switch" if self.kill_switch_active() else "deadline" if time.monotonic() >= self.deadline else "signal", "ts": _now_iso(), "evolution_batches": batch}, ensure_ascii=False), encoding="utf-8")
@@ -659,12 +677,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--evolve", action="store_true", help="samoewolucja repo: artifacts → propozycje/patche → bramka → evolution_queue (PR-drafts)")
     parser.add_argument("--evolve-only", action="store_true", help="daemon ewolucji: pętla non-stop (bez cykli procdev/misji)")
     parser.add_argument("--evolve-pause", type=int, default=60, help="pauza między batchami ewolucji w trybie --evolve-only (sekundy)")
+    parser.add_argument("--hermes-max-turns", type=int, default=12)
+    parser.add_argument("--hermes-run-seconds", type=int, default=360)
+    parser.add_argument("--evolve-retry-seconds", type=int, default=60)
     parser.add_argument("--evolve-max-tasks", type=int, default=4)
     parser.add_argument("--evolve-lanes", type=int, default=6, help="maks. równoległych pasm (różne darmowe modele naraz)")
     parser.add_argument("--subagent-mode", choices=["auto", "single", "wide", "deep"], default="auto", help="równoległość subagentów (basal decyduje w trybie auto)")
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_S, help="sekundy między cyklami")
     parser.add_argument("--max-cycles", type=int, default=None, help="limit cykli (brak = daemon)")
     parser.add_argument("--once", action="store_true", help="jeden cykl i wyjście")
+    parser.add_argument("--quota-ledger", type=Path, default=None)
     parser.add_argument("--max-seconds", type=int, default=3600)
     parser.add_argument("--max-calls", type=int, default=100, help="twardy dobowy limit prób wszystkich silników")
     parser.add_argument("--max-jobs", type=int, default=DEFAULT_MAX_JOBS)
@@ -688,6 +710,7 @@ def main(argv: list[str] | None = None) -> int:
         "max_jobs": args.max_jobs,
         "max_calls": args.max_calls,
         "max_seconds": args.max_seconds,
+        "quota_ledger_path": args.quota_ledger,
         "state_dir": args.state_dir,
         "kill_switch": args.kill_switch,
         "registry_path": args.registry,
@@ -700,6 +723,9 @@ def main(argv: list[str] | None = None) -> int:
         "evolve_only": args.evolve_only,
         "evolve_pause": args.evolve_pause,
         "evolve_max_tasks": args.evolve_max_tasks,
+        "hermes_max_turns": args.hermes_max_turns,
+        "hermes_run_seconds": args.hermes_run_seconds,
+        "evolve_retry_seconds": args.evolve_retry_seconds,
         "evolve_lanes": args.evolve_lanes,
         "subagent_mode": args.subagent_mode,
         "quota_snapshot_path": args.quota_snapshot if args.engine != "mock" else None,

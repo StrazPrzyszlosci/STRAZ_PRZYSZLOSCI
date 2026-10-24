@@ -125,7 +125,7 @@ class HermesWorker:
     SELFOPT_HERMES=1; wynik zawsze przez kwarantannę + SecurityGate.
     """
 
-    def __init__(self, omniroute_base_url: str | None = None, model_alias: str = "auto", api_key: str | None = None, ledger=None, should_stop=None, repo_root=None, models=None) -> None:
+    def __init__(self, omniroute_base_url: str | None = None, model_alias: str = "auto", api_key: str | None = None, ledger=None, should_stop=None, repo_root=None, models=None, state_dir=None, max_turns=12, run_budget_s=360) -> None:
         import os
 
         self.omniroute_base_url = (omniroute_base_url or "http://127.0.0.1:20128/v1").rstrip("/")
@@ -133,15 +133,17 @@ class HermesWorker:
         self.api_key = api_key or os.environ.get("SELFOPT_OMNIROUTE_KEY") or ""
         self.ledger, self.should_stop, self.repo_root = ledger, should_stop or (lambda: False), repo_root
         self.models = models
+        self.state_dir = Path(state_dir) if state_dir else None
+        self.max_turns, self.run_budget_s = max_turns, run_budget_s
 
     def sandbox_dir(self, run_id: str) -> Path:
-        base = SANDBOX_ROOT if SANDBOX_ROOT.is_absolute() else Path.cwd() / SANDBOX_ROOT
+        base = self.state_dir / "hermes_sandbox" if self.state_dir else SANDBOX_ROOT if SANDBOX_ROOT.is_absolute() else Path.cwd() / SANDBOX_ROOT
         path = base / run_id
         path.mkdir(parents=True, exist_ok=True)
         return path
 
     def quarantine_dir(self, run_id: str) -> Path:
-        base = QUARANTINE_ROOT if QUARANTINE_ROOT.is_absolute() else Path.cwd() / QUARANTINE_ROOT
+        base = self.state_dir / "hermes_quarantine" if self.state_dir else QUARANTINE_ROOT if QUARANTINE_ROOT.is_absolute() else Path.cwd() / QUARANTINE_ROOT
         path = base / run_id
         path.mkdir(parents=True, exist_ok=True)
         return path
@@ -185,50 +187,59 @@ class HermesWorker:
     def enabled() -> bool:
         return os.environ.get(HERMES_RUN_ENV_FLAG) == "1"
 
-    def run_isolated(self, query: str, *, max_turns: int = DEFAULT_MAX_TURNS, run_budget_s: int = DEFAULT_RUN_BUDGET_S, model_alias: str | None = None) -> dict[str, Any]:
-        """Pełny izolowany run (tylko przy SELFOPT_HERMES=1) z kwarantanną."""
-        run_id = uuid.uuid4().hex[:12]
-        run_dir = self.sandbox_dir(run_id)
-        task_file = self.write_task_file(run_id, "task.md", query)
-        command = self.build_command(task_file, run_dir, max_turns=max_turns, run_budget_s=run_budget_s)
-        receipt: dict[str, Any] = {
-            "run_id": run_id,
-            "command": command,
-            "sandbox_dir": str(run_dir),
-            "quarantine_dir": str(self.quarantine_dir(run_id)),
-            "executed": False,
-            "exit_code": None,
-            "raw_output": None,
-            "security_gate": None,
-        }
-        if not self.enabled():
-            receipt["skipped_reason"] = f"{HERMES_RUN_ENV_FLAG}=1 wymagane do uruchomienia workera"
-            return receipt
+    def run_isolated(self, query, *, max_turns=None, run_budget_s=None, model_alias=None, input_bundle=None):
         from selfopt_chain.sandbox import Sandbox
         from selfopt_chain.quota_proxy import QuotaProxy
         from selfopt_chain.omniroute import OmniRouteAdapter, FreeOnlyPolicy
         from selfopt_chain.registry import load_registry
-        runtime = os.environ.get("SELFOPT_HERMES_RUNTIME")
+        from selfopt_chain.evolution_inputs import repository_snapshot
+        from selfopt_chain.evolution_validation import validate_patch
+        run_id = uuid.uuid4().hex[:12]
+        run_dir, quarantine = self.sandbox_dir(run_id), self.quarantine_dir(run_id)
+        max_turns, run_budget_s = max_turns or self.max_turns, run_budget_s or self.run_budget_s
         model = model_alias or self.model_alias
+        receipt = {"run_id": run_id, "sandbox_dir": str(run_dir), "quarantine_dir": str(quarantine),
+                   "executed": False, "exit_code": None, "security_gate": {"ok": False},
+                   "validation": {"ok": False, "error": "not_executed"}, "released_from_quarantine": False}
+        if not self.enabled():
+            receipt["skipped_reason"] = "SELFOPT_HERMES=1 required"
+            return receipt
+        runtime = os.environ.get("SELFOPT_HERMES_RUNTIME")
         if not runtime or self.ledger is None or not (Path(runtime) / "bin/hermes").is_file():
-            receipt["skipped_reason"] = "isolated_runtime_and_accounted_gateway_required"
-            receipt["security_gate"] = {"ok": False, "violations": [{"rule": "sandbox_not_armed"}]}
+            receipt["error"] = "isolated_runtime_and_accounted_gateway_required"
             return receipt
         adapter = OmniRouteAdapter(FreeOnlyPolicy(self.models or load_registry()), base_url=self.omniroute_base_url, api_key=self.api_key)
         if not adapter.policy.actual_allowed(model) or not adapter.network_enabled():
-            receipt["skipped_reason"] = "explicit_allowed_model_and_network_required"
+            receipt["error"] = "explicit_allowed_model_and_network_required"
             return receipt
+        self.write_task_file(run_id, "task.md", query)
+        output = run_dir / "output"
+        output.mkdir()
+        mounts = []
+        bundle = input_bundle or {"kind": "proposal", "allowed_paths": [], "input_files": {}}
+        if input_bundle:
+            inputs = (self.state_dir or quarantine.parent.parent) / "controller_inputs" / run_id
+            inputs.mkdir(parents=True)
+            (inputs / "task.json").write_text(json.dumps(bundle, ensure_ascii=False, indent=2))
+            mounts.append((inputs, "/input"))
+        snapshot = None
+        if self.repo_root:
+            snapshot, commit = repository_snapshot(self.repo_root, self.state_dir or quarantine.parent.parent)
+            receipt["source_commit"] = commit
+            mounts.append((snapshot, "/repo"))
+            if any(not (snapshot / name).is_file() or (snapshot / name).read_text() != text for name, text in bundle.get("input_files", {}).items()):
+                receipt["error"] = "input_source_does_not_match_committed_snapshot"
+                return receipt
+        before = self.ledger.rpd_used
+        started = time.monotonic()
         with QuotaProxy(adapter, self.ledger, model, self.should_stop) as proxy:
-            # No host network and no host home. The only exit is a Unix socket
-            # serving the fixed model under the shared quota policy.
             relay = Path(__file__).with_name("gateway_relay.py")
             args = ["/bin/sh", "-c", "python3 /relay.py /gateway.sock & exec \"$@\"", "sh",
                     "/runtime/bin/hermes", "chat", "--oneshot", "--query-file", "/work/task.md",
                     "--provider", "custom", "--base-url", "http://127.0.0.1:20129/v1", "--model", model,
-                    "--format", "stream-json", "--max-turns", str(max_turns), "--in", "/work", "--safe-mode", "-t", DEFAULT_TOOLSETS]
-            command = Sandbox(run_dir).command(args, mounts=[(runtime, "/runtime"), (relay, "/relay.py"), (proxy.path, "/gateway.sock")],
+                    "--format", "stream-json", "--max-turns", str(max_turns), "--in", "/work", "--safe-mode", "--source", "tool", "-t", "terminal"]
+            command = Sandbox(run_dir).command(args, mounts=[(runtime, "/runtime"), (relay, "/relay.py"), (proxy.path, "/gateway.sock"), *mounts],
                       environment={"OPENAI_API_KEY": proxy.token, "HERMES_HOME": "/work/home", "HERMES_CUSTOM_API_KEY": proxy.token})
-            started = time.monotonic()
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
             reason = None
             while True:
@@ -245,37 +256,42 @@ class HermesWorker:
                             os.killpg(process.pid, signal.SIGKILL)
                             raw, errors = process.communicate()
                         break
-        receipt.update(executed=True, exit_code=process.returncode, stop_reason=reason)
-        quarantine = self.quarantine_dir(run_id)
-        # Upstream credentials are never passed to the sandbox; redact the
-        # ephemeral proxy token as well before retaining any output.
-        (quarantine / "output.json").write_text(raw.replace(proxy.token, "<REDACTED>"), encoding="utf-8")
-        for produced in sorted(run_dir.rglob("*")):
-            if produced.is_file() and not produced.is_symlink() and produced != task_file and "home" not in produced.relative_to(run_dir).parts:
-                target = quarantine / produced.relative_to(run_dir)
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(produced.read_bytes())
-        gate = SecurityGate().inspect_tree(quarantine, skip={"output.json", "task.md"})
+        def redact(text):
+            text = text.replace(proxy.token, "<REDACTED>")
+            return text.replace(self.api_key, "<REDACTED>") if self.api_key else text
+        (quarantine / "output.json").write_text(redact(raw))
+        (quarantine / "stderr.log").write_text(redact(errors))
+        after = self.ledger.rpd_used
+        receipt.update(executed=True, exit_code=process.returncode, stop_reason=reason,
+                       latency_ms=int((time.monotonic() - started) * 1000),
+                       api_calls=dict(proxy.usage), proxy_events=list(proxy.events))
+        gate = {"ok": False, "violations": [{"rule": "unsafe_output_directory"}], "quarantine_required": True}
+        if output.is_dir() and not output.is_symlink():
+            gate = SecurityGate().inspect_tree(output)
+            if not any(p.is_symlink() for p in output.rglob("*")):
+                for produced in sorted(output.rglob("*")):
+                    if produced.is_file():
+                        target = quarantine / produced.relative_to(output)
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(produced.read_bytes())
         if process.returncode != 0 or reason:
-            gate["ok"] = False
-            gate["violations"].append({"rule": reason or "worker_failed"})
-        receipt["artifacts"] = [{"path": str(p.relative_to(quarantine)), "sha256": hashlib.sha256(p.read_bytes()).hexdigest()} for p in quarantine.rglob("*") if p.is_file() and not p.is_symlink() and p.name != "output.json"]
-        syntax_ok = True
-        for artifact in quarantine.rglob("*.py"):
-            try:
-                ast.parse(artifact.read_text())
-            except (ValueError, SyntaxError):
-                syntax_ok = False
-        code_files = list(quarantine.rglob("*.py")) + list(quarantine.rglob("*.js"))
-        validation = {"ok": syntax_ok and not code_files, "method": "proposal_only" if not code_files else "requires_isolated_tests"}
-        if syntax_ok and code_files and list(run_dir.rglob("test_*.py")) and not reason:
-            checked = Sandbox(run_dir).run(["/usr/bin/python3", "-m", "unittest", "discover", "-s", ".", "-p", "test_*.py"], timeout=30)
-            validation = {"ok": checked.returncode == 0, "method": "isolated_unittest", "returncode": checked.returncode}
-        receipt["validation"] = validation
+            gate.update(ok=False, quarantine_required=True)
+            gate.setdefault("violations", []).append({"rule": reason or "worker_failed"})
         receipt["security_gate"] = gate
-        receipt["released_from_quarantine"] = False
+        receipt["artifacts"] = [{"path": str(p.relative_to(quarantine)), "sha256": hashlib.sha256(p.read_bytes()).hexdigest()} for p in quarantine.rglob("*") if p.is_file() and p.name not in {"output.json", "stderr.log"}]
+        if gate["ok"] and receipt["artifacts"]:
+            if bundle.get("kind") == "patch" and snapshot:
+                receipt["validation"] = validate_patch(quarantine, snapshot, bundle, (self.state_dir or quarantine.parent.parent) / "validations" / run_id)
+            else:
+                proposal = quarantine / "PROPOSAL.md"
+                code = [p for p in quarantine.rglob("*") if p.suffix in {".py", ".js", ".patch", ".diff"}]
+                receipt["validation"] = {"ok": proposal.is_file() and bool(proposal.read_text().strip()) and not code, "method": "proposal_only"}
+        if not receipt["validation"].get("ok"):
+            receipt["error"] = receipt["validation"].get("error", "production_not_validated")
+        if not receipt["artifacts"]:
+            final = [e for e in parse_stream_json_output(raw) if e.get("type") == "result"]
+            receipt["error"] = "no_artifacts: " + (str(final[-1].get("error") or final[-1].get("text", ""))[:2000] if final else redact(errors[-2000:]))
         return receipt
-
 
 
 def parse_stream_json_output(raw: str) -> list[dict[str, Any]]:
