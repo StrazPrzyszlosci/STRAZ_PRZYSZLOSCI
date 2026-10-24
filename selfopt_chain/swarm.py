@@ -560,7 +560,10 @@ class SwarmPlanner:
         scores = {d.demand_id: float(d.priority) for d in demands}
         decision = self.core.decide("job_selection", [d.demand_id for d in demands], scores, default_option=max(demands, key=lambda d: d.priority).demand_id, context={"max_jobs": max_jobs})
         ranking = [k for k, _ in decision["probabilities"].items()]
-        return {"final": ranking, "deferred": decision["deferred"], "confidence": decision["confidence"], "ranking": ranking, "decision": decision}
+        final = ranking
+        if "final" in decision:
+            final = [decision["final"]] + [d for d in ranking if d != decision["final"]]
+        return {"final": final, "deferred": decision["deferred"], "confidence": decision["confidence"], "ranking": ranking, "decision": decision}
 
     def decide_allocation(self, demand: Demand, candidates: list[SwarmResource], strategy: str, usage: dict[str, int]) -> dict[str, Any]:
         """Przydział zasobu do zapotrzebowania — decyzja modelu decyzyjnego."""
