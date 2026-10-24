@@ -291,6 +291,15 @@ class HermesWorker:
         if not receipt["artifacts"]:
             final = [e for e in parse_stream_json_output(raw) if e.get("type") == "result"]
             receipt["error"] = "no_artifacts: " + (str(final[-1].get("error") or final[-1].get("text", ""))[:2000] if final else redact(errors[-2000:]))
+        # T60: rozróżnienie stanów błędu — przez to proxy HTTP 429 może pochodzić
+        # WYŁĄCZNIE z lokalnej rezerwy/budżetu (provider-429 wychodzi jako 502),
+        # więc 429 = local_quota_exhausted, nie myli się z porażką treści.
+        error_text = str(receipt.get("error", ""))
+        if "HTTP 429" in error_text:
+            receipt["error_class"] = "local_quota_exhausted"
+            receipt["error_origin"] = "local"
+        elif reason == "timeout":
+            receipt["error_class"] = "timeout"
         return receipt
 
 

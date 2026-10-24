@@ -128,18 +128,44 @@ class QuotaLedger:
     def rpd_headroom(self, model_id):
         return self.limits.get(model_id, (0, 0))[1] - self.rpd_used.get(model_id, 0)
 
-    def remaining_daily_calls(self, model_id=None):
-        """Admission estimate, including shared provider pools and the global cap.
+    def _remaining_pools(self, data):
+        pools = {pool: max(0, limits[1] - sum(data['daily'].get(mid, 0)
+                 for mid, group in self.pools.items() if group == pool))
+                 for pool, limits in self.pool_limits.items()}
+        remaining = sum(pools.values())
+        if self.max_calls is not None:
+            remaining = min(remaining, max(0, self.max_calls - sum(data['daily'].values())))
+        # Rezerwacje procesów (holderzy) odejmowane od każdego admissionu,
+        # także współbieżnych — record() nadal egzekwuje per-model.
+        remaining -= sum(data.get('reserved', {}).values())
+        return max(0, remaining), pools
 
-        This is a snapshot, not a reservation; record() still enforces every attempt.
+    def reserve(self, holder: str, n: int) -> bool:
+        """Atomowe objęcie n wywołań na cały proces (strategia+producent+review).
+
+        True = hold przyznany i widoczny dla pozostałych admissionów; release()
+        zdejmuje hold po zakończeniu procesu. Nie zwalnia per-model limitów.
         """
         with self.transaction() as data:
-            pools = {pool: max(0, limits[1] - sum(data['daily'].get(mid, 0)
-                     for mid, group in self.pools.items() if group == pool))
-                     for pool, limits in self.pool_limits.items()}
-            remaining = sum(pools.values())
-            if self.max_calls is not None:
-                remaining = min(remaining, max(0, self.max_calls - sum(data['daily'].values())))
+            remaining, _ = self._remaining_pools(data)
+            if n > remaining:
+                return False
+            reserved = data.setdefault('reserved', {})
+            reserved[holder] = reserved.get(holder, 0) + n
+            return True
+
+    def release(self, holder: str) -> None:
+        with self.transaction() as data:
+            data.get('reserved', {}).pop(holder, None)
+
+    def remaining_daily_calls(self, model_id=None):
+        """Admission estimate, including shared pools, reservations and the optional cap.
+
+        This is a snapshot; record() still enforces every attempt, and reserve()
+        holds budget atomically for the duration of a whole process.
+        """
+        with self.transaction() as data:
+            remaining, pools = self._remaining_pools(data)
             if model_id is not None:
                 if model_id not in self.limits:
                     return 0

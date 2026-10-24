@@ -319,6 +319,28 @@ class EvolutionLoop:
     def _worker_enabled(self):
         return self.worker is not None and getattr(self.worker, "enabled", HermesWorker.enabled)()
 
+    def _acceptance_passes(self, task) -> bool:
+        """Uruchamia niezależny kontrakt odbioru na obecnym drzewie (bez network).
+
+        Cel z przechodzącym akceptatorem jest już spełniony — nie jest kolejkowany
+        (T62: nie produkuj gotowej wersji ponownie). Błąd uruchomienia = brak
+        przesłanki do pominięcia (cel zostaje w kolejce).
+        """
+        import subprocess
+        import sys
+        script = self.repo_root / task.acceptance_ref
+        if not script.is_file():
+            return False
+        env = {k: v for k, v in os.environ.items()
+               if k not in {"SELFOPT_NETWORK", "SELFOPT_HERMES", "SELFOPT_BASAL_URL"}}
+        env.update({"SELFOPT_NETWORK": "0", "SELFOPT_HERMES": "0", "SELFOPT_BASAL_URL": ""})
+        try:
+            completed = subprocess.run([sys.executable, str(script)], cwd=self.repo_root,
+                                       env=env, capture_output=True, text=True, timeout=120)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        return completed.returncode == 0
+
     def pending(self):
         from selfopt_chain.evolution_inputs import prepare_inputs, InputUnavailable
         from selfopt_chain.swarm import Demand, charter_check, load_charter
@@ -339,6 +361,12 @@ class EvolutionLoop:
             except (InputUnavailable, ValueError, OSError) as error:
                 self.store.block(fp, str(error))
                 self.blocked.append({"task_id": task.task_id, "reason": str(error)})
+                continue
+            # T62: akceptator sprawdzany PRZED kolejkowaniem — cel, którego kontrakt
+            # JUŻ przechodzi na obecnym drzewie, jest gotowy (nie produkuj ponownie).
+            if task.acceptance_ref and self._acceptance_passes(task):
+                self.blocked.append({"task_id": task.task_id, "reason": "acceptance_already_passing",
+                                     "kind": "ready"})
                 continue
             if self._worker_enabled() and self.models and self.lane_models:
                 from selfopt_chain.model_selection import shortlist_models
