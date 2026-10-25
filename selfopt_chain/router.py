@@ -28,7 +28,7 @@ DEFAULT_REQUIRED_TIER: dict[str, int] = {
     "translate": 2,
     "triage": 2,
     "draft": 3,
-    "review": 3,
+    "review": 4,
     "code_draft": 4,
     "reason": 4,
     "multimodal_reason": 4,

@@ -73,21 +73,27 @@ if (real) {
     if (!response.ok) throw Error('Gateway catalog HTTP ' + response.status);
     const catalog = (await response.json()).data || [];
     // Only explicit :free model IDs. Provider names and aliases do not authorize use.
+    // T65: dodatkowo profilowane modele NVIDIA NIM (free tier build.nvidia.com)
+    // — dyrektywa operatora 2026-10-25 „zlistuj nvidia nim i dodaj modele stamtąd";
+    // profil = kwalifikacja ról, ta sama polityka darmowości i budżet.
     const profiles = JSON.parse(await readFile(join(root,'selfopt_chain/runtime_model_profiles.json'),'utf8')).profiles;
-    const canonical = [...new Map(catalog.filter(m => m.owned_by === 'kilocode' && m.id.startsWith('kilocode/') &&
-      m.id.endsWith(':free') && m.id.slice('kilocode/'.length).includes('/')).map(m=>[m.id,m])).values()];
+    const isKilocodeFree = m => m.owned_by === 'kilocode' && m.id.startsWith('kilocode/') &&
+      m.id.endsWith(':free') && m.id.slice('kilocode/'.length).includes('/');
+    const isNimProfiled = m => m.owned_by === 'nvidia' && m.id.startsWith('nvidia/') && !!profiles[m.id];
+    const canonical = [...new Map(catalog.filter(m => isKilocodeFree(m) || isNimProfiled(m)).map(m=>[m.id,m])).values()];
     await writeFile(join(state,'discovered_models.json'),JSON.stringify({checked_at:new Date().toISOString(),models:canonical.map(m=>({
       model_id:m.id, context_tokens:m.context_length, max_output_tokens:m.max_output_tokens, capabilities:m.capabilities,
-      status:profiles[m.id]?'profiled_operator_trial':'discovered_needs_role_qualification',cost_provenance:'explicit_free_catalog_id',
+      status:profiles[m.id]?'profiled_operator_trial':'discovered_needs_role_qualification',
+      cost_provenance:isNimProfiled(m)?'nvidia_nim_free_tier':'explicit_free_catalog_id',
       quality_verified:false}))},null,2));
     const candidates = canonical.filter(m=>profiles[m.id] && Number.isInteger(m.context_length) && m.context_length>0);
     if (candidates.length < 1) throw Error('No profiled explicit :free model in authenticated catalog');
-    const models = candidates.map(m => ({ model_id: m.id, provider: 'kilocode_free', role: profiles[m.id].routing_roles.join(','),
+    const models = candidates.map(m => ({ model_id: m.id, provider: isNimProfiled(m)?'nvidia_nim_free':'kilocode_free', role: profiles[m.id].routing_roles.join(','),
       ...profiles[m.id], privacy_class:'public_only', supports_tools:m.capabilities?.tool_calling===true,
       tool_calling_source:'gateway_catalog_unverified', cost_class:'free_quota', context_tokens:m.context_length,
-      rpm_seed:8, rpd_seed:maxCalls > 0 ? maxCalls : 1000, limits_verified:false,
-      api:{style:'openai_chat',base_url:base,secret_env:'SELFOPT_OMNIROUTE_KEY',response_model_id:m.id.slice('kilocode/'.length),max_output_tokens:m.max_output_tokens},
-      notes:profiles[m.id].basis+'; operator quota cap only; upstream quota unverified.' }));
+      rpm_seed:isNimProfiled(m)?40:8, rpd_seed:maxCalls > 0 ? maxCalls : 1000, limits_verified:false,
+      api:{style:'openai_chat',base_url:base,secret_env:'SELFOPT_OMNIROUTE_KEY',response_model_id:m.id.startsWith('kilocode/')?m.id.slice('kilocode/'.length):m.id,max_output_tokens:m.max_output_tokens},
+      notes:profiles[m.id].basis+(isNimProfiled(m)?'; NVIDIA NIM free tier (operator directive 2026-10-25); cold-start patience required':'')+'; operator quota cap only; upstream quota unverified.' }));
     const registry = join(state, 'armed_registry.json');
     await writeFile(registry, JSON.stringify({ models }, null, 2));
     const snapshot = join(state, 'quota_snapshot.json');

@@ -7,6 +7,7 @@ import re
 import subprocess
 import tarfile
 import io
+import time
 from dataclasses import asdict
 from pathlib import Path
 
@@ -86,6 +87,11 @@ def prepare_inputs(task, repo_root, state_dir, feedback=None):
                 'previous_feedback': feedback or {}, 'source_excerpts': excerpts, 'expected_outputs': ['output/PROPOSAL.md'] + (['output/changes.patch'] if task.kind == 'patch' else [])}
     # Feedback is context for the next attempt, not a new version of the inputs.
     version = {k: v for k, v in manifest.items() if k != 'previous_feedback'}
+    if getattr(task, 'reset_after_days', 0) > 0:
+        # T65: cel okresowy (np. re-audit rejestru modeli) dostaje kubełek czasu
+        # w odcisku wejść — po upływie okresu odcisk się zmienia i zadanie
+        # wraca do puli bez ingerencji operatora.
+        version['reset_bucket'] = int(time.time() // (int(task.reset_after_days) * 86400))
     manifest['input_hash'] = hashlib.sha256(json.dumps(version, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     return manifest
 
@@ -95,15 +101,17 @@ def task_prompt(manifest):
     for name, text in manifest['input_files'].items():
         # Exact files are mounted too; inline only the relevant starting context.
         snippets.append(f'### /repo/{name}\n' + manifest.get('source_excerpts', {}).get(name, text[:16000]))
+    runtime_files = ', '.join('/input/' + name for name in manifest.get('runtime_metadata', {})) or None
     return '\n'.join([
         '# Zadanie ewolucji repo — wykonaj konkretny wynik',
         json.dumps({k: manifest[k] for k in ['task_id', 'title', 'context', 'constraints', 'kind', 'allowed_paths', 'expected_outputs']}, ensure_ascii=False),
         'Repo jest dostępne tylko do odczytu pod /repo. Pełny manifest: /input/task.json.',
+        ('Dane runtime tego zadania są dostępne jako gotowe pliki pod /input: ' + runtime_files + '. Czytaj je bezpośrednio z tych ścieżek (head/wc), NIE parsuj task.json i nie pisz skryptów pomocniczych do ich analizy.' if runtime_files else ''),
         'Nie szukaj plików po całym repo. Poniżej masz konkretne ścieżki i ich kontekst.',
+        'NAJPIERW zapisz plik wynikowy (nawet jako szkic), POTEM go ulepszaj w kolejnych turach. Wynik istnieje TYLKO jako plik w /work/output/ — treść w czacie jest ignorowana.',
         'Zapisz wynik w /work/output/PROPOSAL.md. Dla zadania patch zapisz również /work/output/changes.patch jako poprawny unified diff względem /repo.',
         'Patch może zmieniać wyłącznie allowed_paths. Nie kopiuj całego repo. Nie instaluj pakietów i nie używaj sieci poza skonfigurowanym API.',
         'Testy uruchomi kontroler w izolowanej kopii. Zapoznaj się z acceptance w /input/task.json. Wynik stdout nie zastępuje plików.',
-        'Runtime metadata: ' + json.dumps(manifest['runtime_metadata'], ensure_ascii=False),
         'Aktualny sprzęt hosta (nie zmienia wersji zadania): ' + json.dumps(manifest.get('hardware_context', {}), ensure_ascii=False),
         'Niezależny warunek odbioru:\n' + (manifest.get('acceptance') or 'Nie dotyczy kodu; wymagany konkretny opis w PROPOSAL.md.'),
         'Poprzednia próba i uwagi do poprawy: ' + json.dumps(manifest['previous_feedback'], ensure_ascii=False),
