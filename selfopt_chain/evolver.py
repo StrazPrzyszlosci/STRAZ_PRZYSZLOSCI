@@ -44,16 +44,43 @@ DEFAULT_DRAFT_ALIAS = os.environ.get("SELFOPT_EVOLVE_DRAFT_MODEL", "auto/best-fa
 DEFAULT_REVIEW_ALIAS = os.environ.get("SELFOPT_EVOLVE_REVIEW_MODEL", "auto/best-reasoning")
 
 
-def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engine: Any | None, review_alias: str = DEFAULT_REVIEW_ALIAS) -> dict[str, Any]:
+def reviewer_floor(producer_alias: str, registry: list[dict] | None) -> tuple[int, str | None]:
+    """T65: wymagany poziom recenzenta = max(podłoga rodzaju 'review', tier producenta).
+
+    Zwraca (required_tier, alias najmocniejszego recenzenta spełniającego
+    wymóg z rejestru). Brak kandydata => (required_tier, None) — fail-closed.
+    """
+    from selfopt_chain.router import required_tier_for_kind
+    required = required_tier_for_kind("review")
+    tiers = {m.get("model_id"): int(m.get("quality_tier", 0)) for m in (registry or []) if isinstance(m, dict)}
+    if producer_alias in tiers:
+        required = max(required, tiers[producer_alias])
+    reviewers = [m for m in (registry or [])
+                 if "review" in (m.get("routing_roles") or []) and tiers.get(m.get("model_id"), 0) >= required]
+    reviewers.sort(key=lambda m: (-tiers.get(m.get("model_id"), 0), str(m.get("model_id"))))
+    best = reviewers[0]["model_id"] if reviewers else None
+    return required, best
+
+
+def review_by_strong_model(task: EvolutionTask, produced_text: str, review_engine: Any | None, review_alias: str = DEFAULT_REVIEW_ALIAS,
+                           producer_alias: str = "", registry: list[dict] | None = None) -> dict[str, Any]:
     """DYREKTYWA: mocny model sprawdza to, co zrobił słaby model.
 
     Review semantyczny (oprócz SecurityGate wzorców): czy produkcja spełnia
     zadanie, co poprawić, verdict pass | needs_fixes | fail.
     Offline (brak engine): verdict 'unreviewed' — artefakt NIE przechodzi
     review i czeka na człowieka (bramka wzorców nadal obowiązuje).
+    T65: recenzent musi mieć tier >= max(floor 'review', tier producenta);
+    spośród kwalifikujących się wybierany jest najmocniejszy. Brak takiego
+    modelu => fail-closed 'no_reviewer_at_required_tier'.
     """
     if review_engine is None or not produced_text.strip():
         return {"reviewer": "none", "verdict": "unreviewed", "notes": "brak engine review — czeka na review człowieka"}
+    if registry:
+        required, best = reviewer_floor(producer_alias, registry)
+        if best is None:
+            return {"reviewer": "none", "verdict": "unreviewed", "notes": f"no_reviewer_at_required_tier: required>={required}"}
+        review_alias = best
     prompt = "\n".join([
         "# Review produkcji słabego modelu (rój Straży Przyszłości)",
         f"Zadanie: {task.title}",
@@ -95,6 +122,7 @@ class EvolutionTask:
     kind: str = "proposal"
     priority: int = 0
     focus_symbols: dict[str, list[str]] = field(default_factory=dict)
+    reset_after_days: int = 0
 
 
 def _parse_handoff_tasks(docs_dir: Path, limit: int = 5) -> list[EvolutionTask]:
@@ -135,6 +163,26 @@ def _parse_proposal_tasks(state_dir: Path, limit: int = 5) -> list[EvolutionTask
     return tasks
 
 
+def auto_label_outcome(state_dir: Path, model_alias: str, accepted: bool, note: str) -> str | None:
+    """T65: auto-etykieta z mechanicznego wyniku zadania (bez czekania na operatora).
+
+    Etykietowana jest najnowsza decyzja model_selection, która wybrała model
+    użyty w zadaniu. Źródło auto_outcome — to wynik bramek walidacji/review,
+    nie samoocena modelu. Jedna etykieta na decyzję; błędy pomijane cicho
+    (etykietowanie nigdy nie blokuje pętli ewolucji).
+    """
+    try:
+        from selfopt_chain.calibrate import append_label, load_labels, load_decisions
+        labeled = {row.get("decision_id") for row in load_labels(Path(state_dir))}
+        for row in reversed(load_decisions(Path(state_dir))):
+            if row.get("question_type") == "model_selection" and row.get("final") == model_alias and row.get("id") not in labeled:
+                append_label(Path(state_dir), row["id"], accepted, note[:200], source="auto_outcome")
+                return row["id"]
+    except Exception:
+        pass
+    return None
+
+
 def _parse_targets(path: Path = TARGETS_PATH) -> list[EvolutionTask]:
     data = json.loads(path.read_text(encoding="utf-8"))
     return [
@@ -147,6 +195,7 @@ def _parse_targets(path: Path = TARGETS_PATH) -> list[EvolutionTask]:
             input_refs=t.get("input_refs", []), runtime_refs=t.get("runtime_refs", []),
             allowed_paths=t.get("allowed_paths", []), acceptance_ref=t.get("acceptance_ref"),
             kind=t.get("kind", "proposal"), priority=int(t.get("priority", 0)), focus_symbols=t.get("focus_symbols", {}),
+            reset_after_days=int(t.get("reset_after_days", 0)),
         )
         for t in data.get("targets", [])
     ]
@@ -484,7 +533,8 @@ class EvolutionLoop:
                     receipt["error"] = "review_context_limit"
                     text = ""
                 # Do not spend a review call on missing, unsafe or invalid production.
-                receipt["review"] = review_by_strong_model(task, text + "\nValidation: " + json.dumps(validation), self.strategy_engine) if text and receipt["security_ok"] and validation.get("ok") else {"verdict": "unreviewed", "notes": "artifact not validated"}
+                receipt["review"] = review_by_strong_model(task, text + "\nValidation: " + json.dumps(validation), self.strategy_engine,
+                                                           producer_alias=model_alias, registry=list(self.models.values())) if text and receipt["security_ok"] and validation.get("ok") else {"verdict": "unreviewed", "notes": "artifact not validated"}
                 receipt["validation_ok"] = bool(validation.get("ok"))
                 receipt["error"] = produced.get("error") or produced.get("stop_reason") or receipt.get("error")
                 report = produced.get("security_gate") or {"ok": False}
@@ -498,6 +548,9 @@ class EvolutionLoop:
             receipt["gate_ok"] = all(receipt.get(k) for k in ["execution_ok", "validation_ok", "security_ok", "review_ok"])
             receipt["ready_for_human_review"] = receipt["gate_ok"]
             receipt["status"] = "ready" if receipt["gate_ok"] else "simulated" if receipt["executor"] == "mock" else "needs_fixes"
+            if receipt["executor"] != "mock":
+                auto_label_outcome(self.state_dir, model_alias, bool(receipt["gate_ok"]),
+                                   f"{task.task_id}: {receipt['status']} (auto, T65)")
             if receipt["validation_ok"] and receipt["execution_ok"] and receipt["security_ok"] and receipt["review"].get("verdict") == "unreviewed":
                 receipt["status"] = "waiting_review"
             if receipt.get("error") in {"connection_error", "http_error", "bad_response"}:
@@ -575,7 +628,8 @@ class EvolutionLoop:
         text = "\n".join((artifact / name).read_text() for name in ["PROPOSAL.md","changes.patch"])
         gate = self.gate.inspect_code(text)
         receipt["security_ok"] = gate["ok"]
-        receipt["review"] = review_by_strong_model(task, text + "\nChecks: " + json.dumps(validation.get("checks")), self.strategy_engine) if validation.get("ok") and gate["ok"] else {"verdict":"unreviewed"}
+        receipt["review"] = review_by_strong_model(task, text + "\nChecks: " + json.dumps(validation.get("checks")), self.strategy_engine,
+                                                   producer_alias=old.get("model_alias", ""), registry=list(self.models.values())) if validation.get("ok") and gate["ok"] else {"verdict":"unreviewed"}
         receipt["review_ok"] = receipt["review"].get("verdict") == "pass"
         receipt["gate_ok"] = all(receipt.get(k) for k in ["execution_ok","security_ok","validation_ok","review_ok"])
         receipt["ready_for_human_review"] = receipt["gate_ok"]

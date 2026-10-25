@@ -17,6 +17,94 @@
       "routing_roles": ["reason", "review"],
       "capabilities": ["text", "json", "reasoning"],
       "basis": "reasoning/review trial only; repeated timeouts and reasoning-only replies exclude production code drafting pending requalification"
+    },
+    "nvidia/z-ai/glm-5.3": {
+      "quality_tier": 5,
+      "quality_verified": false,
+      "speed_class": "medium",
+      "routing_roles": ["reason", "review", "code_draft"],
+      "capabilities": ["text", "json", "code", "reasoning"],
+      "basis": "operator directive 2026-10-25: obecnie najsilniejszy model (NVIDIA NIM free tier); wsparcie upstream koczy sie wkrotce — model_observations zdegraduje model automatycznie po porazkach"
+    },
+    "nvidia/z-ai/glm-5.3-flash": {
+      "quality_tier": 4,
+      "quality_verified": false,
+      "speed_class": "fast",
+      "routing_roles": ["draft", "classify", "extract", "summarize", "review", "reason"],
+      "capabilities": ["text", "json", "code", "reasoning"],
+      "basis": "operator directive 2026-10-25: szybki wariant GLM 5.3 z NIM free tier; quality not certified"
+    },
+    "nvidia/nvidia/nemotron-3-ultra-550b-a55b": {
+      "quality_tier": 5,
+      "quality_verified": false,
+      "speed_class": "slow",
+      "routing_roles": ["reason", "review"],
+      "capabilities": ["text", "json", "reasoning"],
+      "basis": "operator directive 2026-10-25: NIM free tier; MoE 550B — deep reasoning/review; cold-start patience required"
+    },
+    "nvidia/nvidia/nemotron-4-340b-instruct": {
+      "quality_tier": 5,
+      "quality_verified": false,
+      "speed_class": "slow",
+      "routing_roles": ["review", "reason", "draft"],
+      "capabilities": ["text", "json", "reasoning"],
+      "basis": "operator directive 2026-10-25: NIM free tier; 340B dense, lineage proven in review (nemotron-4 reward)"
+    },
+    "nvidia/nvidia/llama-3.1-nemotron-ultra-253b-v1": {
+      "quality_tier": 5,
+      "quality_verified": false,
+      "speed_class": "slow",
+      "routing_roles": ["review", "reason"],
+      "capabilities": ["text", "json", "reasoning"],
+      "basis": "operator directive 2026-10-25: NIM free tier; 253B instruct"
+    },
+    "nvidia/nvidia/nemotron-3-super-120b-a12b": {
+      "quality_tier": 4,
+      "quality_verified": false,
+      "speed_class": "medium",
+      "routing_roles": ["reason", "draft", "review"],
+      "capabilities": ["text", "json", "reasoning"],
+      "basis": "operator directive 2026-10-25: NIM free tier; MoE 120B"
+    },
+    "nvidia/nvidia/llama-3.1-nemotron-70b-instruct": {
+      "quality_tier": 4,
+      "quality_verified": false,
+      "speed_class": "medium",
+      "routing_roles": ["review", "reason"],
+      "capabilities": ["text", "json", "reasoning"],
+      "basis": "proven reviewer: independent review pass w cyklu ewolucji PR #32 (2026-10-24); NIM free tier"
+    },
+    "nvidia/deepseek-ai/deepseek-v4.1-flash": {
+      "quality_tier": 4,
+      "quality_verified": false,
+      "speed_class": "fast",
+      "routing_roles": ["code_draft", "draft", "reason"],
+      "capabilities": ["text", "json", "code", "reasoning"],
+      "basis": "operator directive 2026-10-25: NIM free tier; fast code model"
+    },
+    "nvidia/moonshotai/kimi-k2.6": {
+      "quality_tier": 4,
+      "quality_verified": false,
+      "speed_class": "medium",
+      "routing_roles": ["code_draft", "draft", "reason"],
+      "capabilities": ["text", "json", "code", "reasoning"],
+      "basis": "operator directive 2026-10-25: NIM free tier; long-context coding"
+    },
+    "kilocode/nvidia/nemotron-3-ultra-550b-a55b:free": {
+      "quality_tier": 5,
+      "quality_verified": false,
+      "speed_class": "slow",
+      "routing_roles": ["reason", "review"],
+      "capabilities": ["text", "json", "reasoning"],
+      "basis": "explicit free catalog id (kilocode); MoE 550B — deep reasoning/review"
+    },
+    "kilocode/nvidia/nemotron-3-super-120b-a12b:free": {
+      "quality_tier": 4,
+      "quality_verified": false,
+      "speed_class": "medium",
+      "routing_roles": ["reason", "draft"],
+      "capabilities": ["text", "json", "reasoning"],
+      "basis": "explicit free catalog id (kilocode); MoE 120B"
     }
   }
 }

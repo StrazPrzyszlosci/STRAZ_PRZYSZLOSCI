@@ -74,6 +74,7 @@
       "title": "Odswiez rejestr darmowych modeli o nowe oferty free-tier (catalog OmniRoute)",
       "source_hint": "dashboard OmniRoute /dashboard/free-tiers + re-audit co 2 tyg",
       "constraints": "walidator registry musi przejsc; limits_verified=false do weryfikacji operatora",
+      "reset_after_days": 14,
       "input_refs": [
         "selfopt_chain/free_models.json",
         "selfopt_chain/registry.py"

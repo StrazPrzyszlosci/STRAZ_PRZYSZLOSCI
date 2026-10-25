@@ -7,6 +7,7 @@ import re
 import subprocess
 import tarfile
 import io
+import time
 from dataclasses import asdict
 from pathlib import Path
 
@@ -86,6 +87,11 @@ def prepare_inputs(task, repo_root, state_dir, feedback=None):
                 'previous_feedback': feedback or {}, 'source_excerpts': excerpts, 'expected_outputs': ['output/PROPOSAL.md'] + (['output/changes.patch'] if task.kind == 'patch' else [])}
     # Feedback is context for the next attempt, not a new version of the inputs.
     version = {k: v for k, v in manifest.items() if k != 'previous_feedback'}
+    if getattr(task, 'reset_after_days', 0) > 0:
+        # T65: cel okresowy (np. re-audit rejestru modeli) dostaje kubełek czasu
+        # w odcisku wejść — po upływie okresu odcisk się zmienia i zadanie
+        # wraca do puli bez ingerencji operatora.
+        version['reset_bucket'] = int(time.time() // (int(task.reset_after_days) * 86400))
     manifest['input_hash'] = hashlib.sha256(json.dumps(version, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     return manifest
 
