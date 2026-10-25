@@ -91,7 +91,7 @@ if (real) {
     const models = candidates.map(m => ({ model_id: m.id, provider: isNimProfiled(m)?'nvidia_nim_free':'kilocode_free', role: profiles[m.id].routing_roles.join(','),
       ...profiles[m.id], privacy_class:'public_only', supports_tools:m.capabilities?.tool_calling===true,
       tool_calling_source:'gateway_catalog_unverified', cost_class:'free_quota', context_tokens:m.context_length,
-      rpm_seed:8, rpd_seed:maxCalls > 0 ? maxCalls : 1000, limits_verified:false,
+      rpm_seed:isNimProfiled(m)?40:8, rpd_seed:maxCalls > 0 ? maxCalls : 1000, limits_verified:false,
       api:{style:'openai_chat',base_url:base,secret_env:'SELFOPT_OMNIROUTE_KEY',response_model_id:m.id.startsWith('kilocode/')?m.id.slice('kilocode/'.length):m.id,max_output_tokens:m.max_output_tokens},
       notes:profiles[m.id].basis+(isNimProfiled(m)?'; NVIDIA NIM free tier (operator directive 2026-10-25); cold-start patience required':'')+'; operator quota cap only; upstream quota unverified.' }));
     const registry = join(state, 'armed_registry.json');
