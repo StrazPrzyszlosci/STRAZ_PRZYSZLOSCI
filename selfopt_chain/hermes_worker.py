@@ -117,6 +117,25 @@ class SecurityGate:
         return report
 
 
+def write_runtime_inputs(inputs_dir: Path, bundle: dict) -> list[str]:
+    """T65b: runtime_refs jako realne pliki w /input (decisions.jsonl, labels.jsonl, ...).
+
+    Bez tego model szuka danych w 65KB task.json i spali tury zamiast produkować
+    artefakt (dowód: 8 prób no_artifacts na target_router_weights_from_decisions,
+    error: „Let me re-examine the task structure to find where the decisions...").
+    """
+    written = []
+    for name, payload in (bundle.get("runtime_metadata") or {}).items():
+        target = Path(inputs_dir) / Path(name).name
+        if name.endswith(".jsonl"):
+            rows = payload if isinstance(payload, list) else [payload]
+            target.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n", encoding="utf-8")
+        else:
+            target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        written.append(str(target))
+    return written
+
+
 class HermesWorker:
     """Builder izolowanego wywołania headless Hermes + obsługa wyniku.
 
@@ -221,6 +240,7 @@ class HermesWorker:
             inputs = (self.state_dir or quarantine.parent.parent) / "controller_inputs" / run_id
             inputs.mkdir(parents=True)
             (inputs / "task.json").write_text(json.dumps(bundle, ensure_ascii=False, indent=2))
+            write_runtime_inputs(inputs, bundle)
             mounts.append((inputs, "/input"))
         snapshot = None
         if self.repo_root:

@@ -7,6 +7,7 @@ from unittest import mock
 
 from selfopt_chain import evolution_inputs as ei
 from selfopt_chain.evolver import EvolutionTask, _parse_targets, auto_label_outcome, reviewer_floor, review_by_strong_model
+from selfopt_chain.hermes_worker import write_runtime_inputs
 from selfopt_chain.router import DEFAULT_REQUIRED_TIER, required_tier_for_kind
 
 
@@ -116,6 +117,41 @@ class AutoLabelTest(unittest.TestCase):
                 'chosen': 'm/b', 'final': 'm/b', 'confidence': 1.0, 'engine': 'basal'}) + '\n', encoding='utf-8')
             self.assertIsNone(auto_label_outcome(state, 'm/missing', True, 'x'))
             self.assertFalse((state / 'labels.jsonl').exists())
+
+
+class RuntimeInputsTest(unittest.TestCase):
+    def test_write_runtime_inputs_materializes_jsonl_and_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            inputs = Path(tmp)
+            bundle = {'runtime_metadata': {
+                'decisions.jsonl': [{'id': 'd1', 'final': 'm/a'}, {'id': 'd2', 'final': 'm/b'}],
+                'labels.jsonl': [{'decision_id': 'd1', 'accepted': True, 'source': 'auto_outcome'}],
+                'extra.json': {'k': 'v'},
+            }}
+            written = write_runtime_inputs(inputs, bundle)
+            self.assertEqual(len(written), 3)
+            rows = [json.loads(line) for line in (inputs / 'decisions.jsonl').read_text(encoding='utf-8').splitlines()]
+            self.assertEqual([r['id'] for r in rows], ['d1', 'd2'])
+            labels = [json.loads(line) for line in (inputs / 'labels.jsonl').read_text(encoding='utf-8').splitlines()]
+            self.assertEqual(labels[0]['decision_id'], 'd1')
+            self.assertEqual(json.loads((inputs / 'extra.json').read_text(encoding='utf-8')), {'k': 'v'})
+
+    def test_task_prompt_points_to_runtime_files(self):
+        manifest = {'task_id': 't', 'title': 'T', 'context': '', 'constraints': '', 'kind': 'proposal',
+                    'allowed_paths': [], 'expected_outputs': ['output/PROPOSAL.md'],
+                    'input_files': {}, 'runtime_metadata': {'decisions.jsonl': [], 'labels.jsonl': []},
+                    'previous_feedback': {}}
+        prompt = ei.task_prompt(manifest)
+        self.assertIn('/input/decisions.jsonl', prompt)
+        self.assertIn('/input/labels.jsonl', prompt)
+        self.assertIn('Nie szukaj', prompt)
+
+    def test_task_prompt_without_runtime_has_no_dead_hint(self):
+        manifest = {'task_id': 't', 'title': 'T', 'context': '', 'constraints': '', 'kind': 'proposal',
+                    'allowed_paths': [], 'expected_outputs': ['output/PROPOSAL.md'],
+                    'input_files': {}, 'runtime_metadata': {}, 'previous_feedback': {}}
+        prompt = ei.task_prompt(manifest)
+        self.assertNotIn('Dane runtime', prompt)
 
 
 if __name__ == '__main__':

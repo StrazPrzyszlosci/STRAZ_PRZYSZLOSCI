@@ -101,10 +101,12 @@ def task_prompt(manifest):
     for name, text in manifest['input_files'].items():
         # Exact files are mounted too; inline only the relevant starting context.
         snippets.append(f'### /repo/{name}\n' + manifest.get('source_excerpts', {}).get(name, text[:16000]))
+    runtime_files = ', '.join('/input/' + name for name in manifest.get('runtime_metadata', {})) or None
     return '\n'.join([
         '# Zadanie ewolucji repo — wykonaj konkretny wynik',
         json.dumps({k: manifest[k] for k in ['task_id', 'title', 'context', 'constraints', 'kind', 'allowed_paths', 'expected_outputs']}, ensure_ascii=False),
         'Repo jest dostępne tylko do odczytu pod /repo. Pełny manifest: /input/task.json.',
+        ('Dane runtime tego zadania są dostępne jako gotowe pliki pod /input: ' + runtime_files + '. Czytaj je bezpośrednio z tych ścieżek, nie szukaj ich w task.json.' if runtime_files else ''),
         'Nie szukaj plików po całym repo. Poniżej masz konkretne ścieżki i ich kontekst.',
         'Zapisz wynik w /work/output/PROPOSAL.md. Dla zadania patch zapisz również /work/output/changes.patch jako poprawny unified diff względem /repo.',
         'Patch może zmieniać wyłącznie allowed_paths. Nie kopiuj całego repo. Nie instaluj pakietów i nie używaj sieci poza skonfigurowanym API.',
