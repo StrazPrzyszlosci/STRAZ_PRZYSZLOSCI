@@ -35,6 +35,12 @@ def public_runtime(path, name):
         allowed = {'id', 'question_type', 'deferred', 'chosen', 'final', 'confidence', 'probabilities', 'options', 'scores', 'engine'}
     elif name == 'labels.jsonl':
         allowed = {'decision_id', 'accepted', 'source'}
+    elif name == 'open_prs.json':
+        allowed = {'number', 'title', 'is_draft', 'mergeable', 'head', 'base', 'updated_at'}
+    elif name == 'hardware_changes.json':
+        allowed = {'changed_at', 'field', 'before', 'after'}
+    elif name == 'parts_db_changes.json':
+        allowed = {'changed_at', 'rows_before', 'rows_after', 'delta'}
     else:
         raise InputUnavailable('runtime_not_exportable:' + name)
     return [{k: v for k, v in row.items() if k in allowed} for row in rows]

@@ -60,6 +60,67 @@
       ]
     },
     {
+      "target_id": "open_prs_triage",
+      "title": "Przeanalizuj niescalone PR-y: gotowosc, konflikty, co blokuje review czlowieka",
+      "source_hint": "zwiadowca: gh pr list (open_prs.json w state-dir); PROPOZUJ kolejnosc review i likwidacje konfliktow",
+      "constraints": "suggest-only; rój nigdy nie merge'uje (no_auto_merge); raport do PROPOSAL.md",
+      "reset_after_days": 3,
+      "runtime_refs": [
+        "open_prs.json"
+      ],
+      "input_refs": [
+        "AGENTS.md"
+      ]
+    },
+    {
+      "target_id": "hardware_adaptation",
+      "title": "Adaptuj roj do zmian architektury sprzetowej hosta/weslow (hardware_changes.json)",
+      "source_hint": "zwiadowca: diff hardware_context miedzy cyklami; gdy brak zmian — cel czeka na zmiane",
+      "constraints": "suggest-only; adaptacja (np. rozmiary kontekstow, lane'y, budzety) przez PR",
+      "reset_after_days": 7,
+      "runtime_refs": [
+        "hardware_changes.json"
+      ],
+      "input_refs": [
+        "selfopt_chain/capability_map.json"
+      ]
+    },
+    {
+      "target_id": "parts_db_refresh",
+      "title": "Odswiez wiedze roju o bazie czesci z recyklingu (przyrost bazy = nowy zasob)",
+      "source_hint": "zwiadowca: diff wielkosci/polu bazy czesci (parts_db_changes.json); zaproponuj wykorzystanie nowych czesci w PROJEKTY",
+      "constraints": "suggest-only; propozycje uzycia czesci do projektow, nie skanowanie ludzi",
+      "reset_after_days": 7,
+      "runtime_refs": [
+        "parts_db_changes.json"
+      ],
+      "input_refs": [
+        "PROJEKTY/13_baza_czesci_recykling/README.md"
+      ]
+    },
+    {
+      "target_id": "external_oss_adoption",
+      "title": "Znajdz w zewnetrznych repozytoriach OSS rozwiazania optymalizujce projekty z PROJEKTY/",
+      "source_hint": "dyrektor: wymien konkretne repo/licencje/motywacje adoptacji (np. wzorzec LiteWeed); plan wdrozenia przez PR",
+      "constraints": "suggest-only; licencje copyleft => SecurityGate review; bez sciagania kodu w tym kroku",
+      "reset_after_days": 7,
+      "input_refs": [
+        "docs/LITEWEED_WZORZEC_REFERENCYJNY.md",
+        "README.md"
+      ]
+    },
+    {
+      "target_id": "actuation_readiness_scan",
+      "title": "Przygotuj roj do produkcji i sterowania urzadzeniami z odzysku (gotowosc aktuation)",
+      "source_hint": "stosy sterowania dla hardware z odzysku (smartfony/PCB/mechanika) wg wzorca LiteWeed i PROJEKTY 06/08/13/17; rekomendacje architecture (krowa czesci => BOM => design pack => pilot)",
+      "constraints": "suggest-only; physical_actuation pozostaje gated wg charter.json; projekt tylko dokumenty/soft",
+      "reset_after_days": 14,
+      "input_refs": [
+        "docs/LITEWEED_WZORZEC_REFERENCYJNY.md",
+        "PROJEKTY/17_autonomiczne_przetwarzanie_elektrosmieci_na_hardware.md"
+      ]
+    },
+    {
       "target_id": "capability_map_extension",
       "title": "Rozbuduj capability_map o nowe klasy zasobow z realnych rekordow scoutingowych",
       "source_hint": "resource_scout/examples + nowe rekordy operatora",

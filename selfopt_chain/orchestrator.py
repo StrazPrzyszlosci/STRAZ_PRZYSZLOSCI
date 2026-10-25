@@ -551,8 +551,91 @@ class Orchestrator:
         receipt["finished"] = _now_iso()
         return receipt
 
+    def _scout_snapshots(self, hardware):
+        """T67: ZWIADOWCA — stan zewnętrzny jako zasób wejściowy roju (best-effort).
+
+        Zwiadowca bada repo (niescalone PR), architekturę sprzętową (diff między
+        cyklami) i bazę części z recyklingu (przyrost), a także buduje raport
+        asystenta (basal) dla dyrektora. Awaria pojedynczego narzędzia nie
+        może blokować cyklu — każdy krok łapany osobno.
+        """
+        import subprocess as sp
+        state = self.state_dir
+        state.mkdir(parents=True, exist_ok=True)
+        try:  # 1. niescalone PR-y (zasób: co czeka na review człowieka)
+            proc = sp.run(["gh", "pr", "list", "--state", "open", "--limit", "40", "--json",
+                           "number,title,isDraft,mergeable,headRefName,baseRefName,updatedAt"],
+                          capture_output=True, text=True, timeout=30)
+            rows = json.loads(proc.stdout or "[]")
+            (state / "open_prs.json").write_text(json.dumps(
+                [{"number": r.get("number"), "title": str(r.get("title") or "")[:160],
+                  "is_draft": bool(r.get("isDraft")), "mergeable": r.get("mergeable"),
+                  "head": r.get("headRefName"), "base": r.get("baseRefName"),
+                  "updated_at": r.get("updatedAt")} for r in rows], ensure_ascii=False), encoding="utf-8")
+        except Exception as error:
+            print(f"[scout] open_prs niedostępne ({type(error).__name__})")
+        try:  # 2. zmiany architektury sprzętowej
+            last_path = state / "last_hardware_context.json"
+            last = json.loads(last_path.read_text(encoding="utf-8")) if last_path.is_file() else None
+
+            def _flat(node, prefix=""):
+                out = {}
+                if isinstance(node, dict):
+                    for key, value in node.items():
+                        out.update(_flat(value, prefix + key + "."))
+                else:
+                    out[prefix[:-1]] = node
+                return out
+
+            changes = []
+            if last is not None and isinstance(hardware, dict):
+                flat_now, flat_last = _flat(hardware), _flat(last)
+                for key in sorted(set(flat_now) | set(flat_last)):
+                    if flat_now.get(key) != flat_last.get(key):
+                        changes.append({"changed_at": hardware.get("observed_at"), "field": key,
+                                        "before": flat_last.get(key), "after": flat_now.get(key)})
+            (state / "hardware_changes.json").write_text(json.dumps(changes[:40], ensure_ascii=False), encoding="utf-8")
+            if isinstance(hardware, dict):
+                last_path.write_text(json.dumps(hardware, ensure_ascii=False), encoding="utf-8")
+        except Exception as error:
+            print(f"[scout] hardware_changes niedostępne ({type(error).__name__})")
+        try:  # 3. przyrost bazy części z recyklingu
+            db = ROOT / "PROJEKTY/13_baza_czesci_recykling/autonomous_test/results/test_db.jsonl"
+            rows_now = sum(1 for line in db.read_text(encoding="utf-8").splitlines() if line.strip()) if db.is_file() else 0
+            prev_path = state / "last_parts_db_rows.txt"
+            rows_before = int(prev_path.read_text(encoding="utf-8").strip() or 0) if prev_path.is_file() else rows_now
+            payload = [] if rows_now == rows_before else [{"changed_at": _now_iso(), "rows_before": rows_before,
+                    "rows_after": rows_now, "delta": rows_now - rows_before}]
+            (state / "parts_db_changes.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            prev_path.write_text(str(rows_now), encoding="utf-8")
+        except Exception as error:
+            print(f"[scout] parts_db_changes niedostępne ({type(error).__name__})")
+        try:  # 4. raport asystenta (basal) dla dyrektora
+            decisions_path = state / "decisions.jsonl"
+            rows = [json.loads(s) for s in decisions_path.read_text(encoding="utf-8").splitlines() if s.strip()] if decisions_path.is_file() else []
+            labels = [json.loads(s) for s in (state / "labels.jsonl").read_text(encoding="utf-8").splitlines() if s.strip()] if (state / "labels.jsonl").is_file() else []
+            open_prs = json.loads((state / "open_prs.json").read_text(encoding="utf-8")) if (state / "open_prs.json").is_file() else []
+            report = {
+                "generated_at": _now_iso(),
+                "recent_decisions": [{k: d.get(k) for k in ("id", "question_type", "chosen", "final", "confidence", "deferred")}
+                                     for d in rows[-12:]],
+                "decision_count": len(rows),
+                "labels_total": len(labels),
+                "labels_accepted": sum(1 for row in labels if row.get("accepted")),
+                "labels_rejected": sum(1 for row in labels if not row.get("accepted")),
+                "open_prs_count": len(open_prs),
+                "hardware_summary": {"architecture": (hardware or {}).get("architecture"),
+                                     "cpu": ((hardware or {}).get("cpu") or {}).get("model"),
+                                     "effective_cores": ((hardware or {}).get("cpu") or {}).get("effective_cores"),
+                                     "memory_available_bytes": ((hardware or {}).get("memory") or {}).get("host_available_bytes")},
+            }
+            (state / "assistant_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as error:
+            print(f"[scout] assistant_report niedostępny ({type(error).__name__})")
+
     def _run_evolution(self, backlog: int = 0):
         hardware = self._refresh_hardware_context()
+        self._scout_snapshots(hardware)
         self._ingest_feedback_labels(collect_feedback(self.config.get("inbox_dir")))
         calibration = self._auto_calibrate()
         core = BasalDecisionCore(decision_log=self.state_dir / "decisions.jsonl",
