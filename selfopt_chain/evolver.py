@@ -163,6 +163,19 @@ def _parse_proposal_tasks(state_dir: Path, limit: int = 5) -> list[EvolutionTask
     return tasks
 
 
+RUN_BUDGET_BY_SPEED = {"fast": 360, "medium": 540, "slow": 900}
+
+
+def run_budget_for(model: dict | None) -> int:
+    """T65b: budżet sesji wg klasy szybkości modelu.
+
+    Dowód z live: próby NIM kończyły exit_code -15 / stop_reason timeout
+    przy 4 wywołaniach API w 360 s (cold-start NIM). Lekcja T52b: cierpliwość
+    na powolne modele zamiast zabijania sesji.
+    """
+    return RUN_BUDGET_BY_SPEED.get((model or {}).get("speed_class"), 360)
+
+
 def auto_label_outcome(state_dir: Path, model_alias: str, accepted: bool, note: str) -> str | None:
     """T65: auto-etykieta z mechanicznego wyniku zadania (bez czekania na operatora).
 
@@ -513,7 +526,8 @@ class EvolutionLoop:
         try:
             if self._worker_enabled():
                 receipt["executor"] = getattr(self.worker, "executor_name", "hermes")
-                produced = self.worker.run_isolated(task_prompt(bundle), model_alias=model_alias, input_bundle=bundle)
+                produced = self.worker.run_isolated(task_prompt(bundle), model_alias=model_alias, input_bundle=bundle,
+                                                    run_budget_s=run_budget_for(self.models.get(model_alias)))
                 (out_dir / "hermes_receipt.json").write_text(json.dumps(produced, ensure_ascii=False, indent=2))
                 receipt.update(hermes_run_id=produced.get("run_id"), hermes_executed=produced.get("executed"),
                                worker_exit_code=produced.get("exit_code"), hermes_exit_code=produced.get("exit_code") if receipt["executor"] == "hermes" else None, validation=produced.get("validation"),

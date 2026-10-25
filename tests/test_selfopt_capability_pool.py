@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from selfopt_chain import evolution_inputs as ei
-from selfopt_chain.evolver import EvolutionTask, _parse_targets, auto_label_outcome, reviewer_floor, review_by_strong_model
+from selfopt_chain.evolver import EvolutionTask, _parse_targets, auto_label_outcome, reviewer_floor, review_by_strong_model, run_budget_for
 from selfopt_chain.hermes_worker import write_runtime_inputs
 from selfopt_chain.router import DEFAULT_REQUIRED_TIER, required_tier_for_kind
 
@@ -117,6 +117,14 @@ class AutoLabelTest(unittest.TestCase):
                 'chosen': 'm/b', 'final': 'm/b', 'confidence': 1.0, 'engine': 'basal'}) + '\n', encoding='utf-8')
             self.assertIsNone(auto_label_outcome(state, 'm/missing', True, 'x'))
             self.assertFalse((state / 'labels.jsonl').exists())
+
+
+    def test_run_budget_scales_with_model_speed(self):
+        self.assertEqual(run_budget_for({'speed_class': 'slow'}), 900)
+        self.assertEqual(run_budget_for({'speed_class': 'medium'}), 540)
+        self.assertEqual(run_budget_for({'speed_class': 'fast'}), 360)
+        self.assertEqual(run_budget_for({}), 360)
+        self.assertEqual(run_budget_for(None), 360)
 
 
 class RuntimeInputsTest(unittest.TestCase):
