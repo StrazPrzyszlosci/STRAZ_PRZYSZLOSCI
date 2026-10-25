@@ -89,6 +89,27 @@ W celu krystalizacji naszych idei, gromadzimy przykłady technologii i rozwiąza
 *   **[35. Koncepcyjny Pilotaż Wspólnej Bazy Wiedzy i Snapshotów](PROJEKTY/35_pilot_wspolnej_bazy_wiedzy.md)** – Czwarty pilotaż poprzeczny, spinający projekty 01, 24, 13 i 30: wspólny magazyn dorobku wielu węzłów — kolejka kuracji, wersjonowane profile wiedzy w formatach JSON/YAML oraz snapshoty i raporty zbiorcze — do bazy trafia wyłącznie wiedza opracowana po decyzji człowieka-kuratora, a nigdy surowy strumień danych.
 *   **[36. Koncepcyjny Pilotaż Wspólnej Analizy Porównawczej Węzłów](PROJEKTY/36_pilot_wspolnej_analizy_porownawczej.md)** – Piąty pilotaż poprzeczny, spinający projekty 01, 30, 34 i 35: warstwa wspólnej analizy porównawczej pracująca na dorobku wielu węzłów — porównuje udokumentowane przypadki między węzłami różnych osi (czego nie da osiągnąć żadna pojedyncza telemetria) i zasila wspólne narzędzia analityczne oraz modele wspierające decyzje o alokacji zasobów między węzłami; rekomendacja AI jest zawsze wejściem do decyzji człowieka, a wyniki porównań po kuracji wracają do wspólnej bazy wiedzy.
 
+### LiteWeed — wzorzec referencyjny produktu roju
+
+Źródło: Moeinnia H. i in., *LiteWeed: An affordable edge-AI robotic platform for laser weed management in resource-constrained environments*, **Smart Agricultural Technology 14 (2026) 102340**, doi:10.1016/j.atech.2026.102340 (Simon Fraser University + Aga Khan University, Arusha). Pełny opis: [docs/LITEWEED_WZORZEC_REFERENCYJNY.md](docs/LITEWEED_WZORZEC_REFERENCYJNY.md).
+
+Teza artykułu = teza roju: *„skuteczne zwalczanie chwastów laserem osiąga się przez inteligentną adaptację software'u, a nie eskalację drogiego sprzętu"* — dosłownie „Intelekt wyprzedza Kapitał". LiteWeed pokazuje pełną drabinę, którą rój ma zautomatyzować: baza części → projektowanie z dostępnych komponentów → produkcja (druk/montaż) → pilot w polu → produkt poszerzający zdolności.
+
+| Element | LiteWeed (paper) | Odpowiednik roju (z zasobów roju) |
+|---|---|---|
+| Compute + vision | Raspberry Pi 5 + Sony IMX708 + STM32 Nucleo (~100 CAD) | odzyskany smartfon (PROJEKTY/06) — apka Android zbudowana przez LLM, model obrazowy on-device |
+| Detekcja | YOLOX-nano edge: mAP@0.5:0.95 = 0.32, latencja 118 ms na RPi5 | trenowanie/destylacja na darmowych API; inferencja lokalnie (on_device_model) |
+| Podwozie / rama | goBilda Recon; custom 3D-print PLA, modułowa | mechanika z odzysku (`mechanics_scrap`); drukarka 3D udostępniona przez człowieka (`3d_printer`) |
+| Laser | dioda 12 V, 450 nm, 4 W; ekspozycja ≤60 s per gatunek | **wariant roju: bez lasera — aktuation odchwaszczania bramkowana**; warianty mechaniczny/termiczny wyłącznie po review człowieka |
+| Power | 12 V 30 Ah LiFePO4 + 30A BMS | odzyskane ogniwa z battery_swelling_check (charter: e_waste_ethics) |
+| Dane | 10 820 augmentowanych obrazów treningowych | zbiór z pól/pilotów agri edge; augmentacja na darmowych API |
+| Koszt | ≈ 500 CAD | cel roju: ~0 PLN poprzez odzysk + udostępnione zdolności produkcyjne |
+| Walidacja | cross-kontynentalna: Vancouver (CA) + Arusha (TZ), kukurydza | pilot agri roju (PASS/FAIL bandy z telemetrii) |
+
+Mapowanie na łańcuch roju: **zwiad/baza** (rekordy resource_scout + Łowca Części) → **projektowanie** (dossier potencjału → BOM → design pack na darmowych API) → **produkcja** (basal przydziela zadania do udostępnionych zdolności: drukarka 3D → ramy, ramię robota → montaż, bench → elektronika) → **wdrożenie** (węzeł vision na starym smartfonie, platforma z odzysku, telemetria LoRa) → **poszerzenie możliwości** (robot wykonuje usługę — odchwaszczanie bez chemii — a platforma staje się zasobem roju do kolejnych produktów).
+
+Zasady bezpieczeństwa: wzorzec LiteWeed zawiera laser 4 W — **wersja roju startuje bez aktuation ścinania**: najpierw wykrywanie + mapowanie chwastów (raport dla operatora), physical weeding (każda forma) dopiero po review człowieka zgodnie z `selfopt_chain/charter.json` (`physical_actuation` pozostaje gated; zmiany konstytucji wyłącznie przez PR człowieka).
+
 
 **Najważniejsze w tworzeniu NARODOWYCH SIŁ INTELEKTUALNYCH nie są pieniądze na start, lecz bezcenny, realny wysiłek intelektualny.**
 
