@@ -259,6 +259,7 @@ Rozwijamy publiczną warstwę integracyjną dla projektów Straży Przyszłości
 
 * **[Strategia Integracji](docs/STRATEGIA_INTEGRACJI.md)**
 * **[Polityka Partnerska](docs/POLITYKA_PARTNERSKA.md)**
+* **[Przewodnik roju — jak działa i jak nim sterować](docs/PRZEWODNIK_ROJU.md)**
 * **[Model: Otwarte Standardy, Zamknięte Wdrożenia](docs/MODEL_OTWARTE_STANDARDY_ZAMKNIETE_WDROZENIA.md)**
 * **[Zasady Nazwy i Marki](docs/ZASADY_NAZWY_I_MARKI.md)**
 * **[Jak Zostać Dostawcą Danych](docs/JAK_ZOSTAC_DOSTAWCA_DANYCH.md)**
