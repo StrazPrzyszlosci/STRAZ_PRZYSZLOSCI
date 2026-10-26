@@ -133,7 +133,8 @@ class CompleteRetryTests(unittest.TestCase):
             class Review:
                 def complete(self, task, model_id, prompt):
                     return {'ok': True, 'model_id': 'review', 'output': '{"verdict":"pass","notes":"complete"}' if task['kind'] == 'review' else '{}'}
-            with patch('selfopt_chain.evolver.collect_evolution_tasks', return_value=[task]):
+            with patch('selfopt_chain.evolver.collect_evolution_tasks', return_value=[task]), \
+                 patch('selfopt_chain.evolver.idle_mission_catalog', return_value=[]):  # T68: misje tła testowane osobno
                 loop = EvolutionLoop(root, ROOT / 'docs', ROOT, worker=Worker(), strategy_engine=Review(),
                                      clock=lambda: now[0], retry_seconds=10)
                 self.assertEqual(loop.run(1)[0]['status'], 'needs_fixes')

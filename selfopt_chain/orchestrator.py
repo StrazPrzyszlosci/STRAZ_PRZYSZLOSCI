@@ -551,6 +551,29 @@ class Orchestrator:
         receipt["finished"] = _now_iso()
         return receipt
 
+    @staticmethod
+    def _model_utilization(state) -> dict:
+        """T68: utylizacja modeli — uzbrojone vs z zadaniem w ostatnim batchu.
+
+        Dyrektor widzi tę liczbę w raporcie asystenta i optymalizuje przydziały
+        (dyrektywa: jak największa liczba modeli z przydzielonym zadaniem).
+        """
+        try:
+            batches = state / "evolution_batches"
+            files = sorted(batches.glob("batch_*.json"), key=lambda p: p.stat().st_mtime) if batches.is_dir() else []
+            busy = set()
+            for path in reversed(files[-3:]):
+                for row in json.loads(path.read_text(encoding="utf-8")).get("tasks", []):
+                    if row.get("model_alias"):
+                        busy.add(row["model_alias"])
+            shortlist_path = state / "last_model_shortlist.json"
+            shortlist = json.loads(shortlist_path.read_text(encoding="utf-8")) if shortlist_path.is_file() else {}
+            armed = set(shortlist.get("candidates", []))
+            return {"models_with_task": len(busy), "models_armed": len(armed) or None,
+                    "busy_models": sorted(busy)[:20]}
+        except Exception:
+            return {}
+
     def _scout_snapshots(self, hardware):
         """T67: ZWIADOWCA — stan zewnętrzny jako zasób wejściowy roju (best-effort).
 
@@ -610,7 +633,33 @@ class Orchestrator:
             prev_path.write_text(str(rows_now), encoding="utf-8")
         except Exception as error:
             print(f"[scout] parts_db_changes niedostępne ({type(error).__name__})")
-        try:  # 4. raport asystenta (basal) dla dyrektora
+        try:  # 5. katalog OSS — shallow-clone ŹRÓDEŁ ZAAKCEPTOWANYCH przez operatora
+            # T68: rój korzysta z internetu: repozytoria z watchlisty (state-dir) są
+            # klonowane płytko do cache i wystawiane jako runtime-input celu adoptacji.
+            # Nowe źródła wymagają jednorazowej akceptacji ("approved": true) —
+            # autonomia na zweryfikowanych źródłach, kontrola człowieka na nowych.
+            watchlist_path = state / "oss_watchlist.json"
+            watchlist = json.loads(watchlist_path.read_text(encoding="utf-8")) if watchlist_path.is_file() else []
+            catalog = []
+            cache = state / "oss_cache"
+            for entry in [e for e in watchlist if e.get("approved") and e.get("url")][:3]:
+                name = str(entry.get("name") or entry["url"].rstrip("/").split("/")[-1])[:64]
+                target = cache / name
+                try:
+                    if target.is_dir():
+                        sp.run(["git", "-C", str(target), "fetch", "-q", "--depth=1"], capture_output=True, timeout=90)
+                        sp.run(["git", "-C", str(target), "reset", "-q", "--hard", "origin/HEAD"], capture_output=True, timeout=60)
+                    else:
+                        sp.run(["git", "clone", "-q", "--depth=1", entry["url"], str(target)], capture_output=True, timeout=120)
+                    readme = next((target / f for f in ("README.md", "readme.md", "README.rst") if (target / f).is_file()), None)
+                    catalog.append({"name": name, "url": entry["url"],
+                                    "readme_excerpt": readme.read_text(encoding="utf-8", errors="ignore")[:4000] if readme else ""})
+                except Exception as fetch_error:
+                    print(f"[scout] oss_fetch {name}: {type(fetch_error).__name__}")
+            (state / "oss_catalog.json").write_text(json.dumps(catalog, ensure_ascii=False), encoding="utf-8")
+        except Exception as error:
+            print(f"[scout] oss_catalog niedostępny ({type(error).__name__})")
+        try:  # 6. raport asystenta (basal) dla dyrektora — z metryką utylizacji modeli
             decisions_path = state / "decisions.jsonl"
             rows = [json.loads(s) for s in decisions_path.read_text(encoding="utf-8").splitlines() if s.strip()] if decisions_path.is_file() else []
             labels = [json.loads(s) for s in (state / "labels.jsonl").read_text(encoding="utf-8").splitlines() if s.strip()] if (state / "labels.jsonl").is_file() else []
@@ -624,6 +673,7 @@ class Orchestrator:
                 "labels_accepted": sum(1 for row in labels if row.get("accepted")),
                 "labels_rejected": sum(1 for row in labels if not row.get("accepted")),
                 "open_prs_count": len(open_prs),
+                "model_utilization": self._model_utilization(state),
                 "hardware_summary": {"architecture": (hardware or {}).get("architecture"),
                                      "cpu": ((hardware or {}).get("cpu") or {}).get("model"),
                                      "effective_cores": ((hardware or {}).get("cpu") or {}).get("effective_cores"),

@@ -181,6 +181,45 @@ def run_budget_for(model: dict | None) -> int:
     return budget
 
 
+IDLE_MISSION_POOL = 6
+IDLE_MISSION_THEMES = [
+    {"slug": "projekty_realizowalne_teraz", "title": "Wypisz procesy z README/PROJEKTY realizowalne TERAZ (laptop+darmowe API) i pierwsze kroki",
+     "context": "Każdy proces podaj z: co już jest w repo, czego brakuje, jakie darmowe API/LLM to domkną.",
+     "input_refs": ["README.md", "PROJEKTY/00_fundamenty_technologiczne.md"]},
+    {"slug": "openbot_sterownik", "title": "Dopracuj plan węzła OpenBot: smartfon jako sterownik (PROJEKTY 06/08) — gotowość na telefon",
+     "context": "Przygotuj checklistę software (apka, YOLOX on-device, mostek motorów) tak, by po podłączeniu telefonu wdrożenie było szybkie.",
+     "input_refs": ["PROJEKTY/06_smartfony_jako_sterowniki.md", "PROJEKTY/08_openbot_autonomiczne_maszyny_rolnicze.md"]},
+    {"slug": "baza_czesci_przyrost", "title": "Zaproponuj wykorzystanie bazy części z recyklingu w kolejnych PROJEKTY",
+     "context": "Baza części rośnie — wskaż konkretne komponenty-dawców i do jakich projektów/węzłów je użyć.",
+     "input_refs": ["PROJEKTY/13_baza_czesci_recykling/README.md"]},
+    {"slug": "selfopt_calibrate_review", "title": "Przejrzyj selfopt_chain/calibrate.py i zaproponuj usprawnienie uczenia roju",
+     "context": "Konkretna poprawka z uzasadnieniem i testem — suggest-only.",
+     "input_refs": ["selfopt_chain/calibrate.py"]},
+    {"slug": "selfopt_metrics_review", "title": "Przejrzyj selfopt_chain/metrics.py: zaproponuj metryki lepszej alokacji modeli",
+     "context": "Cel: maksymalizacja utylizacji modeli; zaproponuj metryki i sposób raportowania.",
+     "input_refs": ["selfopt_chain/metrics.py"]},
+    {"slug": "repo_health", "title": "Przegląd zdrowia repo: niescalone PR-y, długi techniczny, najpilniejsze usprawnienia",
+     "context": "Raport priorytetów dla operatora.",
+     "input_refs": ["AGENTS.md"]},
+    {"slug": "oss_adoption_scan", "title": "Skanuj katalog OSS (oss_catalog.json): kod do adoptacji w PROJEKTY/selfopt",
+     "context": "Wskaż konkretne pliki/licencje/motywacje adoptacji przez PR.",
+     "input_refs": ["AGENTS.md"], "runtime_ref": "oss_catalog.json"},
+    {"slug": "lora_mesh_gotowosc", "title": "Przygotuj węzeł LoRa/mesh do szybkiego wdrożenia gdy pojawi się sprzęt",
+     "context": "Checklista sprzętu z odzysku + konfiguracje (PROJEKTY 10) — gotowe do flashowania po dostawie.",
+     "input_refs": ["PROJEKTY/10_lacznosc_mesh_lora.md"]},
+    {"slug": "charter_audyt", "title": "Audyt charter.json pod przyszłą aktuation (ESP32/telefony) — luki bezpieczeństwa",
+     "context": "Tylko analiza dokumentu; zmiany konstytucji przez PR człowieka.",
+     "input_refs": ["selfopt_chain/charter.json"]},
+]
+
+
+def idle_mission_catalog(repo_root) -> list[dict]:
+    """T68: katalog misji tła, filtrowany po istniejących plikach wejściowych."""
+    root = Path(repo_root)
+    return [theme for theme in IDLE_MISSION_THEMES
+            if all((root / ref).is_file() for ref in theme["input_refs"])]
+
+
 def ensemble_pool(models: dict, lane_models: list, task_kind: str, primary_alias: str, k: int,
                   ledger=None, requires_tools: bool = False) -> list[str]:
     """T66: K różnych modeli-producentów na JEDNO zadanie (przydział ról).
@@ -465,7 +504,11 @@ class EvolutionLoop:
             active = {c["task"] for c in collect(self.repo_root, True).values()}
         except (OSError, ValueError, __import__("subprocess").CalledProcessError):
             active = set()
-        for task in collect_evolution_tasks(self.state_dir, self.docs_dir, 100):
+        collected = collect_evolution_tasks(self.state_dir, self.docs_dir, 100)
+        # T68: misje tła przechodzą tę samą ścieżkę co cele (charter, inputy,
+        # shortlist, store) — generowane gdy prawdziwy backlog nie zapełnia pasm.
+        missions = self._idle_mission_tasks(max(0, IDLE_MISSION_POOL - len(collected)))
+        for task in list(collected) + missions:
             fp = self.fingerprint(task)
             if any(re.match(rf"{number}(?![0-9])", task.title) for number in active):
                 continue
@@ -555,6 +598,39 @@ class EvolutionLoop:
                        context={"task_id": task.task_id, "strategy_hint": hint, "model_characteristics": details})
             return decision["final"] if decision["final"] in scores else default
         return default
+
+    def _idle_mission_tasks(self, count: int) -> list[EvolutionTask]:
+        """T68: misje tła dla bezczynnych modeli — jak największa liczba modeli z zadaniem.
+
+        Gdy prawdziwy backlog jest cieńszy niż liczba pasm, generujemy lekkie
+        misje analityczne (PROJEKTY realizowalne teraz, skan OSS, przegląd
+        modułów, zdrowie repo, gotowość LoRa/aktuation). Misje są
+        niskopriorytetowe (nie wygrywają z celami operatora), tygodniowo
+        odświeżane (bucket w task_id → store czyści próby po tygodniu)
+        i przechodzą pełną bramkę walidacji/SecurityGate/review jak każdy artefakt.
+        """
+        if count <= 0 or not self._worker_enabled():
+            return []
+        import datetime
+        iso = datetime.datetime.now(datetime.timezone.utc).isocalendar()
+        period = f"{iso[0]}w{iso[1]}"
+        missions = []
+        for theme in idle_mission_catalog(self.repo_root):
+            if len(missions) >= count:
+                break
+            if theme.get("runtime_ref") and not (self.state_dir / theme["runtime_ref"]).is_file():
+                continue
+            missions.append(EvolutionTask(
+                task_id=f"mission_{theme['slug']}_{period}",
+                title=theme["title"],
+                source=f"idle_mission:{theme['slug']}",
+                context=theme["context"],
+                constraints="suggest-only; lekka misja tła dla bezczynnego modelu",
+                input_refs=theme["input_refs"],
+                runtime_refs=[theme["runtime_ref"]] if theme.get("runtime_ref") else [],
+                kind="proposal", priority=-1,
+            ))
+        return missions
 
     def _run_task(self, task, parallel_mode, model_alias):
         from selfopt_chain.evolution_inputs import task_prompt

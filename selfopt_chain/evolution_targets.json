@@ -104,6 +104,9 @@
       "source_hint": "dyrektor: wymien konkretne repo/licencje/motywacje adoptacji (np. wzorzec LiteWeed); plan wdrozenia przez PR",
       "constraints": "suggest-only; licencje copyleft => SecurityGate review; bez sciagania kodu w tym kroku",
       "reset_after_days": 7,
+      "runtime_refs": [
+        "oss_catalog.json"
+      ],
       "input_refs": [
         "docs/LITEWEED_WZORZEC_REFERENCYJNY.md",
         "README.md"
