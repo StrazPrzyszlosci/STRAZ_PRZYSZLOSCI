@@ -41,6 +41,8 @@ def public_runtime(path, name):
         allowed = {'changed_at', 'field', 'before', 'after'}
     elif name == 'parts_db_changes.json':
         allowed = {'changed_at', 'rows_before', 'rows_after', 'delta'}
+    elif name == 'oss_catalog.json':
+        allowed = {'name', 'url', 'readme_excerpt'}
     else:
         raise InputUnavailable('runtime_not_exportable:' + name)
     return [{k: v for k, v in row.items() if k in allowed} for row in rows]
