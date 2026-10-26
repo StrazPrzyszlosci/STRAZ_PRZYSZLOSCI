@@ -299,13 +299,17 @@ def build_task_query(task: EvolutionTask, repo_root: Path) -> str:
     ])
 
 
-def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | None, hardware_context=None) -> tuple[dict[str, Any], list[EvolutionTask]]:
+def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | None, hardware_context=None,
+                          assistant_report: dict | None = None) -> tuple[dict[str, Any], list[EvolutionTask]]:
     """KROK 1 (dyrektywa operatora): STRATEGIE tworzy LLM na darmowych modelach.
 
     LLM dostaje surowe zadania z backlogu i produkuje 'strategy brief':
     priorytety, podejście, hinty klas modeli ORAZ DEKOMPOZYCJĘ najważniejszych
     zadań na konkretne PODZADANIA (atomizacja — świeży materiał co rundę,
     żeby ewolucja non-stop nie kręciła kółka na tych samych wpisach).
+    T67: basal = ASYSTENT dyrektora — jego raport z poprzednich cykli
+    (decyzje + wyniki) jest wejściem dla dyrektora; dyrektor odpowiada
+    dyrektywą (model_hints + assistant_feedback) dla asystenta.
     Offline (brak engine): strategia deterministyczna, bez podzadań.
     """
     known_ids = {t.task_id for t in tasks}
@@ -314,6 +318,7 @@ def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | Non
         "brief": "Kolejnosc wejsciowa zadan; brak rankingu LLM (offline).",
         "priorities": [t.task_id for t in tasks],
         "model_hints": {t.task_id: "auto" for t in tasks},
+        "assistant_feedback": "",
     }
     if strategy_engine is None or not tasks:
         return fallback_strategy, []
@@ -322,13 +327,18 @@ def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | Non
         "# Zadanie: strategia ewolucji repo dla roju Straży Przyszłości (suggest-only)",
         "Poniżej surowe zadania z backlogu roju. Utwórz 'strategy brief' WYŁĄCZNIE jako JSON:",
         '{"brief": str, "priorities": [task_id...], "model_hints": {task_id: "fast"|"smart"},',
+        ' "assistant_feedback": "krótka dyrektywa dla asystenta-basal (co zmienić w przydziałach modeli/zadań)",',
         ' "subtasks": [{"task_id": "unikalne-id-podzadania", "title": "konkretne podzadanie", "context": "jak wykonać", "parent": "task_id"}]}',
         "Priorytety = kolejność realizacji. Podzadania = dekompozycja najważniejszych zadań",
         "na 2-4 konkretne, wykonalne kawałki (atomizacja procesów). Maks. 6 podzadań.",
+        "Jesteś DYREKTOREM roju: asystent (basal, mały szybki model lokalny) raportuje Ci swoje",
+        "decyzje i ich wyniki — Ty decydujesz o strategii i przydziałach.",
         "",
         "Zadania:",
         listing,
         'Aktualny sprzęt i ograniczenia hosta: ' + json.dumps(hardware_context or {}, ensure_ascii=False),
+        'RAPORT ASYSTENTA (basal) z poprzednich cykli — decyzje i wyniki: '
+        + json.dumps(assistant_report or {}, ensure_ascii=False)[:6000],
     ])
     result = strategy_engine.complete({"kind": "reason", "privacy": "public", "task_id": "evolution_strategy"}, "auto", prompt)
     if not result.get("ok"):
@@ -343,6 +353,7 @@ def generate_llm_strategy(tasks: list[EvolutionTask], strategy_engine: Any | Non
             "brief": str(parsed.get("brief", ""))[:600],
             "priorities": [p for p in parsed.get("priorities", []) if p in known_ids],
             "model_hints": {k: v for k, v in parsed.get("model_hints", {}).items() if k in known_ids},
+            "assistant_feedback": str(parsed.get("assistant_feedback", ""))[:600],
         }
         subtasks: list[EvolutionTask] = []
         seen_ids: set[str] = set()
@@ -491,8 +502,13 @@ class EvolutionLoop:
         tasks = self.pending() if tasks is None else tasks
         if not tasks:
             return []
+        try:
+            assistant_report = json.loads((self.state_dir / "assistant_report.json").read_text(encoding="utf-8"))
+        except Exception:
+            assistant_report = None
         self.strategy, subtasks = generate_llm_strategy(tasks, self.strategy_engine,
-                                                       getattr(self.decision_core, 'hardware_context', {}))
+                                                         getattr(self.decision_core, 'hardware_context', {}),
+                                                         assistant_report=assistant_report)
         # A decomposition is a proposal; only a complete task contract may execute.
         self.strategy["proposed_subtasks"] = [{"title": t.title, "parent_source": t.source} for t in subtasks]
         order = {task_id: i for i, task_id in enumerate(self.strategy.get("priorities", []))}
