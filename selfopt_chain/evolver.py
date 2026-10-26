@@ -164,6 +164,7 @@ def _parse_proposal_tasks(state_dir: Path, limit: int = 5) -> list[EvolutionTask
 
 
 RUN_BUDGET_BY_SPEED = {"fast": 360, "medium": 540, "slow": 900}
+NIM_MIN_RUN_BUDGET_S = 720
 
 
 def run_budget_for(model: dict | None) -> int:
@@ -171,9 +172,48 @@ def run_budget_for(model: dict | None) -> int:
 
     Dowód z live: próby NIM kończyły exit_code -15 / stop_reason timeout
     przy 4 wywołaniach API w 360 s (cold-start NIM). Lekcja T52b: cierpliwość
-    na powolne modele zamiast zabijania sesji.
+    na powolne modele zamiast zabijania sesji. NIM ma twarde minimum
+    (cold-start upstreamu), niezależnie od klasy szybkości.
     """
-    return RUN_BUDGET_BY_SPEED.get((model or {}).get("speed_class"), 360)
+    budget = RUN_BUDGET_BY_SPEED.get((model or {}).get("speed_class"), 360)
+    if (model or {}).get("provider") == "nvidia_nim_free":
+        budget = max(budget, NIM_MIN_RUN_BUDGET_S)
+    return budget
+
+
+def ensemble_pool(models: dict, lane_models: list, task_kind: str, primary_alias: str, k: int,
+                  ledger=None, requires_tools: bool = False) -> list[str]:
+    """T66: K różnych modeli-producentów na JEDNO zadanie (przydział ról).
+
+    Primary (decyzja basal) zawsze pierwszy; kolejne to najwyżej notowani
+    kandydaci krótkiej listy spoza primary. Brak kandydatów => tylko primary.
+    """
+    if k <= 1 or not primary_alias:
+        return [primary_alias] if primary_alias else []
+    from selfopt_chain.model_selection import shortlist_models
+    kind = "code_draft" if task_kind == "patch" else "reason"
+    others = [models[mid] for mid in (lane_models or []) if mid in models and mid != primary_alias]
+    if not others:
+        return [primary_alias]
+    shortlist = shortlist_models(others, kind=kind, ledger=ledger, requires_tools=requires_tools)
+    out = [primary_alias]
+    for mid in shortlist["candidates"]:
+        if mid != primary_alias and mid not in out and len(out) < k:
+            out.append(mid)
+    return out
+
+
+def rank_ensemble_candidates(receipts: list[dict]) -> list[dict]:
+    """T66: porównanie wyników modeli — gate > review > walidacja > wykonanie.
+
+    Tie-break deterministyczny po aliasie. Zwraca listę posortowaną od
+    zwycięzcy; ranking jest danym do nauki (ensemble_report.json + etykiety).
+    """
+    def score(r: dict) -> tuple:
+        review = r.get("review") or {}
+        return (int(bool(r.get("gate_ok"))), int(review.get("verdict") == "pass"),
+                int(bool(r.get("validation_ok"))), int(bool(r.get("execution_ok"))))
+    return sorted(receipts, key=lambda r: (score(r), str(r.get("model_alias", ""))), reverse=True)
 
 
 def auto_label_outcome(state_dir: Path, model_alias: str, accepted: bool, note: str) -> str | None:
@@ -359,12 +399,14 @@ class EvolutionLoop:
 
     def __init__(self, state_dir, docs_dir, repo_root, worker=None, lane_models=None,
                  decision_core=None, strategy_engine=None, max_lanes=6, should_stop=None,
-                 models=None, retry_seconds=60, max_attempts=3, clock=time.time):
+                 models=None, retry_seconds=60, max_attempts=3, clock=time.time,
+                 ensemble_candidates=1):
         from selfopt_chain.evolution_store import EvolutionStore
         self.state_dir, self.docs_dir, self.repo_root = Path(state_dir), Path(docs_dir), Path(repo_root)
         self.worker, self.lane_models = worker, lane_models or []
         self.decision_core, self.strategy_engine = decision_core, strategy_engine
         self.max_lanes, self.should_stop = max_lanes, should_stop or (lambda: False)
+        self.ensemble_candidates = max(1, int(ensemble_candidates or 1))
         self.models = {m["model_id"]: m for m in (models or getattr(worker, "models", None) or [])}
         self.gate, self.queue_dir = SecurityGate(), self.state_dir / "evolution_queue"
         self.store = EvolutionStore(self.state_dir, clock=clock, retry_seconds=retry_seconds, max_attempts=max_attempts)
@@ -526,60 +568,121 @@ class EvolutionLoop:
         try:
             if self._worker_enabled():
                 receipt["executor"] = getattr(self.worker, "executor_name", "hermes")
-                produced = self.worker.run_isolated(task_prompt(bundle), model_alias=model_alias, input_bundle=bundle,
-                                                    run_budget_s=run_budget_for(self.models.get(model_alias)))
-                (out_dir / "hermes_receipt.json").write_text(json.dumps(produced, ensure_ascii=False, indent=2))
-                receipt.update(hermes_run_id=produced.get("run_id"), hermes_executed=produced.get("executed"),
-                               worker_exit_code=produced.get("exit_code"), hermes_exit_code=produced.get("exit_code") if receipt["executor"] == "hermes" else None, validation=produced.get("validation"),
-                               security_ok=bool((produced.get("security_gate") or {}).get("ok")),
-                               execution_ok=produced.get("executed") is True and produced.get("exit_code") == 0)
-                validation = produced.get("validation") or {}
-                texts = []
-                output_root = Path(produced.get("quarantine_dir", out_dir))
-                for name in ["PROPOSAL.md", "changes.patch"]:
-                    path = output_root / name
-                    if path.is_file() and not path.is_symlink():
-                        texts.append(f"# {name}\n{path.read_text()}")
-                        if name == "PROPOSAL.md":
-                            receipt["proposal_path"] = str(path)
-                text = "\n".join(texts)
-                if len(text) > 16000:
-                    receipt["error"] = "review_context_limit"
-                    text = ""
-                # Do not spend a review call on missing, unsafe or invalid production.
-                receipt["review"] = review_by_strong_model(task, text + "\nValidation: " + json.dumps(validation), self.strategy_engine,
-                                                           producer_alias=model_alias, registry=list(self.models.values())) if text and receipt["security_ok"] and validation.get("ok") else {"verdict": "unreviewed", "notes": "artifact not validated"}
-                receipt["validation_ok"] = bool(validation.get("ok"))
-                receipt["error"] = produced.get("error") or produced.get("stop_reason") or receipt.get("error")
-                report = produced.get("security_gate") or {"ok": False}
+                aliases = ensemble_pool(self.models, self.lane_models, task.kind, model_alias, self.ensemble_candidates,
+                                        ledger=getattr(self.worker, "ledger", None),
+                                        requires_tools=getattr(self.worker, "executor_name", "hermes") == "hermes")
+                aliases = aliases or ([model_alias] if model_alias else [])
+                if len(aliases) > 1 and parallel_mode != "single":
+                    receipt = self._run_ensemble(task, bundle, aliases, parallel_mode, out_dir, receipt)
+                else:
+                    receipt = self._assess_hermes_candidate(task, bundle, aliases[0] if aliases else model_alias,
+                                                           parallel_mode, out_dir, receipt)
+                    self._finalize_task_receipt(receipt)
+                    self._label_and_archive(task, receipt, is_winner=True)
             else:
                 proposal_path = out_dir / "PROPOSAL.md"
                 proposal_path.write_text(render_mock_proposal(task, parallel_mode, {"ok": True}))
                 receipt.update(proposal_path=str(proposal_path), execution_ok=False, validation_ok=False,
                                security_ok=True, review={"verdict": "unreviewed", "notes": "simulated"})
-                report = self.gate.inspect_code(proposal_path.read_text())
-            receipt["review_ok"] = receipt["review"].get("verdict") == "pass"
-            receipt["gate_ok"] = all(receipt.get(k) for k in ["execution_ok", "validation_ok", "security_ok", "review_ok"])
-            receipt["ready_for_human_review"] = receipt["gate_ok"]
-            receipt["status"] = "ready" if receipt["gate_ok"] else "simulated" if receipt["executor"] == "mock" else "needs_fixes"
-            if receipt["executor"] != "mock":
-                auto_label_outcome(self.state_dir, model_alias, bool(receipt["gate_ok"]),
-                                   f"{task.task_id}: {receipt['status']} (auto, T65)")
-            if receipt["validation_ok"] and receipt["execution_ok"] and receipt["security_ok"] and receipt["review"].get("verdict") == "unreviewed":
-                receipt["status"] = "waiting_review"
-            if receipt.get("error") in {"connection_error", "http_error", "bad_response"}:
-                receipt["status"] = "waiting_provider"
-            elif receipt.get("error") == "quota_exhausted":
-                receipt["status"] = "waiting_budget"
-            receipt["quarantined"] = not receipt["gate_ok"]
-            (out_dir / "gate_report.json").write_text(json.dumps(report, indent=2))
-            if receipt["gate_ok"]:
-                self._archive(receipt)
+                self._finalize_task_receipt(receipt)
+                (out_dir / "gate_report.json").write_text(json.dumps(self.gate.inspect_code(proposal_path.read_text()), indent=2))
         except Exception as error:
             receipt.update(status="needs_fixes", error=type(error).__name__, gate_ok=False, ready_for_human_review=False,
                            security_ok=False, validation_ok=False, execution_ok=False, review_ok=False,
                            review={"verdict": "unreviewed", "notes": "controller captured failure"}, validation={"ok": False, "error": type(error).__name__})
         return self._record(fp, lease, task, receipt)
+
+    def _assess_hermes_candidate(self, task, bundle, alias, parallel_mode, cand_dir, receipt):
+        """T66: produkcja + ocena JEDNEGO kandydata (rola producenta) — bezpieczna wątkowo."""
+        from selfopt_chain.evolution_inputs import task_prompt
+        cand_dir = Path(cand_dir)
+        cand_dir.mkdir(parents=True, exist_ok=True)
+        candidate = {**receipt, "model_alias": alias}
+        try:
+            produced = self.worker.run_isolated(task_prompt(bundle), model_alias=alias, input_bundle=bundle,
+                                                run_budget_s=run_budget_for(self.models.get(alias)))
+            (cand_dir / "hermes_receipt.json").write_text(json.dumps(produced, ensure_ascii=False, indent=2))
+            candidate.update(hermes_run_id=produced.get("run_id"), hermes_executed=produced.get("executed"),
+                             worker_exit_code=produced.get("exit_code"),
+                             hermes_exit_code=produced.get("exit_code") if candidate["executor"] == "hermes" else None,
+                             validation=produced.get("validation"),
+                             security_ok=bool((produced.get("security_gate") or {}).get("ok")),
+                             execution_ok=produced.get("executed") is True and produced.get("exit_code") == 0)
+            validation = produced.get("validation") or {}
+            texts = []
+            output_root = Path(produced.get("quarantine_dir", cand_dir))
+            for name in ["PROPOSAL.md", "changes.patch"]:
+                path = output_root / name
+                if path.is_file() and not path.is_symlink():
+                    texts.append(f"# {name}\n{path.read_text()}")
+                    if name == "PROPOSAL.md":
+                        candidate["proposal_path"] = str(path)
+            text = "\n".join(texts)
+            if len(text) > 16000:
+                candidate["error"] = "review_context_limit"
+                text = ""
+            # Do not spend a review call on missing, unsafe or invalid production.
+            candidate["review"] = review_by_strong_model(task, text + "\nValidation: " + json.dumps(validation), self.strategy_engine,
+                                                         producer_alias=alias, registry=list(self.models.values())) if text and candidate["security_ok"] and validation.get("ok") else {"verdict": "unreviewed", "notes": "artifact not validated"}
+            candidate["validation_ok"] = bool(validation.get("ok"))
+            candidate["error"] = produced.get("error") or produced.get("stop_reason") or candidate.get("error")
+            (cand_dir / "gate_report.json").write_text(json.dumps(produced.get("security_gate") or {"ok": False}, indent=2))
+        except Exception as error:  # przechwyt per-kandydat: ensemble nie pada przez jednego kandydata
+            candidate.update(status="needs_fixes", error=type(error).__name__, gate_ok=False, ready_for_human_review=False,
+                             security_ok=False, validation_ok=False, execution_ok=False, review_ok=False,
+                             review={"verdict": "unreviewed", "notes": "controller captured failure"},
+                             validation={"ok": False, "error": type(error).__name__})
+        return candidate
+
+    def _finalize_task_receipt(self, receipt):
+        """T66: wspólne bramki statusu po ocenie produkcji (etykiety i archiwum decyduje ranking)."""
+        receipt["review_ok"] = receipt["review"].get("verdict") == "pass"
+        receipt["gate_ok"] = all(receipt.get(k) for k in ["execution_ok", "validation_ok", "security_ok", "review_ok"])
+        receipt["ready_for_human_review"] = receipt["gate_ok"]
+        receipt["status"] = "ready" if receipt["gate_ok"] else "simulated" if receipt["executor"] == "mock" else "needs_fixes"
+        if receipt["validation_ok"] and receipt["execution_ok"] and receipt["security_ok"] and receipt["review"].get("verdict") == "unreviewed":
+            receipt["status"] = "waiting_review"
+        if receipt.get("error") in {"connection_error", "http_error", "bad_response"}:
+            receipt["status"] = "waiting_provider"
+        elif receipt.get("error") == "quota_exhausted":
+            receipt["status"] = "waiting_budget"
+        receipt["quarantined"] = not receipt["gate_ok"]
+
+    def _label_and_archive(self, task, receipt, is_winner):
+        """T66: etykieta z roli w porównaniu (winner/candidate) + archiwum tylko zwycięzcy."""
+        if receipt.get("executor") != "mock":
+            role = "ensemble winner" if is_winner and self.ensemble_candidates > 1 else ""
+            note = f"{task.task_id}: {receipt.get('status')}" + (f" ({role})" if role else "") + " (auto, T66)"
+            auto_label_outcome(self.state_dir, receipt.get("model_alias"), bool(is_winner and receipt.get("gate_ok")), note)
+        if is_winner and receipt.get("gate_ok"):
+            self._archive(receipt)
+
+    def _run_ensemble(self, task, bundle, aliases, parallel_mode, out_dir, receipt):
+        """T66: równolegli producenci (różne modele/role) na jednym zadaniu + porównanie wyników.
+
+        Każdy kandydat: produkcja -> walidacja -> niezależny review mocnym modelem.
+        Ranking (gate > review > walidacja > wykonanie) wybiera zwycięzcę; raport
+        porównania ląduje w ensemble_report.json i zasila naukę (etykiety ról).
+        """
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=min(3, len(aliases))) as pool:
+            futures = [pool.submit(self._assess_hermes_candidate, task, bundle, alias, parallel_mode,
+                                   out_dir / ("cand_" + alias.replace("/", "_").replace(":", "_")), dict(receipt))
+                       for alias in aliases]
+            candidates = [future.result() for future in futures]
+        comparison = [{"model_alias": c.get("model_alias"), "status": c.get("status"),
+                       "gate_ok": c.get("gate_ok"), "validation_ok": c.get("validation_ok"),
+                       "security_ok": c.get("security_ok"), "review": (c.get("review") or {}).get("verdict"),
+                       "error": c.get("error")} for c in candidates]
+        (out_dir / "ensemble_report.json").write_text(json.dumps(
+            {"task_id": task.task_id, "candidates": aliases, "comparison": comparison}, ensure_ascii=False, indent=2))
+        ranked = rank_ensemble_candidates(candidates)
+        winner = ranked[0]
+        winner["ensemble"] = {"candidates": aliases, "winner": winner.get("model_alias"),
+                              "report_path": str(out_dir / "ensemble_report.json"), "comparison": comparison}
+        for candidate in candidates:
+            self._label_and_archive(task, candidate, candidate is winner)
+        return winner
 
     def _archive(self, receipt):
         import shutil

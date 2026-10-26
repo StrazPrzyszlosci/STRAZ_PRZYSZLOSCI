@@ -125,6 +125,8 @@ class AutoLabelTest(unittest.TestCase):
         self.assertEqual(run_budget_for({'speed_class': 'fast'}), 360)
         self.assertEqual(run_budget_for({}), 360)
         self.assertEqual(run_budget_for(None), 360)
+        self.assertEqual(run_budget_for({'speed_class': 'fast', 'provider': 'nvidia_nim_free'}), 720)
+        self.assertEqual(run_budget_for({'speed_class': 'slow', 'provider': 'nvidia_nim_free'}), 900)
 
 
 class RuntimeInputsTest(unittest.TestCase):
